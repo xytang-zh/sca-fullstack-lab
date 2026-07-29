@@ -1,0 +1,839 @@
+# CLAUDE.md — spring-cloud-services 业务服务聚合
+
+> 本文档面向 AI 编码助手，用于在 `spring-cloud-services/` 目录下（或任意子服务下）工作时提供模块约束、技术栈版本、服务职责与开发规范。
+> 工作前**必须**先读取父目录的 [`spring-cloud-alibaba/CLAUDE.md`](../CLAUDE.md) 了解全局规范。
+
+---
+
+## 1. 聚合模块定位
+
+`spring-cloud-services` 是 11 个业务/基础设施微服务的 **Maven 聚合 POM**，本身不含代码，只通过 `<modules>` 声明子服务。
+
+| 维度 | 值 |
+|------|-----|
+| 父 POM | `com.xytang:spring-cloud-alibaba:1.0-SNAPSHOT` |
+| 当前 artifactId | `spring-cloud-services` |
+| packaging | `pom` |
+| 子服务数量 | 11 |
+| 顶级包前缀 | `com.xytang.{服务名}` |
+
+---
+
+## 2. 子服务清单（11 个）
+
+| # | 服务 | 端口 | 类型 | 顶级包 | 启动类                              |
+|---|------|------|------|--------|----------------------------------|
+| 1 | `spring-cloud-system` | 8082 | 业务 | `com.xytang.system` | `SpringCloudSystemApplication`   |
+| 2 | `spring-cloud-monitor` | 8083 | 业务 | `com.xytang.monitor` | `SpringCloudMonitorApplication`  |
+| 3 | `spring-cloud-workflow` | 8084 | 业务 | `com.xytang.workflow` | `SpringCloudWorkflowApplication` |
+| 4 | `spring-cloud-ai` | 8085 | 业务 | `com.xytang.ai` | `SpringCloudAiApplication`       |
+| 5 | `spring-cloud-message` | 8086 | 基础设施 | `com.xytang.message` | `SpringCloudMessageApplication`  |
+| 6 | `spring-cloud-search` | 8087 | 基础设施 | `com.xytang.search` | `SpringCloudSearchApplication`   |
+| 7 | `spring-cloud-file` | 8088 | 基础设施 | `com.xytang.file` | `SpringCloudFileApplication`     |
+| 8 | `spring-cloud-log` | 8089 | 基础设施 | `com.xytang.log` | `SpringCloudLogApplication`      |
+| 9 | `spring-cloud-portal` | 8090 | 业务 | `com.xytang.portal` | `SpringCloudPortalApplication`   |
+| 10 | `spring-cloud-job` | 8091 | 基础设施 | `com.xytang.job` | `SpringCloudJobApplication`      |
+| 11 | `spring-cloud-report` | 8092 | 业务 | `com.xytang.report` | `SpringCloudReportApplication`   |
+
+> Dubbo 端口 20882 起，每服务 +1。XXL-JOB 执行器端口 10000 起，每服务 +1。
+
+---
+
+## 3. 标准服务模块结构
+
+每个业务服务**必须**遵循以下结构：
+
+```
+spring-cloud-{服务名}/
+├── pom.xml
+└── src/
+    ├── main/
+    │   ├── java/com/xytang/{服务名}/
+    │   │   ├── SpringCloud{服务名}Application.java       启动类
+    │   │   ├── config/                              配置类
+    │   │   ├── controller/                          Controller（RESTful API）
+    │   │   ├── service/                              Service 接口
+    │   │   │   └── impl/                            Service 实现
+    │   │   ├── mapper/                              MyBatis Mapper 接口
+    │   │   ├── entity/                              数据库实体
+    │   │   ├── dto/                                  DTO（入参）
+    │   │   │   ├── {Biz}CreateDTO.java
+    │   │   │   ├── {Biz}UpdateDTO.java
+    │   │   │   └── {Biz}PageQuery.java              分页查询入参
+    │   │   ├── vo/                                   VO（出参）
+    │   │   │   ├── {Biz}VO.java
+    │   │   │   └── {Biz}DetailVO.java
+    │   │   ├── enums/                                枚举
+    │   │   ├── exception/                           业务异常
+    │   │   ├── listener/                            MQ 消费者
+    │   │   ├── rpc/                                  Dubbo Provider（如有）
+    │   │   │   └── {Biz}RpcProvider.java
+    │   │   ├── job/                                  XXL-JOB 任务（如有）
+    │   │   │   └── {Biz}SyncJob.java
+    │   │   ├── ws/                                   WebSocket 处理（如有）
+    │   │   └── constant/                            常量
+    │   └── resources/
+    │       ├── application.yml
+    │       ├── application-dev.yml
+    │       ├── application-prod.yml
+    │       ├── bootstrap.yml                         Nacos 引导
+    │       ├── mapper/                                MyBatis XML
+    │       │   └── {Biz}Mapper.xml
+    │       ├── i18n/                                  国际化
+    │       └── db/migration/                         Flyway 脚本
+    │           └── V1.0.0__init_{service}_tables.sql
+    └── test/
+        └── java/com/xytang/{服务名}/
+            ├── SpringCloud{服务名}ApplicationTests.java
+            └── {Biz}ServiceTest.java
+```
+
+---
+
+## 4. 各服务详细说明
+
+### 4.1 spring-cloud-system（系统管理服务）
+
+#### 4.1.1 服务定位
+
+项目"地基"——所有系统级配置、权限、字典都在这里。其他服务通过 Dubbo 调它的接口。
+
+#### 4.1.2 核心功能
+
+| 模块 | 功能点 |
+|------|--------|
+| 用户模块 | 用户 CRUD、重置密码、启用禁用、导入导出 Excel、分配角色 |
+| 角色模块 | 角色 CRUD、菜单分配、数据权限（部门级）、岗位分配 |
+| 菜单模块 | 菜单树 CRUD、按钮权限标识、路由元数据、缓存策略 |
+| 部门模块 | 部门树 CRUD、负责人、数据权限范围 |
+| 岗位模块 | 岗位 CRUD、用户-岗位关联 |
+| 字典模块 | 字典类型 CRUD、字典数据 CRUD |
+| 参数模块 | 参数 CRUD、参数缓存、与 Nacos 配置镜像 |
+| 通知模块 | 通知 CRUD、已读未读 |
+| 数据权限 | MyBatis-Plus 拦截器 + `@DataScope` 注解 |
+
+#### 4.1.3 技术栈
+
+- Spring Boot 3.5
+- MyBatis-Plus 3.5.9（含分页、多租户、数据权限拦截器）
+- dynamic-datasource 4.3.1（主库 MySQL，备 KingbaseES/DM）
+- Caffeine + Redis（多级缓存字典数据）
+- Dubbo 3.3（对外暴露 `UserService`、`DeptService` 等 RPC 接口）
+- EasyExcel（用户导入导出）
+
+#### 4.1.4 关键接口（RESTful）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/system/users` | 用户分页 |
+| GET | `/system/users/{id}` | 用户详情 |
+| POST | `/system/users` | 新增用户 |
+| PUT | `/system/users/{id}` | 修改用户 |
+| PATCH | `/system/users/{id}/password` | 重置密码 |
+| PATCH | `/system/users/{id}/status` | 启用/禁用 |
+| POST | `/system/users/import` | 导入 Excel |
+| GET | `/system/users/export` | 导出 Excel |
+| GET | `/system/roles` | 角色分页 |
+| GET | `/system/menus/tree` | 菜单树 |
+| GET | `/system/menus/routes` | 前端动态路由 |
+| GET | `/system/depts/tree` | 部门树 |
+| GET | `/system/dicts/data/{type}` | 按类型查字典数据 |
+| GET | `/system/notices` | 通知分页 |
+| PATCH | `/system/notices/{id}/read` | 标记已读 |
+
+#### 4.1.5 数据模型
+
+```
+sys_user, sys_role, sys_menu, sys_dept, sys_post,
+sys_user_role, sys_role_menu, sys_role_dept, sys_user_post,
+sys_dict_type, sys_dict_data, sys_config, sys_notice, sys_notice_read
+```
+
+---
+
+### 4.2 spring-cloud-monitor（服务器监控服务）
+
+#### 4.2.1 服务定位
+
+采集服务器/JVM 指标，存时序库，通过 WebSocket 推送到前端大盘。
+
+#### 4.2.2 核心功能
+
+| 模块 | 功能 |
+|------|------|
+| 采集模块 | OSHI 采集本机指标；接收 monitor-agent 上报 |
+| 存储模块 | TDengine 超级表 `aurora_metrics` |
+| 推送模块 | Netty WebSocket Server（端口 9090），按 `userId → Channel` 推送 |
+| 历史查询 | 按 service_name + 时间范围查询 |
+| 告警模块 | 阈值规则（Nacos 配置）→ 命中发 MQ → message-service 推送 |
+| Prometheus 整合 | 暴露 `/actuator/prometheus` |
+
+#### 4.2.3 技术栈
+
+- OSHI 6.6（系统信息采集）
+- TDengine 3.3.2.0 + taos-jdbcdriver
+- Netty 4.1（WebSocket Server，端口 9090）
+- Spring Boot Actuator + micrometer-registry-prometheus
+- RabbitMQ（发告警事件）
+
+#### 4.2.4 关键接口
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/monitor/realtime` | 当前所有服务最新指标 |
+| GET | `/monitor/history` | 按 service_name + 时间范围查历史 |
+| GET | `/monitor/services` | 列出所有被监控服务 |
+| GET | `/monitor/alerts` | 当前活跃告警 |
+| WS | `/ws/monitor/{userId}` | WebSocket 订阅实时指标 |
+
+#### 4.2.5 数据模型
+
+- TDengine 超级表 `aurora_metrics`
+- MySQL `biz_alert_rule` 告警规则表
+- Redis `monitor:alert:{service}:{metric}` 告警状态去抖
+
+---
+
+### 4.3 spring-cloud-workflow（工作流服务）
+
+#### 4.3.1 服务定位
+
+基于 Warm-Flow 实现 4 类典型审批流程。
+
+#### 4.3.2 核心功能
+
+| 模块 | 功能 |
+|------|------|
+| 流程定义模块 | 导入 JSON、发布、停用、版本管理 |
+| 流程实例模块 | 发起、撤销、催办 |
+| 任务模块 | 待办、已办、审批、驳回、转办、委托、加签、减签 |
+| 历史模块 | 实例历史、节点流转记录 |
+| 请假业务 | 发起表单 |
+| 报销业务 | 发起表单 |
+| 合同业务 | 起草、法务审核、领导审批、归档 |
+| 采购业务 | 申请、采购员、出纳、归档 |
+
+#### 4.3.3 技术栈
+
+- Warm-Flow 1.8.8（`warm-flow-mybatis-plus-sb3-starter`）
+- MyBatis-Plus（业务表）
+- Dubbo（调用 aurora-system 查用户/部门）
+- RabbitMQ（任务待办事件 → aurora-message 推送）
+- MinIO（审批附件）
+
+#### 4.3.4 关键接口
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/workflow/definitions` | 导入流程定义 JSON |
+| GET | `/workflow/definitions` | 流程定义分页 |
+| POST | `/workflow/definitions/{id}/publish` | 发布流程 |
+| POST | `/workflow/instances` | 发起流程实例 |
+| GET | `/workflow/tasks/todo` | 我的待办 |
+| GET | `/workflow/tasks/done` | 我的已办 |
+| POST | `/workflow/tasks/{id}/approve` | 审批通过 |
+| POST | `/workflow/tasks/{id}/reject` | 驳回 |
+| POST | `/workflow/tasks/{id}/transfer` | 转办 |
+| POST | `/workflow/tasks/{id}/delegate` | 委托 |
+| POST | `/workflow/leaves` | 发起请假 |
+| POST | `/workflow/expenses` | 发起报销 |
+
+#### 4.3.5 数据模型
+
+- Warm-Flow 自带 7 张表：`flow_definition`、`flow_node`、`flow_skip`、`flow_instance`、`flow_task`、`flow_his_task`、`flow_user`
+- 业务表：`biz_leave`、`biz_expense`、`biz_contract`、`biz_purchase`
+
+---
+
+### 4.4 spring-cloud-ai（AI 助手服务）
+
+#### 4.4.1 服务定位
+
+基于 Spring AI + RAG 实现企业知识库问答 + 对话历史 + SSE 流式响应。
+
+#### 4.4.2 核心功能
+
+| 模块 | 功能 |
+|------|------|
+| 知识库模块 | 知识库 CRUD、成员权限 |
+| 文档模块 | 上传、分块、向量化、状态管理 |
+| 对话模块 | 会话 CRUD、标题、关联知识库 |
+| 消息模块 | 发消息（流式返回）、消息列表、删除 |
+| 模型模块 | 模型列表、默认模型、按知识库配置 |
+| 上下文模块 | ChatMemoryAdvisor，多轮对话上下文 |
+
+#### 4.4.3 技术栈
+
+- Spring AI 1.1.x（`spring-ai-openai-starter` 或 `spring-ai-alibaba`）
+- Spring AI Advisor（`QuestionAnswerAdvisor`、`VectorStoreChatMemoryAdvisor`）
+- pgvector（PG 16 + pgvector 0.8）
+- MongoDB（对话历史）
+- MinIO（原文件）
+- RabbitMQ（文档上传事件 → 异步分块向量化）
+- Caffeine（模型配置缓存）
+
+#### 4.4.4 关键接口
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/ai/knowledge-bases` | 创建知识库 |
+| GET | `/ai/knowledge-bases` | 知识库分页 |
+| POST | `/ai/documents` | 上传文档（异步处理） |
+| GET | `/ai/documents/{id}/status` | 查文档处理状态 |
+| POST | `/ai/conversations` | 创建会话 |
+| GET | `/ai/conversations/{id}/messages` | 消息列表 |
+| POST | `/ai/chat/stream` | 流式对话（SSE） |
+| GET | `/ai/models` | 模型列表 |
+| PATCH | `/ai/models/default` | 设置默认模型 |
+
+#### 4.4.5 数据模型
+
+- PostgreSQL（pgvector）：`ai_knowledge_base`、`ai_document`、`ai_document_chunk`（含 `embedding vector(1024)`）
+- MongoDB：`ai_conversation`、`ai_message`
+- MinIO：`ai-documents/{kbId}/{docId}/{fileName}`
+
+---
+
+### 4.5 spring-cloud-message（消息中心服务）
+
+#### 4.5.1 服务定位
+
+统一的消息出口：MQ 消费 → WebSocket 推送 → 站内信/邮件/短信。
+
+#### 4.5.2 核心功能
+
+| 模块 | 功能 |
+|------|------|
+| MQ 消费模块 | 监听 `task.todo`、`alert.trigger`、`user.kickout` 等事件 |
+| WebSocket 模块 | Netty Server（端口 9091），`userId → Channel` 路由 |
+| 站内信模块 | 通知 CRUD、已读未读、批量删除 |
+| 邮件模块 | Thymeleaf 模板 + spring-boot-starter-mail |
+| 短信模块 | 阿里云/腾讯云 SDK，限流 |
+| 客服模块 | 访客排队、客服分配、消息路由 |
+
+#### 4.5.3 技术栈
+
+- Spring Boot AMQP（RabbitMQ 消费）
+- Netty 4.1（WebSocket Server，端口 9091）
+- spring-boot-starter-mail
+- Aliyun/Tencent SMS SDK
+- Thymeleaf（邮件模板）
+- Redisson（客服分配分布式锁）
+
+#### 4.5.4 关键接口
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/messages` | 站内信分页 |
+| PATCH | `/messages/{id}/read` | 标记已读 |
+| POST | `/messages/read-all` | 全部已读 |
+| DELETE | `/messages/{id}` | 删除 |
+| GET | `/messages/unread-count` | 未读数 |
+| WS | `/ws/messages/{userId}` | WebSocket 订阅消息推送 |
+| POST | `/messages/customer-service/connect` | 访客接入客服 |
+| POST | `/messages/customer-service/send` | 发送客服消息 |
+
+---
+
+### 4.6 spring-cloud-search（全文检索服务）
+
+#### 4.6.1 服务定位
+
+基于 ElasticSearch 提供文章、知识库、日志等多维度搜索。
+
+#### 4.6.2 核心功能
+
+| 模块 | 功能 |
+|------|------|
+| 索引模块 | 创建、删除、更新 Mapping |
+| 同步模块 | 监听 MySQL 变更 → MQ → ES 写入；定时全量重建 |
+| 搜索模块 | 多字段搜索、高亮、分页 |
+| 聚合模块 | 按分类、标签聚合统计 |
+
+#### 4.6.3 技术栈
+
+- Spring Boot Data Elasticsearch（或 ES Java Client 8.x）
+- ElasticSearch 8.15 + ik_max_word 分词器
+- RabbitMQ（增量同步事件）
+
+#### 4.6.4 关键接口
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/search/indices` | 创建索引 |
+| POST | `/search/indices/sync` | 全量重建 |
+| GET | `/search/articles` | 搜索文章 |
+| GET | `/search/knowledge` | 搜索知识库 |
+| GET | `/search/logs` | 搜索操作日志 |
+| GET | `/search/suggest` | 搜索建议（自动补全） |
+
+---
+
+### 4.7 spring-cloud-file（文件服务）
+
+#### 4.7.1 服务定位
+
+基于 MinIO 的对象存储服务，支持大文件分片上传、断点续传、预签名 URL。
+
+#### 4.7.2 核心功能
+
+| 模块 | 功能 |
+|------|------|
+| 上传模块 | 单文件、批量、分片（init/upload/complete 三步） |
+| 下载模块 | 普通下载、断点续传、临时链接 |
+| 预览模块 | 图片/PDF 直预览，Office 走 KKFileView |
+| 管理模块 | 文件 CRUD、回收站、配额 |
+| 预签名模块 | 前端直传 MinIO 的签名接口 |
+| 秒传模块 | 上传前查 MD5，已存在复用 |
+
+#### 4.7.3 技术栈
+
+- MinIO Java SDK
+- Spring Boot Web
+- Redisson（分片上传状态管理）
+- KKFileView（独立容器，文件预览代理）
+
+#### 4.7.4 关键接口
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/files/upload/init` | 初始化分片上传，返回 uploadId |
+| POST | `/files/upload/chunks` | 上传一片 |
+| POST | `/files/upload/complete` | 完成上传，合并文件 |
+| POST | `/files` | 单文件上传 |
+| GET | `/files/{id}` | 文件元数据 |
+| GET | `/files/{id}/download` | 下载 |
+| GET | `/files/{id}/preview` | 预览（返回 KKFileView URL） |
+| GET | `/files/presign` | 预签名上传 URL |
+| POST | `/files/check-md5` | 秒传检查 |
+| DELETE | `/files/{id}` | 删除（进回收站） |
+| POST | `/files/{id}/restore` | 从回收站恢复 |
+
+---
+
+### 4.8 spring-cloud-log（日志服务）
+
+#### 4.8.1 服务定位
+
+统一记录操作日志、登录日志、审计日志，存 MongoDB（按月分表）。
+
+#### 4.8.2 核心功能
+
+| 模块 | 功能 |
+|------|------|
+| 操作日志模块 | `@OperationLog` 注解 + AOP，自动记录接口调用 |
+| 登录日志模块 | 监听 auth 服务的 `user.login` 事件 |
+| 审计日志模块 | 监听敏感操作（delete、update permission） |
+| 查询模块 | 按用户、时间、类型查询 |
+
+#### 4.8.3 技术栈
+
+- Spring AOP（切面）
+- MongoDB（存储）
+- RabbitMQ（异步写入）
+- ShardingSphere 5.5.2（按月分表，可选）
+
+#### 4.8.4 关键接口
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/logs/operations` | 操作日志分页 |
+| GET | `/logs/logins` | 登录日志分页 |
+| GET | `/logs/audits` | 审计日志分页 |
+| POST | `/logs/operations` | 内部接口：接收日志事件 |
+
+---
+
+### 4.9 spring-cloud-portal（公开门户服务）
+
+#### 4.9.1 服务定位
+
+对外公开的内容门户（博客、新闻、产品），SEO/GEO 友好。
+
+#### 4.9.2 核心功能
+
+| 模块 | 功能 |
+|------|------|
+| 博客模块 | 文章 CRUD、标签、分类、置顶、阅读量 |
+| 新闻模块 | 新闻发布、栏目管理 |
+| 产品模块 | 产品 CRUD、规格 |
+| SEO 模块 | Sitemap、Meta 自动生成、robots.txt |
+| GEO 模块 | 地理位置内容（基于用户 IP 定位） |
+
+#### 4.9.3 技术栈
+
+- Spring Boot
+- MyBatis-Plus（文章、新闻表）
+- ElasticSearch（全文搜索调 aurora-search）
+- Redis（文章缓存、阅读量计数）
+
+#### 4.9.4 关键接口
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/portal/articles` | 文章分页 |
+| GET | `/portal/articles/{id}` | 文章详情 |
+| GET | `/portal/articles/hot` | 热门文章 |
+| GET | `/portal/news` | 新闻分页 |
+| GET | `/portal/products` | 产品分页 |
+| GET | `/portal/sitemap.xml` | Sitemap |
+| GET | `/portal/robots.txt` | Robots |
+
+> portal 服务**不需要登录**，但写操作（POST/PUT/DELETE）必须 @SaCheckRole(ADMIN)。
+
+---
+
+### 4.10 spring-cloud-job（定时任务服务）
+
+#### 4.10.1 服务定位
+
+XXL-JOB 执行器，所有定时任务集中管理。
+
+#### 4.10.2 核心功能
+
+| 任务 | 触发时机 |
+|------|----------|
+| `metricsAggregateJob` | 每分钟 |
+| `aiMessageArchiveJob` | 每天凌晨 |
+| `articleSyncToEsJob` | 每天 2 点 |
+| `workflowRemindJob` | 每 10 分钟 |
+| `logCleanupJob` | 每天凌晨清理 30 天前 |
+| `createNextMonthTablesJob` | 每月 25 号 |
+
+#### 4.10.3 技术栈
+
+- XXL-JOB Core 3.5.0
+- Spring Boot
+- Dubbo（调用其他服务执行任务）
+
+#### 4.10.4 关键接口
+
+无对外 HTTP 接口，任务由 XXL-JOB Admin 调度触发。
+
+---
+
+### 4.11 spring-cloud-report（低代码报表服务）
+
+#### 4.11.1 服务定位
+
+基于 JimuReport 提供在线报表设计器、大屏、打印、导出。
+
+#### 4.11.2 核心功能
+
+| 模块 | 功能 |
+|------|------|
+| 设计器模块 | JimuReport 自带 UI，路径 `/jmreport/*` |
+| 数据源模块 | 复用 dynamic-datasource 配置 |
+| 报表模块 | 用户增长、订单统计、审批时长、AI 对话量 |
+| 大屏模块 | 综合监控大屏（多数据源混合） |
+| 导出模块 | Excel / PDF / 截图 |
+| 鉴权模块 | Sa-Token 校验 + 角色判断 |
+
+#### 4.11.3 技术栈
+
+- JimuReport 2.3.4（`jimureport-spring-boot3-starter`）
+- JimuReport Nosql Starter（MongoDB / Redis 数据集）
+- JimuReport ECharts Starter（图表）
+- Sa-Token（鉴权集成）
+- dynamic-datasource（多数据源）
+
+#### 4.11.4 关键接口
+
+JimuReport 自带，主要路径：
+- `/jmreport/list` 报表列表
+- `/jmreport/design/{id}` 设计器
+- `/jmreport/view/{id}` 预览
+- `/jmreport/export` 导出
+
+---
+
+## 5. 服务间通信规范
+
+### 5.1 同步调用（Dubbo）
+
+| 场景 | 调用方 | 被调方 | 方法 |
+|------|--------|--------|------|
+| 用户信息查询 | workflow | system | `UserRpcService.getById` |
+| 部门树查询 | workflow | system | `DeptRpcService.tree` |
+| 文件元数据 | portal | file | `FileRpcService.getMeta` |
+| 用户角色 | monitor | system | `UserRpcService.getRoles` |
+
+> Dubbo 接口定义在 `spring-cloud-common-core` 的 `rpc` 包，由被调方实现 `*RpcProvider`。
+
+### 5.2 异步事件（RabbitMQ）
+
+| 事件 | Exchange | 生产者 | 消费者 |
+|------|----------|--------|--------|
+| 用户注册 | `user.register` | auth | message, log |
+| 用户更新 | `user.update` | system | message, log, search |
+| 任务待办 | `task.todo` | workflow | message |
+| 告警 | `alert.trigger` | monitor | message |
+| 文档上传 | `doc.uploaded` | ai | search |
+| 操作日志 | `log.operation` | 所有 | log |
+| 文件上传 | `file.uploaded` | file | log |
+| 文章发布 | `article.published` | portal | search |
+
+> 所有事件**必须**继承 `BaseEvent`，**必须**用 `AbstractEventListener<T>` 消费（自动幂等）。
+
+### 5.3 实时推送（WebSocket）
+
+| 端点 | 服务 | 用途 |
+|------|------|------|
+| `/ws/monitor/{userId}` | monitor | 实时指标推送 |
+| `/ws/message/{userId}` | message | 站内信/任务提醒 |
+
+---
+
+## 6. RESTful API 强制规范（所有服务必须遵守）
+
+### 6.1 URI 设计
+
+- 资源名**必须**用复数名词、全小写、短横线分隔：`/system/users`、`/workflow/instances`
+- 业务动作（非 CRUD）使用动词子资源：`POST /system/users/{id}/disable`、`POST /workflow/tasks/{id}/approve`
+- **禁止**把动词放在路径里：`/getUser`、`/createOrder`、`/deleteUserById`
+
+### 6.2 HTTP 方法语义
+
+| 方法 | 语义 | 是否幂等 | 示例 |
+|------|------|----------|------|
+| GET | 查询 | ✅ | `GET /system/users/{id}` |
+| POST | 新增 | ❌ | `POST /system/users` |
+| PUT | 全量更新 | ✅ | `PUT /system/users/{id}` |
+| PATCH | 部分更新 | ✅ | `PATCH /system/users/{id}/password` |
+| DELETE | 删除 | ✅ | `DELETE /system/users/{id}` |
+
+> **禁止**用 GET 执行写操作。**禁止**用 POST 同时承担新增和更新。
+
+### 6.3 统一响应格式
+
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "data": { ... },
+  "timestamp": 1722470400000
+}
+```
+
+| code | 含义 |
+|------|------|
+| 200 | 成功 |
+| 400 | 参数错误 |
+| 401 | 未登录 |
+| 403 | 无权限 |
+| 404 | 资源不存在 |
+| 409 | 资源冲突 |
+| 429 | 限流 |
+| 500 | 服务器内部错误 |
+
+### 6.4 分页规范
+
+入参：
+```
+GET /system/users?pageNum=1&pageSize=10&orderBy=createTime DESC&keyword=admin
+```
+
+出参（`PageVO<T>`）：
+```json
+{
+  "code": 200,
+  "data": {
+    "list": [...],
+    "total": 100,
+    "pageNum": 1,
+    "pageSize": 10,
+    "pages": 10
+  }
+}
+```
+
+### 6.5 状态码使用
+
+- **禁止**用 200 返回业务错误（如"用户名已存在"），必须返回对应 HTTP 状态码（409 Conflict）
+- 异常**必须**由 `GlobalExceptionHandler` 统一捕获
+- 业务异常类**必须**继承 `BusinessException`
+
+### 6.6 接口文档
+
+- 所有 Controller **必须**使用 `@Tag`、`@Operation` 注解
+- 所有 DTO/VO 字段**必须**使用 `@Schema` 注解描述
+- 文档地址：`http://localhost:8080/doc.html`（Gateway 聚合）
+
+---
+
+## 7. 数据库规范
+
+### 7.1 命名规范
+
+| 类型 | 前缀 | 示例 |
+|------|------|------|
+| 系统表 | `sys_` | `sys_user`、`sys_role` |
+| 业务表 | `biz_` | `biz_leave`、`biz_expense` |
+| 工作流表 | `flow_` | `flow_definition` |
+| AI 表 | `ai_` | `ai_knowledge_base` |
+| 分表后缀 | `_YYYYMM` | `biz_operation_log_202501` |
+
+字段命名：
+- 主键：`id`（雪花 ID）
+- 外键：`{表名}_id`，如 `user_id`
+- 时间字段：`create_time`、`update_time`、`delete_time`
+- 操作人：`create_by`、`update_by`
+- 软删除：`del_flag`（0=未删，1=已删）
+- 状态：`status`（用 `TINYINT`）
+- 排序：`sort`（INT）
+
+### 7.2 字段类型规范
+
+| Java 类型 | 数据库类型 | 说明 |
+|-----------|-----------|------|
+| Long | `BIGINT` | 主键、外键 |
+| String | `VARCHAR(n)` | 短文本 |
+| String | `TEXT` / `CLOB` | 长文本 |
+| LocalDateTime | `DATETIME` | MySQL |
+| LocalDateTime | `TIMESTAMP` | PG/KingbaseES/DM（标准 SQL） |
+| Integer | `INT` | 数值 |
+| Boolean | `TINYINT` / `SMALLINT` | 0/1 |
+| BigDecimal | `DECIMAL(p, s)` | 金额（**禁止**用 DOUBLE/FLOAT） |
+
+### 7.3 SQL 兼容性（多数据库）
+
+**必须**用标准 SQL，避免 MySQL 私有函数：
+
+| 场景 | ❌ MySQL 私有 | ✅ 通用写法 |
+|------|---------------|-------------|
+| 判空 | `IFNULL(a, b)` | `COALESCE(a, b)` |
+| 字符串拼接 | `CONCAT(a, b)` | `a || b` |
+| 日期格式化 | `DATE_FORMAT(t, '%Y-%m-%d')` | `TO_CHAR(t, 'YYYY-MM-DD')` |
+| 当前时间 | `NOW()` | `CURRENT_TIMESTAMP` |
+| 自增主键 | `AUTO_INCREMENT` | 用雪花 ID |
+| 布尔 | `TINYINT(1)` | `SMALLINT` + 0/1 |
+
+### 7.4 索引规范
+
+- 主键**必须**有索引（默认）
+- 外键**必须**建索引
+- 唯一约束字段**必须**建唯一索引
+- 组合索引字段顺序：**高选择性在前**，**等值在前，范围在后**
+- 单表索引数**建议** ≤ 5
+- **禁止**在大字段（TEXT/BLOB）上建索引
+
+### 7.5 分库分表
+
+需要分表的表：
+
+| 表 | 分表策略 | 理由 |
+|----|----------|------|
+| `biz_operation_log` | 按月分表 `biz_operation_log_YYYYMM` | 写多查少 |
+| `biz_login_log` | 按月分表 | 同上 |
+| `biz_ai_message` | 按月分表 | AI 对话量大 |
+
+集成方式：Apache ShardingSphere 5.5.2 JDBC 模式（见 `docs/06-多数据库与多数据源.md`）。
+
+---
+
+## 8. 必须遵守的开发规范
+
+### 8.1 编码规范
+
+1. **必须**遵循 Google Java Style（缩进 4 空格）
+2. **禁止**用 `@Autowired` 字段注入，必须用 `@RequiredArgsConstructor` 构造器注入
+3. **禁止**用 `System.out.println` / `e.printStackTrace()`，必须用 `@Slf4j`
+4. **禁止**在 Controller 写业务逻辑
+5. **禁止**在 Service 直接操作 `HttpServletRequest`
+6. **禁止**在 Service 直接拼接 SQL
+7. **必须**用 `@Transactional` 标注事务方法（Service 层）
+8. 跨库事务**必须**用 `@DSTransactional` 或 `@GlobalTransactional`
+9. **禁止**用 `new Thread(...)` / `Executors.newCachedThreadPool()`
+10. **禁止**用 `synchronized` 跨 JVM 同步
+
+### 8.2 异常处理规范
+
+1. 业务异常**必须**继承 `BusinessException`
+2. **禁止**用 `try-catch` 吞掉异常
+3. **禁止**用 `throw new RuntimeException("xxx")`
+4. 边界校验**必须**用 `@Validated` + Hibernate Validator
+
+### 8.3 缓存规范
+
+1. 缓存 Key**必须**以 `spring-cloud:{service}:{biz}:{id}` 格式
+2. 缓存 TTL**必须**加 ±10% 随机数
+3. 热点数据**必须**用 `@LayeredCache` 多级缓存
+4. 缓存穿透用空值缓存或布隆过滤器
+
+### 8.4 安全规范
+
+1. **禁止**在日志中打印密码、Token、身份证号
+2. SQL **必须**参数化查询
+3. 用户输入**必须**经过 XSS 过滤
+4. 接口**必须**加 `@SaCheckPermission` 或 `@SaCheckRole`
+5. 敏感字段**必须**加密
+
+### 8.5 测试规范
+
+- **必须**写单元测试：`ServiceTest` 覆盖率 ≥ 70%
+- **必须**写 Controller 集成测试：用 `MockMvc` + `@WebMvcTest`
+- 公共测试基类在 `spring-cloud-common-test`
+
+---
+
+## 9. 配置文件规范
+
+### 9.1 bootstrap.yml 模板
+
+```yaml
+spring:
+  application:
+    name: spring-cloud-{服务名}
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:public}
+      config:
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+        file-extension: yaml
+        shared-configs:
+          - data-id: spring-cloud-shared.yaml
+            refresh: true
+```
+
+### 9.2 application.yml 模板
+
+```yaml
+server:
+  port: 808X
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    tags:
+      application: ${spring.application.name}
+```
+
+### 9.3 业务配置（Nacos）
+
+业务配置（数据库连接、Redis、限流规则）**必须**在 Nacos，**禁止**写死在 application.yml。
+
+---
+
+## 10. 红线（违反即拒绝）
+
+1. ❌ 在子服务 POM 中覆盖父 POM 的依赖版本
+2. ❌ Controller 直接操作 DB（必须经 Service → Mapper）
+3. ❌ 非 RESTful API（如 `POST /api/getUser?id=1`）
+4. ❌ 用 GET 执行写操作
+5. ❌ 在日志/响应中泄露密码、Token、身份证号
+6. ❌ 用 `System.out.println` / `e.printStackTrace()`
+7. ❌ 用 `throw new RuntimeException(...)` 而非 BusinessException
+8. ❌ 在 Service 直接 `new Thread(...)` / `Executors.newXxx()`
+9. ❌ SQL 字符串拼接（SQL 注入风险）
+10. ❌ 用 MySQL 私有函数（必须用标准 SQL 适配多库）
+11. ❌ 用 `@Autowired` 字段注入（必须用构造器注入）
+12. ❌ 业务配置硬编码（必须放 Nacos）
+13. ❌ 接口未加 `@SaCheckPermission`/`@SaCheckRole`
+14. ❌ Controller 不加 `@Tag` / `@Operation` 注解

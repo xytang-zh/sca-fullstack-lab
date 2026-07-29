@@ -88,3 +88,17 @@ desktop.ini
 # ========== 日志 ==========
 logs/
 *.log
+
+# ========== Spec-Kit / Claude Agent ==========
+# Spec-Kit 安装时提示：.claude/ 可能存放凭证、auth token 等敏感信息
+# Skills 可通过 `specify init . --integration claude --force` 重新安装，所以整体忽略
+.claude/
+# 如需让团队成员共享 Spec-Kit skills，可改用更精细的忽略规则：
+# .claude/settings.local.json
+# .claude/credentials*
+# .claude/*.token
+# !.claude/skills/
+
+# Spec-Kit 本地状态文件（constitution.md 等规格文档需要提交共享）
+.specify/memory/local-state.json
+.specify/feature.json
