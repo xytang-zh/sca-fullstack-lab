@@ -102,3 +102,11 @@ logs/
 # Spec-Kit 本地状态文件（constitution.md 等规格文档需要提交共享）
 .specify/memory/local-state.json
 .specify/feature.json
+
+# ========== 测试与覆盖率 ==========
+coverage/
+*.lcov
+**/test-results/
+
+# ========== Maven Wrapper（如引入） ==========
+.flattened-pom.xml

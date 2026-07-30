@@ -1,0 +1,35 @@
+# ===== 版本控制 =====
+.git/
+.gitignore
+
+# ===== 构建产物 =====
+**/target/
+**/dist/
+**/build/
+
+# ===== 依赖 =====
+**/node_modules/
+
+# ===== IDE =====
+.idea/
+.vscode/
+*.iml
+
+# ===== 文档与示例 =====
+docs/
+*.md
+!**/README.md
+
+# ===== 数据与日志 =====
+data/
+**/logs/
+*.log
+
+# ===== 测试 =====
+**/test-results/
+**/coverage/
+
+# ===== 本地配置 =====
+.env
+.env.*
+*.local

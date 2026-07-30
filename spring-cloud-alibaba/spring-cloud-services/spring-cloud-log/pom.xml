@@ -10,11 +10,117 @@
     </parent>
 
     <artifactId>spring-cloud-log</artifactId>
+    <packaging>jar</packaging>
 
-    <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
+    <name>spring-cloud-log</name>
+    <description>日志服务：操作日志/登录日志/审计日志（MQ 异步写入 + 按月分表）</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.dev33</groupId>
+            <artifactId>sa-token-spring-boot3-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>cn.dev33</groupId>
+            <artifactId>sa-token-redis-jackson</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson-spring-boot-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xytang</groupId>
+            <artifactId>spring-cloud-common-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xytang</groupId>
+            <artifactId>spring-cloud-common-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xytang</groupId>
+            <artifactId>spring-cloud-common-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xytang</groupId>
+            <artifactId>spring-cloud-common-redisson</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xytang</groupId>
+            <artifactId>spring-cloud-common-mybatis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xytang</groupId>
+            <artifactId>spring-cloud-common-satoken</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xytang</groupId>
+            <artifactId>spring-cloud-common-mq</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xytang</groupId>
+            <artifactId>spring-cloud-common-log</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xytang</groupId>
+            <artifactId>spring-cloud-common-swagger</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xytang</groupId>
+            <artifactId>spring-cloud-common-cache</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

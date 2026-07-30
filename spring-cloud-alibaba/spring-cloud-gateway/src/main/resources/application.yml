@@ -1,0 +1,61 @@
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics,gateway
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+spring:
+  application:
+    name: spring-cloud-gateway
+  main:
+    allow-bean-definition-overriding: true
+    web-application-type: reactive
+  config:
+    import:
+      - optional:nacos:spring-cloud-shared.yaml
+      - optional:nacos:${spring.application.name}.yaml
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:public}
+      config:
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+        file-extension: yaml
+    gateway:
+      server:
+        webflux:
+          metrics:
+            enabled: true
+          routes:
+            - id: auth-service
+              uri: lb://spring-cloud-auth
+              predicates:
+                - Path=/api/auth/**
+              filters:
+                - name: TraceId
+                - name: Path
+                - StripPrefix=2
+                - name: Log
+            - id: system-service
+              uri: lb://spring-cloud-system
+              predicates:
+                - Path=/api/system/**
+              filters:
+                - name: TraceId
+                - name: Path
+                - StripPrefix=2
+                - name: Log
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
+      timeout: 5s

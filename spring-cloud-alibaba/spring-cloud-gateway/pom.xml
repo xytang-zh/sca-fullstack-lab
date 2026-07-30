@@ -4,14 +4,112 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.xytang</groupId>
-    <artifactId>spring-cloud-gateway</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <parent>
+        <groupId>com.xytang</groupId>
+        <artifactId>spring-cloud-alibaba</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
 
-    <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
+    <artifactId>spring-cloud-gateway</artifactId>
+    <packaging>jar</packaging>
+
+    <name>spring-cloud-gateway</name>
+    <description>统一 API 入口（响应式网关 + Sa-Token + Knife4j 文档聚合）</description>
+
+    <dependencies>
+        <!-- Spring Cloud Gateway（响应式） -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-gateway</artifactId>
+        </dependency>
+
+        <!-- Spring Cloud LoadBalancer（T034：支持 lb:// service-discovery 路由 URI） -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+        </dependency>
+
+        <!-- Spring Cloud Alibaba：Nacos / Sentinel -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-alibaba-sentinel-gateway</artifactId>
+        </dependency>
+
+        <!-- Sa-Token（响应式适配） -->
+        <dependency>
+            <groupId>cn.dev33</groupId>
+            <artifactId>sa-token-reactor-spring-boot3-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>cn.dev33</groupId>
+            <artifactId>sa-token-redis-jackson</artifactId>
+        </dependency>
+
+        <!-- 内部 common 模块 -->
+        <dependency>
+            <groupId>com.xytang</groupId>
+            <artifactId>spring-cloud-common-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xytang</groupId>
+            <artifactId>spring-cloud-common-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xytang</groupId>
+            <artifactId>spring-cloud-common-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xytang</groupId>
+            <artifactId>spring-cloud-common-redisson</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xytang</groupId>
+            <artifactId>spring-cloud-common-swagger</artifactId>
+        </dependency>
+
+        <!-- API 文档聚合 -->
+        <dependency>
+            <groupId>com.github.xiaoymin</groupId>
+            <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- 监控 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

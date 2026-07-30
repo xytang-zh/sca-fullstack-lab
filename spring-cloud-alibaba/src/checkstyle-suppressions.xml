@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suppressions PUBLIC
+    "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+    "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<!--
+    SCA 一体化平台后端 Checkstyle 抑制
+    对自动生成的代码（Lombok / MyBatis-Plus / Auto-generated）放宽规则。
+-->
+<suppressions>
+    <!-- 启动类允许 main 方法 -->
+    <suppress files=".*Application\.java" checks="HideUtilityClassConstructor"/>
+    <!-- 测试类允许较长方法与无 Javadoc -->
+    <suppress files=".*[Tt]est\.java" checks="JavadocMethod,MissingJavadocType,MethodLength"/>
+    <!-- 自动生成的 DTO/VO/Entity 类 -->
+    <suppress files=".*[Dd][Tt][Oo]\.java|.*[Vv][Oo]\.java|.*[Ee]ntity\.java" checks="MethodLength,ParameterNumber"/>
+</suppressions>
