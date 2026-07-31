@@ -24,7 +24,7 @@
 | 顶级包 | `com.xytang.auth`                                              |
 | 启动类 | `com.xytang.auth.SpringCloudAuthApplication`                   |
 | 角色 | SSO Server + OAuth2 Server                                     |
-| 依赖 | Redis、MongoDB（登录日志）、RabbitMQ（事件 `user.login` / `user.kickout`） |
+| 依赖 | Redis、RabbitMQ（事件 `user.login` / `user.kickout`）、Bouncy Castle（Argon2id 密码哈希） |
 
 ---
 
@@ -110,20 +110,22 @@ spring-cloud-auth/
 |------|------|------|
 | Spring Boot | 3.5.0 | 基座 |
 | Spring Cloud | 2025.0.0 | 微服务规范 |
-| Spring Cloud Alibaba | 2025.0.0 | Nacos 注册/配置 |
+| Spring Cloud Alibaba | 2025.0.0.0 | Nacos 注册/配置 |
 | Sa-Token | 1.44.0 | 登录/SSO/OAuth2/踢人下线 |
 | sa-token-spring-boot3-starter | 1.44.0 | Spring Boot 3 集成 |
 | sa-token-sso | 1.44.0 | SSO 三模式 |
 | sa-token-oauth2 | 1.44.0 | OAuth2 Server |
+| sa-token-redis-jackson | 1.44.0 | Token 持久化 |
 | Redisson | 4.0.0 | 分布式锁 + 登录失败计数 |
-| Caffeine | 3.2+ | 短期本地缓存（登录配置） |
-| tianai-captcha | 最新 stable | 滑动验证码 |
-| spring-boot-starter-mail | 3.5.0 | 邮件验证码 |
+| Bouncy Castle | 1.78.1 | Argon2id 密码哈希 |
+| spring-boot-starter-validation | 3.5.0 | 参数校验 |
 | spring-boot-starter-amqp | 3.5.0 | RabbitMQ 事件 |
 | micrometer-registry-prometheus | 3.5.0 | 监控指标 |
-| xxl-job-core | 3.5.0 | 定时任务（如 Token 清理） |
+| MyBatis-Plus | 3.5.9 | 用户查询 |
 
 > 所有依赖**必须**通过父 POM 的 dependencyManagement 管理版本，子模块只声明 `groupId` 和 `artifactId`。
+
+> ⚠️ 原规划的滑动验证码（tianai-captcha）、邮件验证码（spring-boot-starter-mail）、XXL-JOB 定时任务、Caffeine 本地缓存、Sa-Token alone-redis **当前 POM 未引入**，落地时按需补充。
 
 ---
 
@@ -135,6 +137,10 @@ spring-cloud-auth/
     <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-validation</artifactId>
     </dependency>
     <dependency>
         <groupId>org.springframework.boot</groupId>
@@ -172,15 +178,17 @@ spring-cloud-auth/
         <groupId>cn.dev33</groupId>
         <artifactId>sa-token-redis-jackson</artifactId>
     </dependency>
-    <dependency>
-        <groupId>cn.dev33</groupId>
-        <artifactId>sa-token-alone-redis</artifactId>
-    </dependency>
 
     <!-- Redisson -->
     <dependency>
         <groupId>org.redisson</groupId>
         <artifactId>redisson-spring-boot-starter</artifactId>
+    </dependency>
+
+    <!-- Bouncy Castle：Argon2id 密码哈希 -->
+    <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk18on</artifactId>
     </dependency>
 
     <!-- 内部公共模块 -->
@@ -220,6 +228,10 @@ spring-cloud-auth/
         <groupId>com.xytang</groupId>
         <artifactId>spring-cloud-common-log</artifactId>
     </dependency>
+    <dependency>
+        <groupId>com.xytang</groupId>
+        <artifactId>spring-cloud-common-mybatis</artifactId>
+    </dependency>
 
     <!-- MyBatis-Plus（仅查用户） -->
     <dependency>
@@ -229,6 +241,7 @@ spring-cloud-auth/
     <dependency>
         <groupId>mysql</groupId>
         <artifactId>mysql-connector-j</artifactId>
+        <scope>runtime</scope>
     </dependency>
 
     <!-- 监控 -->
@@ -237,13 +250,16 @@ spring-cloud-auth/
         <artifactId>micrometer-registry-prometheus</artifactId>
     </dependency>
 
-    <!-- 滑动验证码 -->
+    <!-- 测试 -->
     <dependency>
-        <groupId>cloud.tianai.captcha</groupId>
-        <artifactId>tianai-captcha-spring-boot-starter</artifactId>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+        <scope>test</scope>
     </dependency>
 </dependencies>
 ```
+
+> ⚠️ 原规划的滑动验证码（tianai-captcha）、邮件验证码（spring-boot-starter-mail）、XXL-JOB 定时任务（xxl-job-core）、Caffeine 本地缓存、Sa-Token alone-redis **当前 POM 未引入**，落地时按需补充。
 
 ---
 
@@ -426,13 +442,16 @@ public R<Void> kickout(@RequestParam Long loginId,
 
 ## 8. 数据模型
 
-### 8.1 MySQL 表（auth 只读 `sys_user`，CRUD 在 system）
+### 8.1 MySQL 表
+
+> ⚠️ `sys_user` 表由 `spring-cloud-system` 服务**维护**（DDL 与 CRUD），`spring-cloud-auth` **只读**该表做认证。表结构定义在 `spring-cloud-system` 的 Flyway 脚本中。
 
 ```sql
+-- 仅供参考，实际 DDL 由 spring-cloud-system 维护
 CREATE TABLE sys_user (
     id BIGINT PRIMARY KEY COMMENT '雪花 ID',
     username VARCHAR(50) NOT NULL UNIQUE,
-    password VARCHAR(100) NOT NULL COMMENT 'BCrypt 加盐',
+    password VARCHAR(100) NOT NULL COMMENT 'Argon2id 哈希（Bouncy Castle）',
     phone VARCHAR(20),
     email VARCHAR(100),
     status TINYINT DEFAULT 1 COMMENT '1=正常 0=禁用',
@@ -443,6 +462,8 @@ CREATE TABLE sys_user (
     del_flag TINYINT DEFAULT 0
 );
 ```
+
+> ⚠️ `password` 字段存储 Argon2id 哈希（含盐 + 参数），长度约 100 字符。**禁止**用 BCrypt/MD5/SHA1。
 
 ### 8.2 Redis Key 规范
 
@@ -466,13 +487,13 @@ CREATE TABLE sys_user (
 
 ### 9.1 安全规范（强制）
 
-1. 密码**必须**用 BCrypt 加盐（cost=10），**禁止**用 MD5/SHA1
+1. 密码**必须**用 Argon2id 哈希（Bouncy Castle，OWASP 推荐），**禁止**用 BCrypt/MD5/SHA1
 2. **禁止**在日志中打印密码、Token、身份证号（即使调试）
 3. 登录失败信息**必须**模糊化：返回"用户名或密码错误"，**不区分**用户名不存在还是密码错误
 4. Refresh Token **必须一次性使用**，用后立即失效
 5. 验证码**必须**在登录成功后立即失效（即使没到 5 分钟 TTL）
 6. 接口**必须**加 `@SaCheckPermission` 或 `@SaCheckRole`，仅 `登录/注销/获取验证码` 允许匿名访问
-7. OAuth2 client_secret **必须**用 BCrypt 加盐存储
+7. OAuth2 client_secret **必须**用 Argon2id 哈希存储
 8. **禁止**跨域 `Access-Control-Allow-Origin: *`，必须显式白名单
 9. Token 长度**必须**至少 64 字符（Sa-Token `random-128` 样式）
 
@@ -676,7 +697,7 @@ auth:
 ## 12. 红线（违反即拒绝）
 
 1. ❌ 在日志中打印密码、Token、身份证号
-2. ❌ 用 MD5/SHA1 存密码（必须 BCrypt）
+2. ❌ 用 BCrypt/MD5/SHA1 存密码（必须 Argon2id）
 3. ❌ 登录失败信息区分"用户名不存在"和"密码错误"（必须统一返回）
 4. ❌ Refresh Token 多次使用（必须一次性）
 5. ❌ 不加 `@SaCheckPermission`/`@SaCheckRole` 就暴露敏感接口

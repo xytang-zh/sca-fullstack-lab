@@ -1,7 +1,7 @@
 # CLAUDE.md — spring-cloud-gateway 网关服务
 
 > 本文档面向 AI 编码助手，用于在 `spring-cloud-gateway/` 目录下工作时提供模块约束、技术栈版本、功能清单与开发规范。
-> 工作前**必须**先读取父目录的 [`spring-cloud-alibaba/CLAUDE.md`](../CLAUDE.md) 了解全局规范。
+> 工作前**必须**先读取父目录的 [`spring-cloud-alibaba/CLAUDE.md`](../CLAUDE.md) 与仓库根 [`sca-fullstack-lab/CLAUDE.md`](../../CLAUDE.md) 了解全局规范。
 
 ---
 
@@ -95,13 +95,13 @@ spring-cloud-gateway/
 |------|------|------|
 | Spring Boot | 3.5.0 | 基座（WebFlux 而非 Web MVC） |
 | Spring Cloud | 2025.0.0 | 微服务规范 |
-| Spring Cloud Alibaba | 2025.0.0 | Nacos/Sentinel |
-| Spring Cloud Gateway | 4.x | 响应式网关 |
-| Sa-Token | 1.44.0 | Token 校验（Gateway 适配） |
-| Sentinel | 1.8.8+ | 限流/熔断 |
-| springdoc-openapi | 2.6+ | 文档聚合 |
-| Knife4j | 4.x | 增强文档 UI |
-| micrometer-registry-prometheus | 3.5.0 | 监控指标 |
+| Spring Cloud Alibaba | 2025.0.0.0 | Nacos/Sentinel |
+| Spring Cloud Gateway | Spring Cloud 2025.0.0 管理 | 响应式网关 |
+| Sa-Token | 1.44.0 | Token 校验（Reactor 适配） |
+| Sentinel | Spring Cloud Alibaba 管理 | 限流/熔断 |
+| springdoc-openapi | 2.6.0 | 文档聚合 |
+| Knife4j | 4.5.0 | 增强文档 UI |
+| micrometer-registry-prometheus | Spring Boot 管理 | 监控指标 |
 
 > 所有依赖**必须**通过父 POM 的 dependencyManagement 管理版本。
 
@@ -170,7 +170,7 @@ spring-cloud-gateway/
     <!-- 文档聚合 -->
     <dependency>
         <groupId>com.github.xiaoymin</groupId>
-        <artifactId>knife4j-spring-boot-starter</artifactId>
+        <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
     </dependency>
 
     <!-- 监控 -->
@@ -279,69 +279,17 @@ spring:
 
 ## 6. 鉴权过滤器实现规范
 
-### 6.1 SaTokenGatewayFilterFactory.java
+### 6.1 `SaTokenGatewayFilterFactory`
 
-```java
-@Component
-@RequiredArgsConstructor
-@Slf4j
-public class SaTokenGatewayFilterFactory extends AbstractGatewayFilterFactory<SaTokenGatewayFilterFactory.Config> {
-
-    private final IgnorePathsConfig ignorePathsConfig;
-
-    @Override
-    public GatewayFilter apply(Config config) {
-        return (exchange, chain) -> {
-            ServerHttpRequest req = exchange.getRequest();
-            String path = req.getPath().value();
-
-            // 1. 白名单放行
-            if (ignorePathsConfig.isIgnored(path)) {
-                return chain.filter(exchange);
-            }
-
-            // 2. 提取 Token
-            String token = req.getHeaders().getFirst("Authorization");
-            if (StrUtil.isBlank(token)) {
-                return unauthorized(exchange, "Token 缺失", 40103);
-            }
-            token = token.replace("Bearer ", "");
-
-            // 3. 校验 Token
-            Object loginId;
-            try {
-                loginId = StpUtil.getLoginIdByToken(token);
-            } catch (Exception e) {
-                return unauthorized(exchange, "Token 无效或已过期", 40101);
-            }
-            if (loginId == null) {
-                return unauthorized(exchange, "Token 无效或已过期", 40101);
-            }
-
-            // 4. 透传 X-Login-Id、X-Token
-            ServerHttpRequest mutated = req.mutate()
-                .header("X-Login-Id", loginId.toString())
-                .header("X-Token", token)
-                .build();
-            return chain.filter(exchange.mutate().request(mutated).build());
-        };
-    }
-
-    private Mono<Void> unauthorized(ServerWebExchange exchange, String msg, int code) {
-        ServerHttpResponse resp = exchange.getResponse();
-        resp.setStatusCode(HttpStatus.UNAUTHORIZED);
-        resp.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-        String body = JsonUtils.toJson(R.fail(code, msg));
-        DataBuffer buffer = resp.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));
-        return resp.writeWith(Mono.just(buffer));
-    }
-
-    @Data
-    public static class Config {
-        private List<String> excludePaths = new ArrayList<>();
-    }
-}
-```
+- **职责**：自定义网关过滤器工厂，校验 Token → 透传 `X-Login-Id`
+- **工作流程**：
+  1. 从 `Authorization` 头提取 Token
+  2. 白名单路径直接放行（基于 `IgnorePathsConfig`）
+  3. 调 `StpUtil.getLoginIdByToken(token)` 校验 Token
+  4. 校验通过：写 `X-Login-Id` 头到下游请求
+  5. 校验失败：返回 401 + `R<Void>` JSON
+- **实现技术**：继承 `AbstractGatewayFilterFactory<Config>` + `Mono` 响应式
+- **配置参数**：`excludePaths`（白名单，可在路由声明时覆盖）
 
 ### 6.2 白名单配置（Nacos）
 
@@ -363,31 +311,19 @@ gateway:
 
 ## 7. 跨域处理（CORS）
 
-### 7.1 CorsConfig.java
+### 7.1 `CorsConfig`
 
-```java
-@Configuration
-public class CorsConfig {
-
-    @Bean
-    public CorsWebFilter corsWebFilter() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of(
-            "https://*.example.com",
-            "http://localhost:5173"
-        ));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
-        config.setExposedHeaders(List.of("X-Trace-Id", "Authorization"));
-        config.setAllowCredentials(true);
-        config.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return new CorsWebFilter(source);
-    }
-}
-```
+- **职责**：注册 `CorsWebFilter`，全局 CORS 白名单
+- **配置项**：
+  | 项 | 值 |
+  |----|----|
+  | `allowedOriginPatterns` | `https://*.example.com`, `http://localhost:5173` |
+  | `allowedMethods` | `GET, POST, PUT, PATCH, DELETE, OPTIONS` |
+  | `allowedHeaders` | `*` |
+  | `exposedHeaders` | `X-Trace-Id`, `Authorization` |
+  | `allowCredentials` | `true` |
+  | `maxAge` | `3600` |
+- **实现技术**：`@Configuration` + `@Bean CorsWebFilter` + `UrlBasedCorsConfigurationSource`
 
 ### 7.2 CORS 规范
 
@@ -449,47 +385,20 @@ spring:
 
 ## 9. 日志与链路追踪
 
-### 9.1 日志过滤器
+### 9.1 `LogGatewayFilterFactory`
 
-```java
-@Component
-@Slf4j
-public class LogGatewayFilterFactory extends AbstractGatewayFilterFactory<Object> {
-
-    @Override
-    public GatewayFilter apply(Object config) {
-        return (exchange, chain) -> {
-            long start = System.currentTimeMillis();
-            ServerHttpRequest req = exchange.getRequest();
-            String traceId = req.getHeaders().getFirst("X-Trace-Id");
-            if (StrUtil.isBlank(traceId)) traceId = UUID.randomUUID().toString();
-
-            // 透传 traceId
-            ServerHttpRequest mutated = req.mutate()
-                .header("X-Trace-Id", traceId).build();
-            return chain.filter(exchange.mutate().request(mutated).build())
-                .doFinally(signal -> {
-                    long cost = System.currentTimeMillis() - start;
-                    HttpStatus status = exchange.getResponse().getStatusCode();
-                    String uri = req.getURI().getPath();
-                    String method = req.getMethod().name();
-                    if (cost > 1000) {
-                        log.warn("[SLOW] traceId={} {} {} {}ms status={}",
-                            traceId, method, uri, cost, status);
-                    } else {
-                        log.info("[REQ ] traceId={} {} {} {}ms status={}",
-                            traceId, method, uri, cost, status);
-                    }
-                });
-        };
-    }
-}
-```
+- **职责**：记录请求日志，标记慢请求，透传 `X-Trace-Id`
+- **工作流程**：
+  1. 请求开始：从 `X-Trace-Id` 头读 traceId，缺失则生成 UUID
+  2. 透传 traceId 到下游
+  3. 请求结束后：计算耗时，>1s 打 WARN（标记 `[SLOW]`），否则 INFO（标记 `[REQ]`）
+  4. 日志格式：`[SLOW] traceId={} {} {} {}ms status={}`
+- **实现技术**：`AbstractGatewayFilterFactory` + `Mono.doFinally()`
 
 ### 9.2 Trace-Id 透传
 
 - 网关生成 `X-Trace-Id`（UUID），透传到下游服务
-- 下游服务从 `X-Trace-Id` 头读取并打印到 MDC（通过 `spring-cloud-common-web` 的 `LogTraceAdvice`）
+- 下游服务从 `X-Trace-Id` 头读取并打印到 MDC（通过 `spring-cloud-common-web` 的 `TraceIdFilter`）
 
 ---
 
@@ -542,7 +451,6 @@ knife4j:
       - name: 系统管理
         service-name: spring-cloud-system
         url: /spring-cloud-system/v3/api-docs
-      # ... 其他服务
 ```
 
 ### 11.2 文档地址

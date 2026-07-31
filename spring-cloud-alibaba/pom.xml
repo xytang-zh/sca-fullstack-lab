@@ -18,7 +18,6 @@
         <module>spring-cloud-gateway</module>
         <module>spring-cloud-services</module>
         <module>spring-cloud-starters</module>
-        <module>spring-cloud-test</module>
     </modules>
 
     <properties>
@@ -297,11 +296,6 @@
             <dependency>
                 <groupId>com.xytang</groupId>
                 <artifactId>spring-cloud-common-netty</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xytang</groupId>
-                <artifactId>spring-cloud-common-test</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

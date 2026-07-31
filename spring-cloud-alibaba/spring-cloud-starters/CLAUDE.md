@@ -1,7 +1,7 @@
 # CLAUDE.md — spring-cloud-starters 自定义 Starter 聚合
 
 > 本文档面向 AI 编码助手，用于在 `spring-cloud-starters/` 目录下（或任意子 Starter 下）工作时提供模块约束、技术栈版本、Starter 设计原则与开发规范。
-> 工作前**必须**先读取父目录的 [`spring-cloud-alibaba/CLAUDE.md`](../CLAUDE.md) 了解全局规范。
+> 工作前**必须**先读取父目录的 [`spring-cloud-alibaba/CLAUDE.md`](../CLAUDE.md) 与仓库根 [`sca-fullstack-lab/CLAUDE.md`](../../CLAUDE.md) 了解全局规范。
 
 ---
 
@@ -66,38 +66,12 @@ com.xytang.starter.ssoclient.config.SsoClientWebMvcAutoConfiguration
 
 #### 3.3.2 AutoConfiguration 类规范
 
-```java
-@AutoConfiguration
-@ConditionalOnProperty(
-    prefix = "spring-cloud.sso-client",
-    name = "enabled",
-    havingValue = "true",
-    matchIfMissing = true          // 默认启用
-)
-@EnableConfigurationProperties(SsoClientProperties.class)
-@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-@ConditionalOnClass({StpUtil.class, SaSsoClientProcessor.class})
-public class SsoClientAutoConfiguration {
-
-    @Bean
-    @ConditionalOnMissingBean
-    public SaSsoClientProcessor saSsoClientProcessor(SsoClientProperties props) {
-        return new SaSsoClientProcessor(props);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public SaTokenContextFilter saTokenContextFilter() {
-        return new SaTokenContextFilter();
-    }
-}
-```
-
-要点：
-- `@AutoConfiguration` 而非 `@Configuration`（保证加载顺序）
-- `@ConditionalOnMissingBean` 让业务方可覆盖
-- `@ConditionalOnClass` 防止依赖缺失导致启动失败
-- `@ConditionalOnWebApplication(type = SERVLET)` 限定应用类型
+- **必须**用 `@AutoConfiguration`（而非 `@Configuration`，保证加载顺序）
+- **必须**用 `@ConditionalOnProperty(... matchIfMissing = true)` 让业务方可关闭
+- **必须**用 `@ConditionalOnClass(...)` 防止依赖缺失导致启动失败
+- **必须**用 `@ConditionalOnMissingBean` 让业务方可覆盖默认实现
+- **必须**用 `@EnableConfigurationProperties` 加载配置项
+- **必须**有 `spring-cloud.{能力名}.enabled=true|false` 开关
 
 ---
 
@@ -217,59 +191,16 @@ spring-cloud:
 
 无需任何 `@Import` 或 `@EnableXxx`，自动启用 SSO Client 能力。
 
-### 4.6 关键代码
+### 4.6 关键类职责
 
-#### 4.6.1 SaTokenContextFilter（从 X-Login-Id 还原登录态）
-
-```java
-@Component
-@RequiredArgsConstructor
-@Slf4j
-public class SaTokenContextFilter extends OncePerRequestFilter {
-
-    @Override
-    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse resp, FilterChain chain)
-            throws ServletException, IOException {
-        // 1. Gateway 已经鉴权，下游从 X-Login-Id 头读取
-        String loginId = req.getHeader("X-Login-Id");
-        if (StrUtil.isNotBlank(loginId)) {
-            // 2. 还原 Sa-Token 上下文
-            SaTokenContext.setLoginId(loginId);
-            // 3. 也放一份到 ThreadLocal，方便业务层 @LoginUser 取
-            LoginUserContext.set(loginId);
-        }
-        try {
-            chain.doFilter(req, resp);
-        } finally {
-            LoginUserContext.clear();
-        }
-    }
-}
-```
-
-#### 4.6.2 SsoLoginInterceptor（未登录跳转）
-
-```java
-@Component
-@RequiredArgsConstructor
-public class SsoLoginInterceptor implements HandlerInterceptor {
-
-    private final SsoClientProperties props;
-
-    @Override
-    public boolean preHandle(HttpServletRequest req, HttpServletResponse resp, Object handler) {
-        Object loginId = StpUtil.getLoginIdByToken(req.getHeader("X-Token"));
-        if (loginId == null) {
-            // 未登录 → 跳转 SSO Server
-            String redirect = req.getRequestURL().toString();
-            String ssoUrl = props.getServerUrl() + "/auth?redirect=" + UrlUtil.encode(redirect);
-            resp.sendRedirect(ssoUrl);
-            return false;
-        }
-        return true;
-    }
-}
-```
+| 类名 | 职责 |
+|------|------|
+| `SsoClientAutoConfiguration` | 主装配，注册 SsoClient 相关 Bean |
+| `SsoClientWebMvcAutoConfiguration` | MVC 配置，注册拦截器 |
+| `SsoClientProperties` | `@ConfigurationProperties(prefix="spring-cloud.sso-client")` |
+| `SaTokenContextFilter` | 从 `X-Login-Id` 头还原登录态到 ThreadLocal |
+| `SaSsoClientProcessor` | SSO Client 主处理器（code 换 token 等） |
+| `SsoLoginInterceptor` | 未登录拦截 → 跳转 SSO Server |
 
 ---
 
@@ -376,138 +307,29 @@ spring-cloud:
 </dependencies>
 ```
 
-### 5.5 关键代码
+### 5.5 关键类职责
 
-#### 5.5.1 MonitorAgentAutoConfiguration
+| 类名 | 职责 |
+|------|------|
+| `MonitorAgentAutoConfiguration` | 主装配，注册采集器/上报器/调度器 Bean |
+| `MonitorAgentProperties` | `@ConfigurationProperties(prefix="spring-cloud.monitor-agent")` |
+| `MetricsCollector` | 采集器接口（`getName()`、`collect()`） |
+| `OshiMetricsCollector` | OSHI 系统指标采集（CPU/内存/磁盘） |
+| `JvmMetricsCollector` | JVM 指标采集（堆/非堆/GC/线程） |
+| `BusinessMetricsCollector` | 业务自定义指标占位（业务方实现） |
+| `MetricsReporter` | 上报器接口 |
+| `HttpMetricsReporter` | HTTP 上报到 `spring-cloud-monitor` |
+| `NoopMetricsReporter` | 关闭时的空实现（降级方案） |
+| `MetricsReportScheduler` | 定时调度（基于 `ScheduledExecutorService`） |
+| `MetricsSnapshot` | 指标快照模型 |
+| `ServiceInstance` | 实例标识模型 |
 
-```java
-@AutoConfiguration
-@ConditionalOnProperty(
-    prefix = "spring-cloud.monitor-agent",
-    name = "enabled",
-    havingValue = "true",
-    matchIfMissing = true
-)
-@EnableConfigurationProperties(MonitorAgentProperties.class)
-@ConditionalOnClass({MetricsCollector.class, SystemInfo.class})
-public class MonitorAgentAutoConfiguration {
+### 5.6 调度器实现要点
 
-    @Bean
-    @ConditionalOnMissingBean
-    public OshiMetricsCollector oshiMetricsCollector() {
-        return new OshiMetricsCollector();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public JvmMetricsCollector jvmMetricsCollector() {
-        return new JvmMetricsCollector();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean(MetricsReporter.class)
-    public MetricsReporter metricsReporter(MonitorAgentProperties props,
-                                            RestTemplateBuilder builder) {
-        if (StrUtil.isBlank(props.getMonitorUrl())) {
-            return new NoopMetricsReporter();
-        }
-        return new HttpMetricsReporter(props, builder.build());
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public MetricsReportScheduler metricsReportScheduler(
-            List<MetricsCollector> collectors,
-            MetricsReporter reporter,
-            MonitorAgentProperties props) {
-        return new MetricsReportScheduler(collectors, reporter, props);
-    }
-}
-```
-
-#### 5.5.2 OshiMetricsCollector
-
-```java
-@RequiredArgsConstructor
-@Slf4j
-public class OshiMetricsCollector implements MetricsCollector {
-
-    private final SystemInfo systemInfo = new SystemInfo();
-    private final Hardware hardware = systemInfo.getHardware();
-
-    @Override
-    public String getName() {
-        return "system";
-    }
-
-    @Override
-    public Map<String, Object> collect() {
-        Map<String, Object> metrics = new HashMap<>();
-        // CPU
-        CentralProcessor cpu = hardware.getProcessor();
-        metrics.put("cpu_usage", cpu.getSystemCpuLoad() * 100);
-        metrics.put("cpu_load", cpu.getSystemLoadAverage(3)[0]);
-        // 内存
-        GlobalMemory memory = hardware.getMemory();
-        long total = memory.getTotal();
-        long available = memory.getAvailable();
-        metrics.put("mem_total", total);
-        metrics.put("mem_used", total - available);
-        metrics.put("mem_usage", (double)(total - available) / total * 100);
-        // 磁盘
-        // ...
-        return metrics;
-    }
-}
-```
-
-#### 5.5.3 MetricsReportScheduler
-
-```java
-@RequiredArgsConstructor
-@Slf4j
-public class MetricsReportScheduler {
-
-    private final List<MetricsCollector> collectors;
-    private final MetricsReporter reporter;
-    private final MonitorAgentProperties props;
-
-    private final ScheduledExecutorService scheduler =
-        Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "monitor-agent-scheduler");
-            t.setDaemon(true);
-            return t;
-        });
-
-    @PostConstruct
-    public void start() {
-        scheduler.scheduleAtFixedRate(this::report, 5, props.getInterval(), TimeUnit.SECONDS);
-    }
-
-    @PreDestroy
-    public void stop() {
-        scheduler.shutdown();
-    }
-
-    private void report() {
-        try {
-            Map<String, Object> snapshot = new HashMap<>();
-            for (MetricsCollector collector : collectors) {
-                snapshot.putAll(collector.collect());
-            }
-            reporter.report(MetricsSnapshot.builder()
-                .serviceName(props.getServiceName())
-                .instance(props.getInstance())
-                .env(props.getEnv())
-                .metrics(snapshot)
-                .timestamp(System.currentTimeMillis())
-                .build());
-        } catch (Exception e) {
-            log.error("[monitor-agent] 上报失败: {}", e.getMessage());
-        }
-    }
-}
-```
+- **必须**用 `ScheduledExecutorService`（守护线程），**禁止**用 `Timer` 或 `@Scheduled`（不可控）
+- **必须**用 `try-catch` 包裹调度任务，避免异常导致调度停止
+- **必须**在 `@PreDestroy` 时关闭调度器，避免 Bean 销毁后线程泄漏
+- **必须**线程命名（如 `monitor-agent-scheduler`），便于排查
 
 ---
 
@@ -578,31 +400,6 @@ com.xytang.starter.{能力名}
 - **必须**有 `AutoConfigurationTest`，用 `ApplicationContextRunner` 验证自动装配
 - **必须**测试"启用/关闭"两种状态
 - **必须**测试"业务方覆盖默认 Bean"的场景
-
-#### 示例测试
-
-```java
-class SsoClientAutoConfigurationTest {
-
-    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner();
-
-    @Test
-    void should_auto_configure_when_enabled() {
-        contextRunner
-            .withConfiguration(AutoConfigurations.of(SsoClientAutoConfiguration.class))
-            .withPropertyValues("spring-cloud.sso-client.enabled=true")
-            .run(context -> assertThat(context).hasSingleBean(SaSsoClientProcessor.class));
-    }
-
-    @Test
-    void should_skip_when_disabled() {
-        contextRunner
-            .withConfiguration(AutoConfigurations.of(SsoClientAutoConfiguration.class))
-            .withPropertyValues("spring-cloud.sso-client.enabled=false")
-            .run(context -> assertThat(context).doesNotHaveBean(SaSsoClientProcessor.class));
-    }
-}
-```
 
 ---
 
@@ -707,3 +504,4 @@ spring-cloud:
 11. ❌ 在 Starter 中硬编码 URL（必须可配置）
 12. ❌ Starter 内部异常抛给业务方（必须 catch + 降级）
 13. ❌ 没有写 AutoConfigurationTest（必须验证启用/关闭/覆盖三种场景）
+14. ❌ 用 `Timer` 或 `@Scheduled` 做调度（必须用 `ScheduledExecutorService`）

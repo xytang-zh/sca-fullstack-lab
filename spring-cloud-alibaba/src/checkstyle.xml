@@ -5,7 +5,7 @@
 
 <!--
     SCA 一体化平台后端 Checkstyle 规则
-    基于 Google Java Style，叠加项目宪法 §质量门禁 红线（10 条）。
+    参考阿里巴巴 Java 开发规范（泰山版）+ Spring 团队推荐 + Google Java Style，叠加项目宪法 §质量门禁 红线（10 条）。
     详见 spring-cloud-alibaba/CLAUDE.md §11 编码规范。
 -->
 <module name="Checker">
@@ -23,6 +23,14 @@
     </module>
     <module name="FileLength">
         <property name="max" value="2000"/>
+    </module>
+    <!-- 阿里规范：一个 .java 文件只能有一个顶层类 -->
+    <module name="OneTopLevelClass"/>
+    <!-- 阿里规范：包/import/类/字段/方法之间必须有空行分隔 -->
+    <module name="EmptyLineSeparator">
+        <property name="tokens" value="PACKAGE_DEF, IMPORT, CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF, VARIABLE_DEF"/>
+        <property name="allowNoEmptyLineBetweenFields" value="true"/>
+        <property name="allowMultipleEmptyLines" value="false"/>
     </module>
 
     <!-- ===== 单元规则：所有 .java 文件 ===== -->
@@ -48,12 +56,20 @@
         <!-- Import -->
         <module name="AvoidStarImport"/>
         <module name="IllegalImport">
-            <property name="illegalPkts" value="sun,sun.misc,com.sun.org.apache"/>
+            <property name="illegalPkgs" value="sun,sun.misc,com.sun.org.apache"/>
         </module>
         <module name="RedundantImport"/>
         <module name="UnusedImports"/>
 
-        <!-- 缩进与空白 -->
+        <!-- 缩进与空白（阿里规范：4 空格强制） -->
+        <module name="Indentation">
+            <property name="basicIndentation" value="4"/>
+            <property name="braceAdjustment" value="0"/>
+            <property name="caseIndent" value="4"/>
+            <property name="throwsIndent" value="4"/>
+            <property name="lineWrappingIndentation" value="8"/>
+            <property name="forceStrictCondition" value="false"/>
+        </module>
         <module name="EmptyForIteratorPad"/>
         <module name="MethodParamPad"/>
         <module name="NoWhitespaceAfter"/>
@@ -67,10 +83,13 @@
         <!-- 控制结构 -->
         <module name="EmptyBlock"/>
         <module name="LeftCurly"/>
+        <!-- 阿里规范：if/else/for/while/do 必须加大括号，即使只有一句 -->
         <module name="NeedBraces"/>
         <module name="RightCurly"/>
         <module name="EmptyStatement"/>
         <module name="EqualsHashCode"/>
+        <!-- 阿里规范：常量在 equals 左侧避免空指针 -->
+        <module name="EqualsAvoidNull"/>
         <module name="SimplifyBooleanExpression"/>
         <module name="SimplifyBooleanReturn"/>
         <module name="NestedIfDepth">
@@ -120,6 +139,14 @@
         </module>
         <module name="ExecutableStatementCount">
             <property name="max" value="100"/>
+        </module>
+
+        <!-- 阿里规范：禁止魔法数字（除 -1/0/1/2，测试类与字段声明、注解、hashCode 豁免） -->
+        <module name="MagicNumber">
+            <property name="ignoreNumbers" value="-1, 0, 1, 2"/>
+            <property name="ignoreAnnotation" value="true"/>
+            <property name="ignoreFieldDeclaration" value="true"/>
+            <property name="ignoreHashCodeMethod" value="true"/>
         </module>
 
         <!-- 注释抑制 -->

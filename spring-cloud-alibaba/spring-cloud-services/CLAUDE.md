@@ -1,7 +1,7 @@
 # CLAUDE.md — spring-cloud-services 业务服务聚合
 
 > 本文档面向 AI 编码助手，用于在 `spring-cloud-services/` 目录下（或任意子服务下）工作时提供模块约束、技术栈版本、服务职责与开发规范。
-> 工作前**必须**先读取父目录的 [`spring-cloud-alibaba/CLAUDE.md`](../CLAUDE.md) 了解全局规范。
+> 工作前**必须**先读取父目录的 [`spring-cloud-alibaba/CLAUDE.md`](../CLAUDE.md) 与仓库根 [`sca-fullstack-lab/CLAUDE.md`](../../CLAUDE.md) 了解全局规范。
 
 ---
 
@@ -215,7 +215,7 @@ sys_dict_type, sys_dict_data, sys_config, sys_notice, sys_notice_read
 
 #### 4.3.3 技术栈
 
-- Warm-Flow 1.8.8（`warm-flow-mybatis-plus-sb3-starter`）
+- Warm-Flow 1.8.8（`warm-flow-mybatis-plus-sb3-starter`，**父 POM 未声明**，落地时补充）
 - MyBatis-Plus（业务表）
 - Dubbo（调用 aurora-system 查用户/部门）
 - RabbitMQ（任务待办事件 → aurora-message 推送）
@@ -264,7 +264,7 @@ sys_dict_type, sys_dict_data, sys_config, sys_notice, sys_notice_read
 
 #### 4.4.3 技术栈
 
-- Spring AI 1.1.x（`spring-ai-openai-starter` 或 `spring-ai-alibaba`）
+- Spring AI 1.1.x（`spring-ai-openai-starter` 或 `spring-ai-alibaba`，**父 POM 未声明**，落地时补充）
 - Spring AI Advisor（`QuestionAnswerAdvisor`、`VectorStoreChatMemoryAdvisor`）
 - pgvector（PG 16 + pgvector 0.8）
 - MongoDB（对话历史）
@@ -502,7 +502,7 @@ XXL-JOB 执行器，所有定时任务集中管理。
 
 #### 4.10.3 技术栈
 
-- XXL-JOB Core 3.5.0
+- XXL-JOB Core 3.5.0（**父 POM 未声明**，落地时补充）
 - Spring Boot
 - Dubbo（调用其他服务执行任务）
 
@@ -531,7 +531,7 @@ XXL-JOB 执行器，所有定时任务集中管理。
 
 #### 4.11.3 技术栈
 
-- JimuReport 2.3.4（`jimureport-spring-boot3-starter`）
+- JimuReport 2.3.4（`jimureport-spring-boot3-starter`，**父 POM 未声明**，落地时补充）
 - JimuReport Nosql Starter（MongoDB / Redis 数据集）
 - JimuReport ECharts Starter（图表）
 - Sa-Token（鉴权集成）
@@ -558,7 +558,7 @@ JimuReport 自带，主要路径：
 | 文件元数据 | portal | file | `FileRpcService.getMeta` |
 | 用户角色 | monitor | system | `UserRpcService.getRoles` |
 
-> Dubbo 接口定义在 `spring-cloud-common-core` 的 `rpc` 包，由被调方实现 `*RpcProvider`。
+> Dubbo 接口定义在 `spring-cloud-common-core` 的 `rpc` 包（计划，未实现），由被调方实现 `*RpcProvider`。
 
 ### 5.2 异步事件（RabbitMQ）
 
@@ -727,31 +727,35 @@ GET /system/users?pageNum=1&pageSize=10&orderBy=createTime DESC&keyword=admin
 | `biz_login_log` | 按月分表 | 同上 |
 | `biz_ai_message` | 按月分表 | AI 对话量大 |
 
-集成方式：Apache ShardingSphere 5.5.2 JDBC 模式（见 `docs/06-多数据库与多数据源.md`）。
+集成方式：Apache ShardingSphere 5.5.2 JDBC 模式。
 
 ---
 
 ## 8. 必须遵守的开发规范
 
-### 8.1 编码规范
+### 8.1 编码规范（阿里巴巴 Java 开发规范 + 项目强制）
 
-1. **必须**遵循 Google Java Style（缩进 4 空格）
-2. **禁止**用 `@Autowired` 字段注入，必须用 `@RequiredArgsConstructor` 构造器注入
-3. **禁止**用 `System.out.println` / `e.printStackTrace()`，必须用 `@Slf4j`
-4. **禁止**在 Controller 写业务逻辑
-5. **禁止**在 Service 直接操作 `HttpServletRequest`
-6. **禁止**在 Service 直接拼接 SQL
-7. **必须**用 `@Transactional` 标注事务方法（Service 层）
-8. 跨库事务**必须**用 `@DSTransactional` 或 `@GlobalTransactional`
-9. **禁止**用 `new Thread(...)` / `Executors.newCachedThreadPool()`
-10. **禁止**用 `synchronized` 跨 JVM 同步
+1. **必须**遵循阿里巴巴 Java 开发规范（泰山版）
+2. **强制规则由 `spring-cloud-alibaba/src/checkstyle.xml` 落实**，绑定到 Maven `validate` 阶段
+3. 缩进 4 空格，行宽 ≤ 120 字符
+4. **禁止**用 `@Autowired` 字段注入，必须用 `@RequiredArgsConstructor` 构造器注入
+5. **禁止**用 `System.out.println` / `e.printStackTrace()`，必须用 `@Slf4j`
+6. **禁止**在 Controller 写业务逻辑
+7. **禁止**在 Service 直接操作 `HttpServletRequest`
+8. **禁止**在 Service 直接拼接 SQL
+9. **必须**用 `@Transactional` 标注事务方法（Service 层）
+10. 跨库事务**必须**用 `@DSTransactional` 或 `@GlobalTransactional`
+11. **禁止**用 `new Thread(...)` / `Executors.newCachedThreadPool()`
+12. **禁止**用 `synchronized` 跨 JVM 同步
+13. **if/else/for/while 必须加大括号**，即使只有一句
 
 ### 8.2 异常处理规范
 
 1. 业务异常**必须**继承 `BusinessException`
 2. **禁止**用 `try-catch` 吞掉异常
 3. **禁止**用 `throw new RuntimeException("xxx")`
-4. 边界校验**必须**用 `@Validated` + Hibernate Validator
+4. **禁止** catch `Exception`/`Throwable`（必须精确捕获）
+5. 边界校验**必须**用 `@Validated` + Hibernate Validator
 
 ### 8.3 缓存规范
 
@@ -767,12 +771,13 @@ GET /system/users?pageNum=1&pageSize=10&orderBy=createTime DESC&keyword=admin
 3. 用户输入**必须**经过 XSS 过滤
 4. 接口**必须**加 `@SaCheckPermission` 或 `@SaCheckRole`
 5. 敏感字段**必须**加密
+6. 密码哈希**必须**用 Argon2id
 
 ### 8.5 测试规范
 
 - **必须**写单元测试：`ServiceTest` 覆盖率 ≥ 70%
 - **必须**写 Controller 集成测试：用 `MockMvc` + `@WebMvcTest`
-- 公共测试基类在 `spring-cloud-common-test`
+- 公共测试基类在 `spring-cloud-common-test`（**已废弃**，落地时重新规划）
 
 ---
 
@@ -830,10 +835,12 @@ management:
 5. ❌ 在日志/响应中泄露密码、Token、身份证号
 6. ❌ 用 `System.out.println` / `e.printStackTrace()`
 7. ❌ 用 `throw new RuntimeException(...)` 而非 BusinessException
-8. ❌ 在 Service 直接 `new Thread(...)` / `Executors.newXxx()`
-9. ❌ SQL 字符串拼接（SQL 注入风险）
-10. ❌ 用 MySQL 私有函数（必须用标准 SQL 适配多库）
-11. ❌ 用 `@Autowired` 字段注入（必须用构造器注入）
-12. ❌ 业务配置硬编码（必须放 Nacos）
-13. ❌ 接口未加 `@SaCheckPermission`/`@SaCheckRole`
-14. ❌ Controller 不加 `@Tag` / `@Operation` 注解
+8. ❌ 用 `catch (Exception e)` 而非具体异常类型
+9. ❌ 在 Service 直接 `new Thread(...)` / `Executors.newXxx()`
+10. ❌ SQL 字符串拼接（SQL 注入风险）
+11. ❌ 用 MySQL 私有函数（必须用标准 SQL 适配多库）
+12. ❌ 用 `@Autowired` 字段注入（必须用构造器注入）
+13. ❌ `if`/`else`/`for`/`while` 不加大括号
+14. ❌ 业务配置硬编码（必须放 Nacos）
+15. ❌ 接口未加 `@SaCheckPermission`/`@SaCheckRole`
+16. ❌ Controller 不加 `@Tag` / `@Operation` 注解
