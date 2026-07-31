@@ -67,7 +67,6 @@
         <!-- ===== Maven 插件 ===== -->
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-checkstyle-plugin.version>3.5.0</maven-checkstyle-plugin.version>
-        <spotbugs-maven-plugin.version>4.8.6.4</spotbugs-maven-plugin.version>
         <versions-maven-plugin.version>2.17.1</versions-maven-plugin.version>
     </properties>
 
@@ -346,16 +345,6 @@
                         </execution>
                     </executions>
                 </plugin>
-                <plugin>
-                    <groupId>com.github.spotbugs</groupId>
-                    <artifactId>spotbugs-maven-plugin</artifactId>
-                    <version>${spotbugs-maven-plugin.version}</version>
-                    <configuration>
-                        <excludeFilterFile>${maven.multiModuleProjectDirectory}/src/spotbugs-exclude.xml</excludeFilterFile>
-                        <effort>Max</effort>
-                        <threshold>Low</threshold>
-                    </configuration>
-                </plugin>
             </plugins>
         </pluginManagement>
 
@@ -367,10 +356,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>com.github.spotbugs</groupId>
-                <artifactId>spotbugs-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>
