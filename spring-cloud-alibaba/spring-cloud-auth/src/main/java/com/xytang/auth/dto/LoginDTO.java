@@ -8,6 +8,9 @@ import lombok.Data;
 import java.io.Serial;
 import java.io.Serializable;
 
+/**
+ * 登入参数：账号密码 + 滑块校验凭据。
+ */
 @Data
 @Schema(description = "登入参数")
 public class LoginDTO implements Serializable {
@@ -25,14 +28,8 @@ public class LoginDTO implements Serializable {
     @Size(min = 8, max = 32)
     private String password;
 
-    @Schema(description = "验证码", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank
-    @Size(min = 4, max = 4)
-    private String captcha;
-
-    @Schema(description = "验证码 Key", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank
-    private String captchaKey;
+    @Schema(description = "滑块校验通过后签发的一次性凭据（POST /captcha/check 获取，可选，首次登录可不传）")
+    private String checkToken;
 
     @Schema(description = "记住我（true=7天，false=30分钟）")
     private Boolean rememberMe = Boolean.FALSE;

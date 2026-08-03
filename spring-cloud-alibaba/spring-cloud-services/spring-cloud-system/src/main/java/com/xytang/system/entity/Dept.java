@@ -13,6 +13,9 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+/**
+ * 系统部门实体。
+ */
 @Data
 @TableName("sys_dept")
 public class Dept implements Serializable {

@@ -7,6 +7,9 @@ import com.xytang.system.mapper.ParamMapper;
 import com.xytang.system.service.ParamService;
 import org.springframework.stereotype.Service;
 
+/**
+ * 系统参数服务实现。
+ */
 @Service
 public class ParamServiceImpl extends ServiceImpl<ParamMapper, Param> implements ParamService {
 

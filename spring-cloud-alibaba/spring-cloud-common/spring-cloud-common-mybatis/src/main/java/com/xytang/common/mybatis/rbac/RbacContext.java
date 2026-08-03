@@ -36,6 +36,13 @@ public final class RbacContext {
         HOLDER.remove();
     }
 
+    /**
+     * 当前登录用户的 RBAC 快照。
+     *
+     * @param userId 用户 ID（未登录为 null）
+     * @param deptId 部门 ID（未登录为 null）
+     * @param roles  角色编码集合
+     */
     public record RbacUser(Long userId, Long deptId, java.util.Set<String> roles) {
 
         public static RbacUser anonymous() {

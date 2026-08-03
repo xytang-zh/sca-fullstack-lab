@@ -22,18 +22,38 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface OperationLog {
 
-    /** 模块（如 system/user） */
+    /**
+     * 模块（如 system/user）
+     *
+     * @return 模块名
+     */
     String module();
 
-    /** 操作类型（如 INSERT/UPDATE/DELETE/KICKOUT/LOGIN） */
+    /**
+     * 操作类型（如 INSERT/UPDATE/DELETE/KICKOUT/LOGIN）
+     *
+     * @return 操作类型
+     */
     String operation();
 
-    /** 是否记录请求参数（默认 true；含敏感字段的接口设为 false） */
+    /**
+     * 是否记录请求参数（默认 true；含敏感字段的接口设为 false）
+     *
+     * @return 是否记录请求参数
+     */
     boolean saveRequest() default true;
 
-    /** 是否记录响应结果（默认 false；调试时可设为 true） */
+    /**
+     * 是否记录响应结果（默认 false；调试时可设为 true）
+     *
+     * @return 是否记录响应结果
+     */
     boolean saveResponse() default false;
 
-    /** 是否记录耗时（默认 true） */
+    /**
+     * 是否记录耗时（默认 true）
+     *
+     * @return 是否记录耗时
+     */
     boolean saveCost() default true;
 }

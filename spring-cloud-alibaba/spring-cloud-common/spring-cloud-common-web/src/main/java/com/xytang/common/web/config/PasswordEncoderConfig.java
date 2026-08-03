@@ -50,7 +50,7 @@ public class PasswordEncoderConfig {
     @RefreshScope
     public PasswordEncoder passwordEncoder() {
         log.info("[PasswordEncoder] creating Argon2id: memory={}KB iterations={} parallelism={} keyLen={}B saltLen={}B",
-            memory, iterations, parallelism, keyLength, saltLength);
+                memory, iterations, parallelism, keyLength, saltLength);
         return new Argon2PasswordEncoder(
             saltLength, keyLength,
             parallelism, memory, iterations

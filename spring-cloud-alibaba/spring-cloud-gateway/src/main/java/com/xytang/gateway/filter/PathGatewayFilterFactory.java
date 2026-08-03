@@ -3,7 +3,6 @@ package com.xytang.gateway.filter;
 import com.xytang.common.core.constant.HeaderConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -40,14 +39,17 @@ public class PathGatewayFilterFactory extends AbstractGatewayFilterFactory<PathG
             String gatewayPath = exchange.getRequest().getPath().value();
             if (StringUtils.hasText(gatewayPath)) {
                 var mutated = exchange.getRequest().mutate()
-                    .header(HeaderConstants.X_GATEWAY_PATH, gatewayPath)
-                    .build();
+                        .header(HeaderConstants.X_GATEWAY_PATH, gatewayPath)
+                        .build();
                 return chain.filter(exchange.mutate().request(mutated).build());
             }
             return chain.filter(exchange);
         };
     }
 
+    /**
+     * 过滤器配置（无参数）。
+     */
     public static class Config {
     }
 }

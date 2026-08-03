@@ -1,8 +1,7 @@
 export interface LoginDTO {
   username: string
   password: string
-  captcha: string
-  captchaKey: string
+  checkToken: string
   rememberMe?: boolean
 }
 
@@ -16,11 +15,19 @@ export interface LoginVO {
   avatar?: string
   roles: string[]
   perms: string[]
+  refreshToken?: string
 }
 
 export interface CaptchaVO {
-  captchaKey: string
-  captchaImg: string
+  captchaId: string
+  id: string
+  type: string
+  backgroundImage: string
+  templateImage: string
+  backgroundImageWidth?: number
+  backgroundImageHeight?: number
+  templateImageWidth?: number
+  templateImageHeight?: number
 }
 
 export interface UserInfoVO {

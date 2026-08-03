@@ -24,6 +24,8 @@ import com.xytang.common.core.response.DevMessageHolder;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.AmqpException;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,27 +35,40 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import cn.hutool.core.util.RandomUtil;
 
+/**
+ * 认证服务实现：登录/注销/当前用户/修改密码/踢人下线。
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class AuthServiceImpl implements AuthService {
+
+    private static final int HASH_PREVIEW_LEN = 40;
+    private static final int PHONE_MIN_LEN = 7;
+    private static final int PHONE_HEAD_LEN = 3;
+    private static final int PHONE_TAIL_LEN = 4;
+    private static final int REFRESH_TOKEN_LENGTH = 64;
 
     private final AuthUserMapper authUserMapper;
     private final CaptchaService captchaService;
     private final LoginRiskService loginRiskService;
     private final RabbitTemplate rabbitTemplate;
     private final PasswordEncoder passwordEncoder;
+    private final StringRedisTemplate stringRedisTemplate;
 
     @Override
     public LoginVO login(LoginDTO dto, String ip, String userAgent) {
-        // 1. 校验验证码（一次性，校验后即删）
-        if (!captchaService.verify(dto.getCaptchaKey(), dto.getCaptcha())) {
-            publishLoginEvent(null, dto.getUsername(), LoginTypeEnum.LOGIN, ip, userAgent,
-                Boolean.FALSE, "captcha invalid");
-            DevMessageHolder.set("验证码不匹配，captchaKey=" + dto.getCaptchaKey()
-                + "，输入 captcha=" + dto.getCaptcha());
-            throw new AuthException(BizCode.AUTH_CAPTCHA_ERROR);
+        // 1. 按需校验滑块 checkToken（有值则校验，无值则跳过）
+        if (StringUtils.hasText(dto.getCheckToken())) {
+            if (!captchaService.verifyCheckToken(dto.getCheckToken())) {
+                publishLoginEvent(null, dto.getUsername(), LoginTypeEnum.LOGIN, ip, userAgent,
+                        Boolean.FALSE, "captcha invalid");
+                DevMessageHolder.set("滑块验证码凭据无效或已过期，checkToken=" + dto.getCheckToken());
+                throw new AuthException(BizCode.AUTH_CAPTCHA_ERROR);
+            }
         }
 
         // 2. 检查账号锁定
@@ -61,12 +76,12 @@ public class AuthServiceImpl implements AuthService {
 
         // 3. 查询用户
         AuthUser user = authUserMapper.selectOne(new LambdaQueryWrapper<AuthUser>()
-            .eq(AuthUser::getUsername, dto.getUsername())
-            .last("LIMIT 1"));
+                .eq(AuthUser::getUsername, dto.getUsername())
+                .last("LIMIT 1"));
         if (user == null) {
             loginRiskService.recordFailure(dto.getUsername());
             publishLoginEvent(null, dto.getUsername(), LoginTypeEnum.LOGIN, ip, userAgent,
-                Boolean.FALSE, "user not found");
+                    Boolean.FALSE, "user not found");
             DevMessageHolder.set("用户不存在，username=" + dto.getUsername());
             throw new AuthException(BizCode.AUTH_PASSWORD_ERROR);
         }
@@ -75,18 +90,19 @@ public class AuthServiceImpl implements AuthService {
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
             loginRiskService.recordFailure(dto.getUsername());
             publishLoginEvent(user.getId(), dto.getUsername(), LoginTypeEnum.LOGIN, ip, userAgent,
-                Boolean.FALSE, "password mismatch");
+                    Boolean.FALSE, "password mismatch");
             DevMessageHolder.set("Argon2id matches 返回 false，输入密码 '"
-                + dto.getPassword() + "' 与数据库哈希 '"
-                + user.getPassword().substring(0, Math.min(40, user.getPassword().length())) + "' 不匹配");
+                    + dto.getPassword() + "' 与数据库哈希 '"
+                    + user.getPassword().substring(0, Math.min(HASH_PREVIEW_LEN,
+                        user.getPassword().length())) + "' 不匹配");
             throw new AuthException(BizCode.AUTH_PASSWORD_ERROR);
         }
 
         // 5. 校验状态（被禁用/删除）
         if (user.getStatus() == null
-            || CommonConstants.STATUS_NORMAL != user.getStatus()) {
+                || CommonConstants.STATUS_NORMAL != user.getStatus()) {
             publishLoginEvent(user.getId(), dto.getUsername(), LoginTypeEnum.LOGIN, ip, userAgent,
-                Boolean.FALSE, "account disabled");
+                    Boolean.FALSE, "account disabled");
             DevMessageHolder.set("用户已被禁用，status=" + user.getStatus());
             throw new AuthException(BizCode.AUTH_USER_DISABLED);
         }
@@ -95,12 +111,12 @@ public class AuthServiceImpl implements AuthService {
         loginRiskService.clearFailure(dto.getUsername());
         boolean rememberMe = Boolean.TRUE.equals(dto.getRememberMe());
         long timeout = rememberMe
-            ? AuthConstants.REMEMBER_ME_TIMEOUT_SECONDS
-            : AuthConstants.LOGIN_TOKEN_TIMEOUT_SECONDS;
+                ? AuthConstants.REMEMBER_ME_TIMEOUT_SECONDS
+                : AuthConstants.LOGIN_TOKEN_TIMEOUT_SECONDS;
         SaLoginParameter param = new SaLoginParameter()
-            .setDeviceType(DeviceTypeEnum.PC.name())
-            .setTimeout(timeout)
-            .setIsLastingCookie(Boolean.TRUE);
+                .setDeviceType(DeviceTypeEnum.PC.name())
+                .setTimeout(timeout)
+                .setIsLastingCookie(Boolean.TRUE);
         StpUtil.login(user.getId(), param);
 
         // 7. 更新登录信息（last_login_time / last_login_ip）
@@ -110,21 +126,30 @@ public class AuthServiceImpl implements AuthService {
         update.setLastLoginIp(ip);
         authUserMapper.updateById(update);
 
-        // 8. 异步发送登录日志事件
+        // 8. 生成 Refresh Token（7d 有效，一次性消费）
+        String refreshToken = RandomUtil.randomString(REFRESH_TOKEN_LENGTH);
+        String refreshKey = AuthConstants.REFRESH_TOKEN_PREFIX + refreshToken;
+        stringRedisTemplate.opsForValue().set(refreshKey,
+                String.valueOf(user.getId()),
+                AuthConstants.REMEMBER_ME_TIMEOUT_SECONDS,
+                TimeUnit.SECONDS);
+
+        // 9. 异步发送登录日志事件
         publishLoginEvent(user.getId(), user.getUsername(), LoginTypeEnum.LOGIN, ip, userAgent,
-            Boolean.TRUE, null);
+                Boolean.TRUE, null);
 
         return LoginVO.builder()
-            .tokenName(StpUtil.getTokenName())
-            .tokenValue(StpUtil.getTokenValue())
-            .expiresIn(timeout)
-            .userId(user.getId())
-            .username(user.getUsername())
-            .nickname(user.getNickname())
-            .avatar(user.getAvatar())
-            .roles(List.of(CommonConstants.SUPER_ADMIN_ROLE_CODE))
-            .perms(List.of(AuthConstants.SUPER_ADMIN_PERMS))
-            .build();
+                .tokenName(StpUtil.getTokenName())
+                .tokenValue(StpUtil.getTokenValue())
+                .expiresIn(timeout)
+                .userId(user.getId())
+                .username(user.getUsername())
+                .nickname(user.getNickname())
+                .avatar(user.getAvatar())
+                .roles(List.of(CommonConstants.SUPER_ADMIN_ROLE_CODE))
+                .perms(List.of(AuthConstants.SUPER_ADMIN_PERMS))
+                .refreshToken(refreshToken)
+                .build();
     }
 
     @Override
@@ -136,9 +161,9 @@ public class AuthServiceImpl implements AuthService {
         AuthUser user = authUserMapper.selectById(userId);
         StpUtil.logout();
         publishLoginEvent(userId,
-            user == null ? null : user.getUsername(),
-            LoginTypeEnum.LOGOUT, null, null,
-            Boolean.TRUE, null);
+                user == null ? null : user.getUsername(),
+                LoginTypeEnum.LOGOUT, null, null,
+                Boolean.TRUE, null);
     }
 
     @Override
@@ -205,14 +230,22 @@ public class AuthServiceImpl implements AuthService {
         StpUtil.kickout(userId);
         AuthUser user = authUserMapper.selectById(userId);
         publishLoginEvent(userId,
-            user == null ? null : user.getUsername(),
-            LoginTypeEnum.KICKOUT, null, null,
-            Boolean.TRUE, null);
+                user == null ? null : user.getUsername(),
+                LoginTypeEnum.KICKOUT, null, null,
+                Boolean.TRUE, null);
         log.info("[Auth] kickout: targetUserId={} operator={}", userId, currentUserId);
     }
 
     /**
      * 异步发送登录日志事件到 log.login.create Exchange（由 log 服务消费写表）
+     *
+     * @param userId     登录用户 ID（未认证为 null）
+     * @param username   用户名
+     * @param type       事件类型
+     * @param ip         客户端 IP
+     * @param userAgent  客户端 UA
+     * @param success    是否成功
+     * @param failReason 失败原因（成功为 null）
      */
     private void publishLoginEvent(Long userId, String username, LoginTypeEnum type,
                                    String ip, String userAgent,
@@ -231,7 +264,7 @@ public class AuthServiceImpl implements AuthService {
             event.setFailReason(failReason);
             event.setLoginTime(LocalDateTime.now());
             rabbitTemplate.convertAndSend(AuthConstants.EXCHANGE_LOG_LOGIN, "", event);
-        } catch (Exception e) {
+        } catch (AmqpException e) {
             log.error("[Auth] publish login event failed: userId={} type={}", userId, type, e);
         }
     }
@@ -243,14 +276,15 @@ public class AuthServiceImpl implements AuthService {
         int at = email.indexOf('@');
         String prefix = email.substring(0, at);
         String maskedPrefix = prefix.isEmpty() ? ""
-            : prefix.charAt(0) + "*".repeat(Math.max(0, prefix.length() - 1));
+                : prefix.charAt(0) + "*".repeat(Math.max(0, prefix.length() - 1));
         return maskedPrefix + email.substring(at);
     }
 
     private String maskPhone(String phone) {
-        if (phone == null || phone.length() < 7) {
+        if (phone == null || phone.length() < PHONE_MIN_LEN) {
             return phone;
         }
-        return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
+        return phone.substring(0, PHONE_HEAD_LEN) + "****"
+            + phone.substring(phone.length() - PHONE_TAIL_LEN);
     }
 }

@@ -13,6 +13,9 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+/**
+ * 系统角色实体。
+ */
 @Data
 @TableName("sys_role")
 public class Role implements Serializable {

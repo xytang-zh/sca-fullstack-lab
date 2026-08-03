@@ -41,8 +41,9 @@ public class DataPermissionInnerInterceptor implements InnerInterceptor {
 
     @Override
     public void beforeQuery(Executor executor, MappedStatement ms, Object parameter,
-                            RowBounds rowBounds, ResultHandler resultHandler, org.apache.ibatis.mapping.BoundSql boundSql)
-        throws SQLException {
+                            RowBounds rowBounds, ResultHandler resultHandler,
+                            org.apache.ibatis.mapping.BoundSql boundSql)
+            throws SQLException {
         DataScope dataScope = resolveDataScope(ms);
         if (dataScope == null) {
             return;
@@ -88,11 +89,16 @@ public class DataPermissionInnerInterceptor implements InnerInterceptor {
      * SQL 改写：基于 @DataScope 配置与入参中的 dataScope 值拼接 WHERE 条件。
      *
      * <p>MVP 实现骨架：仅打 DEBUG 日志，实际改写逻辑在 T018 RBAC Starter 中完善。
+     *
+     * @param select   待改写的查询对象
+     * @param scope    数据权限注解
+     * @param parameter MyBatis 入参对象
+     * @return 改写后的 SQL，MVP 阶段返回 null
      */
     private String rewriteSelect(PlainSelect select, DataScope scope, Object parameter) {
         int effectiveScope = scope.defaultScope();
         log.debug("[DataPermission] scope={} alias.dept={} alias.user={} on SQL: {}",
-            effectiveScope, scope.deptAlias(), scope.userAlias(), select);
+                effectiveScope, scope.deptAlias(), scope.userAlias(), select);
         // TODO(T018): 根据 effectiveScope + 当前登录用户的 deptId / userId / 角色，拼接 IN 子查询或 = 条件
         return null;
     }

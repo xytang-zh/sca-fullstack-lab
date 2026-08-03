@@ -13,6 +13,9 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+/**
+ * 字典实体。
+ */
 @Data
 @TableName("sys_dict")
 public class Dict implements Serializable {

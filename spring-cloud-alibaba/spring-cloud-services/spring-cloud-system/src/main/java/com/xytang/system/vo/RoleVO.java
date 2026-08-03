@@ -8,6 +8,9 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+/**
+ * 角色出参。
+ */
 @Data
 @Builder
 @Schema(description = "角色视图对象")

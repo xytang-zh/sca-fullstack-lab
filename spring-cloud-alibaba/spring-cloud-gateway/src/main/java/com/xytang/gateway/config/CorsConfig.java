@@ -18,19 +18,21 @@ import java.util.List;
 @Configuration
 public class CorsConfig {
 
+    private static final long PREFLIGHT_MAX_AGE_SECONDS = 3600L;
+
     @Bean
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(List.of(
-            "http://localhost:5173",
-            "http://localhost:5174",
-            "https://*.example.com"
+                "http://localhost:5173",
+                "http://localhost:5174",
+                "https://*.example.com"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("X-Trace-Id", "Authorization"));
         config.setAllowCredentials(true);
-        config.setMaxAge(3600L);
+        config.setMaxAge(PREFLIGHT_MAX_AGE_SECONDS);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

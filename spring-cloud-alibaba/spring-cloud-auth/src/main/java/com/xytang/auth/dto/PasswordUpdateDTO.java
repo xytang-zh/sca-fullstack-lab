@@ -9,6 +9,9 @@ import lombok.Data;
 import java.io.Serial;
 import java.io.Serializable;
 
+/**
+ * 修改密码入参。
+ */
 @Data
 @Schema(description = "修改密码参数")
 public class PasswordUpdateDTO implements Serializable {

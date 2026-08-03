@@ -8,6 +8,9 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 
+/**
+ * 菜单出参。
+ */
 @Data
 @Builder
 @Schema(description = "菜单视图对象（含子节点树）")

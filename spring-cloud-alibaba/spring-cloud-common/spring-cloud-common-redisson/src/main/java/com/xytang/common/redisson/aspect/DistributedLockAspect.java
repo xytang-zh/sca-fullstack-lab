@@ -38,9 +38,11 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class DistributedLockAspect {
 
+    private static final long MILLIS_PER_SECOND = 1000L;
+
     private static final ExpressionParser PARSER = new SpelExpressionParser();
     private static final DefaultParameterNameDiscoverer PARAM_NAME_DISCOVERER =
-        new DefaultParameterNameDiscoverer();
+            new DefaultParameterNameDiscoverer();
 
     private final RedissonClient redissonClient;
 
@@ -51,8 +53,10 @@ public class DistributedLockAspect {
 
         boolean acquired;
         try {
-            long waitSecs = distributedLock.waitTimeUnit().toMillis(distributedLock.waitTime()) / 1000L;
-            long leaseSecs = distributedLock.leaseTimeUnit().toMillis(distributedLock.leaseTime()) / 1000L;
+            long waitSecs = distributedLock.waitTimeUnit().toMillis(distributedLock.waitTime())
+                    / MILLIS_PER_SECOND;
+            long leaseSecs = distributedLock.leaseTimeUnit().toMillis(distributedLock.leaseTime())
+                    / MILLIS_PER_SECOND;
             if (leaseSecs < 0) {
                 acquired = lock.tryLock((long) waitSecs, TimeUnit.MINUTES);
             } else {

@@ -3,11 +3,9 @@ package com.xytang.gateway.filter;
 import com.xytang.common.core.constant.HeaderConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import reactor.core.publisher.Mono;
 
 import java.util.UUID;
 
@@ -49,14 +47,17 @@ public class TraceIdGatewayFilterFactory extends AbstractGatewayFilterFactory<Tr
             final String tid = traceId;
             exchange.getAttributes().put(TRACE_ID_ATTR, tid);
             var mutated = exchange.getRequest().mutate()
-                .header(HeaderConstants.X_TRACE_ID, tid)
-                .build();
+                    .header(HeaderConstants.X_TRACE_ID, tid)
+                    .build();
             var mutatedExchange = exchange.mutate().request(mutated).build();
             mutatedExchange.getResponse().getHeaders().add(HeaderConstants.X_TRACE_ID, tid);
             return chain.filter(mutatedExchange);
         };
     }
 
+    /**
+     * 过滤器配置（无参数）。
+     */
     public static class Config {
     }
 }

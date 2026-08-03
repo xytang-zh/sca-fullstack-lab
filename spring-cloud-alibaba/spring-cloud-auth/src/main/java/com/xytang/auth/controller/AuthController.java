@@ -1,5 +1,6 @@
 package com.xytang.auth.controller;
 
+import com.xytang.auth.dto.CaptchaCheckDTO;
 import com.xytang.auth.dto.KickoutDTO;
 import com.xytang.auth.dto.LoginDTO;
 import com.xytang.auth.dto.PasswordUpdateDTO;
@@ -8,6 +9,8 @@ import com.xytang.auth.service.CaptchaService;
 import com.xytang.auth.vo.CaptchaVO;
 import com.xytang.auth.vo.LoginVO;
 import com.xytang.auth.vo.UserInfoVO;
+import com.xytang.common.core.exception.AuthException;
+import com.xytang.common.core.response.BizCode;
 import com.xytang.common.core.response.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +25,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
+/**
+ * 认证中心控制器：验证码/登录/登出/用户信息。
+ */
 @Tag(name = "认证中心")
 @RestController
 @RequestMapping
@@ -36,6 +44,22 @@ public class AuthController {
     @GetMapping("/captcha")
     public R<CaptchaVO> captcha() {
         return R.ok(captchaService.generate());
+    }
+
+    @Operation(summary = "获取验证码（tianai SDK 用 POST 请求）")
+    @PostMapping("/captcha")
+    public R<CaptchaVO> captchaByPost() {
+        return R.ok(captchaService.generate());
+    }
+
+    @Operation(summary = "校验滑块并签发一次性 checkToken（tianai SDK 回调接口）")
+    @PostMapping("/captcha/check")
+    public R<Map<String, String>> captchaCheck(@RequestBody @Valid CaptchaCheckDTO dto) {
+        String checkToken = captchaService.check(dto.getId(), dto.getData());
+        if (checkToken == null) {
+            throw new AuthException(BizCode.AUTH_CAPTCHA_ERROR);
+        }
+        return R.ok(Map.of("checkToken", checkToken));
     }
 
     @Operation(summary = "登录")

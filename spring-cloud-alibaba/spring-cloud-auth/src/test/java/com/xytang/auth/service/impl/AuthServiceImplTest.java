@@ -4,7 +4,6 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.stp.parameter.SaLoginParameter;
 import com.xytang.auth.dto.LoginDTO;
 import com.xytang.auth.entity.AuthUser;
-import com.xytang.auth.enums.LoginTypeEnum;
 import com.xytang.auth.mapper.AuthUserMapper;
 import com.xytang.auth.service.CaptchaService;
 import com.xytang.auth.service.LoginRiskService;
@@ -23,6 +22,8 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -33,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -69,6 +71,9 @@ class AuthServiceImplTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private StringRedisTemplate stringRedisTemplate;
+
     @InjectMocks
     private AuthServiceImpl authService;
 
@@ -95,11 +100,12 @@ class AuthServiceImplTest {
     void loginSuccessShouldReturnLoginVo() {
         LoginDTO dto = buildDto();
         AuthUser user = buildUser(1L, CommonConstants.STATUS_NORMAL,
-            "$argon2id$v=19$m=16384,t=3,p=2$+27WTLFAqxSTRl5oyRAIjw$FDm+vGxZbK72A/m7fGobGmU6Kgg6RsyuHLHJnwyfXzc");
+                "$argon2id$v=19$m=16384,t=3,p=2$+27WTLFAqxSTRl5oyRAIjw$FDm+vGxZbK72A/m7fGobGmU6Kgg6RsyuHLHJnwyfXzc");
 
-        when(captchaService.verify(dto.getCaptchaKey(), dto.getCaptcha())).thenReturn(true);
+        when(captchaService.verifyCheckToken(dto.getCheckToken())).thenReturn(true);
         when(authUserMapper.selectOne(any())).thenReturn(user);
         when(passwordEncoder.matches(dto.getPassword(), user.getPassword())).thenReturn(true);
+        when(stringRedisTemplate.opsForValue()).thenReturn(mock(ValueOperations.class));
 
         LoginVO vo = authService.login(dto, "127.0.0.1", "Mozilla/5.0");
 
@@ -114,23 +120,25 @@ class AuthServiceImplTest {
     @Test
     void loginCaptchaErrorShouldThrowAuthException() {
         LoginDTO dto = buildDto();
-        when(captchaService.verify(dto.getCaptchaKey(), dto.getCaptcha())).thenReturn(false);
+        when(captchaService.verifyCheckToken(dto.getCheckToken())).thenReturn(false);
 
         AuthException ex = assertThrows(AuthException.class,
-            () -> authService.login(dto, "127.0.0.1", "Mozilla/5.0"));
+                () -> authService.login(dto, "127.0.0.1", "Mozilla/5.0"));
 
         assertEquals(BizCode.AUTH_CAPTCHA_ERROR, ex.getBizCode());
-        assertTrue(DevMessageHolder.get().contains("验证码不匹配"));
+        assertTrue(DevMessageHolder.get().contains("滑块验证码凭据无效"));
+        // 验证码失败不计入登录失败锁定计数
+        verify(loginRiskService, never()).recordFailure(anyString());
     }
 
     @Test
     void loginUserNotFoundShouldThrowAuthExceptionAndRecordFailure() {
         LoginDTO dto = buildDto();
-        when(captchaService.verify(dto.getCaptchaKey(), dto.getCaptcha())).thenReturn(true);
+        when(captchaService.verifyCheckToken(dto.getCheckToken())).thenReturn(true);
         when(authUserMapper.selectOne(any())).thenReturn(null);
 
         AuthException ex = assertThrows(AuthException.class,
-            () -> authService.login(dto, "127.0.0.1", "Mozilla/5.0"));
+                () -> authService.login(dto, "127.0.0.1", "Mozilla/5.0"));
 
         assertEquals(BizCode.AUTH_PASSWORD_ERROR, ex.getBizCode());
         assertEquals("用户名或密码错误", ex.getMessage());
@@ -142,14 +150,14 @@ class AuthServiceImplTest {
     void loginPasswordMismatchShouldThrowAuthExceptionWithDevMessage() {
         LoginDTO dto = buildDto();
         AuthUser user = buildUser(1L, CommonConstants.STATUS_NORMAL,
-            "$argon2id$v=19$m=16384,t=3,p=2$+27WTLFAqxSTRl5oyRAIjw$FDm+vGxZbK72A/m7fGobGmU6Kgg6RsyuHLHJnwyfXzc");
+                "$argon2id$v=19$m=16384,t=3,p=2$+27WTLFAqxSTRl5oyRAIjw$FDm+vGxZbK72A/m7fGobGmU6Kgg6RsyuHLHJnwyfXzc");
 
-        when(captchaService.verify(dto.getCaptchaKey(), dto.getCaptcha())).thenReturn(true);
+        when(captchaService.verifyCheckToken(dto.getCheckToken())).thenReturn(true);
         when(authUserMapper.selectOne(any())).thenReturn(user);
         when(passwordEncoder.matches(dto.getPassword(), user.getPassword())).thenReturn(false);
 
         AuthException ex = assertThrows(AuthException.class,
-            () -> authService.login(dto, "127.0.0.1", "Mozilla/5.0"));
+                () -> authService.login(dto, "127.0.0.1", "Mozilla/5.0"));
 
         assertEquals(BizCode.AUTH_PASSWORD_ERROR, ex.getBizCode());
         String devMessage = DevMessageHolder.get();
@@ -162,14 +170,14 @@ class AuthServiceImplTest {
     void loginDisabledUserShouldThrowAuthException() {
         LoginDTO dto = buildDto();
         AuthUser user = buildUser(1L, CommonConstants.STATUS_DISABLED,
-            "$argon2id$v=19$m=16384,t=3,p=2$+27WTLFAqxSTRl5oyRAIjw$FDm+vGxZbK72A/m7fGobGmU6Kgg6RsyuHLHJnwyfXzc");
+                "$argon2id$v=19$m=16384,t=3,p=2$+27WTLFAqxSTRl5oyRAIjw$FDm+vGxZbK72A/m7fGobGmU6Kgg6RsyuHLHJnwyfXzc");
 
-        when(captchaService.verify(dto.getCaptchaKey(), dto.getCaptcha())).thenReturn(true);
+        when(captchaService.verifyCheckToken(dto.getCheckToken())).thenReturn(true);
         when(authUserMapper.selectOne(any())).thenReturn(user);
         when(passwordEncoder.matches(dto.getPassword(), user.getPassword())).thenReturn(true);
 
         AuthException ex = assertThrows(AuthException.class,
-            () -> authService.login(dto, "127.0.0.1", "Mozilla/5.0"));
+                () -> authService.login(dto, "127.0.0.1", "Mozilla/5.0"));
 
         assertEquals(BizCode.AUTH_USER_DISABLED, ex.getBizCode());
         verify(loginRiskService, never()).clearFailure(anyString());
@@ -179,8 +187,7 @@ class AuthServiceImplTest {
         LoginDTO dto = new LoginDTO();
         dto.setUsername("admin");
         dto.setPassword("admin123");
-        dto.setCaptcha("a1b2");
-        dto.setCaptchaKey("key-123");
+        dto.setCheckToken("check-token-123");
         dto.setRememberMe(false);
         return dto;
     }

@@ -13,6 +13,9 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+/**
+ * 菜单实体。
+ */
 @Data
 @TableName("sys_menu")
 public class Menu implements Serializable {

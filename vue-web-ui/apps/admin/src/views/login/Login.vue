@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { NForm, NFormItem, NInput, NButton, NCheckbox, useMessage } from 'naive-ui'
-import { Person, LockClosed, Image } from '@vicons/ionicons5'
-import { getCaptcha } from '@/api/auth'
+import { Person, LockClosed } from '@vicons/ionicons5'
 import { useUserStore } from '@/store/user'
+import CaptchaModal from '@/components/common/CaptchaModal.vue'
 import type { R } from '@sca/types'
 
 const router = useRouter()
@@ -13,61 +13,74 @@ const message = useMessage()
 const userStore = useUserStore()
 
 const loading = ref(false)
-const captchaLoading = ref(false)
-const captchaImg = ref('')
+const showCaptcha = ref(false)
+const captchaRequired = ref(false)
 
 const form = reactive({
-  username: 'admin',
+  username: '',
   password: '',
-  captcha: '',
-  captchaKey: '',
   rememberMe: false
 })
 
 const rules = {
   username: { required: true, message: '请输入用户名', trigger: 'blur' },
-  password: { required: true, message: '请输入密码', trigger: 'blur' },
-  captcha: { required: true, message: '请输入验证码', trigger: 'blur' }
-}
-
-async function refreshCaptcha() {
-  captchaLoading.value = true
-  try {
-    const data = await getCaptcha()
-    captchaImg.value = data.captchaImg
-    form.captchaKey = data.captchaKey
-    form.captcha = ''
-  } catch (err) {
-    message.error('获取验证码失败')
-  } finally {
-    captchaLoading.value = false
-  }
+  password: { required: true, message: '请输入密码', trigger: 'blur' }
 }
 
 async function handleLogin(e: Event) {
   e.preventDefault()
-  if (!form.username || !form.password || !form.captcha) {
-    message.warning('请填写完整登录信息')
+  if (!form.username || !form.password) {
+    message.warning('请填写用户名和密码')
     return
   }
+  // 如果没有要求验证码，直接提交登录
+  if (!captchaRequired.value) {
+    await submitLogin('')
+  } else {
+    // 需要验证码 → 弹出滑块
+    showCaptcha.value = true
+  }
+}
+
+async function onCaptchaSuccess(checkToken: string) {
+  showCaptcha.value = false
+  await submitLogin(checkToken)
+}
+
+async function submitLogin(checkToken: string) {
   loading.value = true
   try {
     await userStore.login({
       username: form.username,
       password: form.password,
-      captcha: form.captcha,
-      captchaKey: form.captchaKey,
+      checkToken,
       rememberMe: form.rememberMe
     })
     message.success('登录成功')
     const redirect = (route.query.redirect as string) || '/dashboard'
     router.replace(redirect)
   } catch (err: unknown) {
-    message.error(extractBizMessage(err))
-    refreshCaptcha()
+    const bizCode = extractBizCode(err)
+    if (bizCode === '01201') {
+      // 验证码错误 → 下次登录需要验证码
+      captchaRequired.value = true
+      showCaptcha.value = true
+    } else {
+      message.error(extractBizMessage(err))
+    }
   } finally {
     loading.value = false
   }
+}
+
+function extractBizCode(err: unknown): string | null {
+  if (err && typeof err === 'object') {
+    const r = err as Partial<R<unknown> & { code?: string }>
+    if (r.code) return String(r.code)
+    const axiosErr = err as { response?: { data?: Partial<R<unknown> & { code?: string }> } }
+    if (axiosErr.response?.data?.code) return String(axiosErr.response.data.code)
+  }
+  return null
 }
 
 function extractBizMessage(err: unknown): string {
@@ -86,8 +99,6 @@ function extractBizMessage(err: unknown): string {
   }
   return '登录失败'
 }
-
-onMounted(refreshCaptcha)
 </script>
 
 <template>
@@ -105,7 +116,7 @@ onMounted(refreshCaptcha)
             clearable
             :input-props="{ autocomplete: 'username' }"
           >
-            <template #prefix><NIcon :component="Person" /></template>
+            <template #prefix><n-icon :component="Person" /></template>
           </n-input>
         </n-form-item>
         <n-form-item path="password">
@@ -117,24 +128,8 @@ onMounted(refreshCaptcha)
             :input-props="{ autocomplete: 'current-password' }"
             @keyup.enter="handleLogin"
           >
-            <template #prefix><NIcon :component="LockClosed" /></template>
+            <template #prefix><n-icon :component="LockClosed" /></template>
           </n-input>
-        </n-form-item>
-        <n-form-item path="captcha">
-          <div class="captcha-row">
-            <n-input
-              v-model:value="form.captcha"
-              placeholder="验证码"
-              maxlength="4"
-              @keyup.enter="handleLogin"
-            >
-              <template #prefix><NIcon :component="Image" /></template>
-            </n-input>
-            <div class="captcha-img" :loading="captchaLoading" @click="refreshCaptcha">
-              <img v-if="captchaImg" :src="captchaImg" alt="captcha" />
-              <span v-else>点击获取</span>
-            </div>
-          </div>
         </n-form-item>
         <n-form-item>
           <n-checkbox v-model:checked="form.rememberMe">7 天内免登录</n-checkbox>
@@ -150,6 +145,7 @@ onMounted(refreshCaptcha)
         </n-button>
       </n-form>
     </div>
+    <captcha-modal :show="showCaptcha" @success="onCaptchaSuccess" @close="showCaptcha = false" />
   </div>
 </template>
 
@@ -181,27 +177,5 @@ onMounted(refreshCaptcha)
   margin: 6px 0 0;
   font-size: 13px;
   color: #6b7280;
-}
-.captcha-row {
-  display: flex;
-  gap: 8px;
-  width: 100%;
-}
-.captcha-img {
-  width: 120px;
-  height: 40px;
-  padding: 2px;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* overflow: hidden; */
-}
-.captcha-img img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 </style>

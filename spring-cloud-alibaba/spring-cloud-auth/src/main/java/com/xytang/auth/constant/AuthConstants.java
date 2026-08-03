@@ -14,6 +14,9 @@ public final class AuthConstants {
     public static final String LOGIN_LOCK_PREFIX = "auth:login:lock:";
     public static final String CAPTCHA_PREFIX = "auth:captcha:";
     public static final String IP_BLACKLIST_PREFIX = "auth:ip:blacklist:";
+    public static final String SSO_CODE_PREFIX = "auth:sso:code:";
+    public static final String SSO_CLIENT_PREFIX = "auth:sso:client:";
+    public static final String REFRESH_TOKEN_PREFIX = "auth:oauth2:refresh:";
 
     public static final String SUPER_ADMIN_PERMS = "*:*:*";
 

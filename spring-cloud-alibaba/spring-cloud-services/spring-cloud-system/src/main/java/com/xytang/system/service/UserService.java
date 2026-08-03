@@ -8,6 +8,9 @@ import com.xytang.system.dto.UserUpdateDTO;
 import com.xytang.system.entity.User;
 import com.xytang.system.vo.UserVO;
 
+/**
+ * 用户服务。
+ */
 public interface UserService extends IService<User> {
 
     PageVO<UserVO> page(UserPageQuery query);

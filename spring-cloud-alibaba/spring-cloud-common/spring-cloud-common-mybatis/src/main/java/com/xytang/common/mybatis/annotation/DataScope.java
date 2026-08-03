@@ -24,21 +24,45 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface DataScope {
 
-    /** 部门表别名，默认 d */
+    /**
+     * 部门表别名，默认 d
+     *
+     * @return 部门表别名
+     */
     String deptAlias() default "d";
 
-    /** 用户表别名，默认 u */
+    /**
+     * 用户表别名，默认 u
+     *
+     * @return 用户表别名
+     */
     String userAlias() default "u";
 
-    /** 部门 ID 字段名，默认 dept_id */
+    /**
+     * 部门 ID 字段名，默认 dept_id
+     *
+     * @return 部门 ID 字段名
+     */
     String deptIdField() default "dept_id";
 
-    /** 创建人字段名，默认 creator */
+    /**
+     * 创建人字段名，默认 creator
+     *
+     * @return 创建人字段名
+     */
     String creatorField() default "creator";
 
-    /** 数据范围参数名，从入参中读取；默认 dataScope */
+    /**
+     * 数据范围参数名，从入参中读取；默认 dataScope
+     *
+     * @return 数据范围参数名
+     */
     String dataScopeParam() default "dataScope";
 
-    /** 默认数据范围（1=全部），用于未传参时的兜底 */
+    /**
+     * 默认数据范围（1=全部），用于未传参时的兜底
+     *
+     * @return 默认数据范围
+     */
     int defaultScope() default 1;
 }

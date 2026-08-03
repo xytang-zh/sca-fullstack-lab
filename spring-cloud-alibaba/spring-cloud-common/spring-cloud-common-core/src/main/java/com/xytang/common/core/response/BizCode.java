@@ -47,6 +47,11 @@ public enum BizCode {
     AUTH_USER_DISABLED(403, "01301", "用户已被禁用"),
     AUTH_USER_LOCKED(423, "01302", "用户已被锁定，请{0}分钟后重试"),
     AUTH_CAPTCHA_ERROR(400, "01201", "验证码错误或已过期"),
+    AUTH_TOKEN_EXPIRED(401, "01304", "Token 已过期，请刷新"),
+    AUTH_TOKEN_KICKED_OUT(401, "01305", "您的登录已失效，请重新登录"),
+    AUTH_TOKEN_MISSING(401, "01306", "未登录，请先登录"),
+    AUTH_REFRESH_TOKEN_INVALID(401, "01307", "Refresh Token 无效或已过期"),
+    AUTH_SSO_CLIENT_INVALID(401, "01308", "SSO Client 凭证校验失败"),
 
     SYS_USER_NOT_FOUND(404, "02101", "用户不存在"),
     SYS_USER_EXISTED(409, "02102", "用户已存在"),

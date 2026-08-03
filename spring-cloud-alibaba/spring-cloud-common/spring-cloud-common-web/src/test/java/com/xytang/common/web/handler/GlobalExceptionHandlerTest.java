@@ -8,13 +8,12 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ContextConfiguration;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -40,23 +39,31 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *   <li>兜底 Exception → 500 + 00401</li>
  * </ul>
  */
-@WebMvcTest(GlobalExceptionHandlerTest.TestController.class)
-@Import(GlobalExceptionHandler.class)
-@ContextConfiguration(classes = {GlobalExceptionHandlerTest.TestController.class, GlobalExceptionHandler.class})
 class GlobalExceptionHandlerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    private static final int HTTP_BAD_REQUEST = 400;
+    private static final int HTTP_INTERNAL_ERROR = 500;
+
+    private final MockMvc mockMvc;
 
     private final ObjectMapper mapper = new ObjectMapper();
+
+    GlobalExceptionHandlerTest() {
+        LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
+        validator.afterPropertiesSet();
+        this.mockMvc = MockMvcBuilders.standaloneSetup(new TestController())
+                .setControllerAdvice(new GlobalExceptionHandler(new MockEnvironment()))
+                .setValidator(validator)
+                .build();
+    }
 
     @Test
     void businessExceptionShouldMapToBizCodeHttpStatus() throws Exception {
         mockMvc.perform(get("/test/business"))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.code").value(400))
-            .andExpect(jsonPath("$.bizCode").value("01105"))
-            .andExpect(jsonPath("$.message").value("用户名或密码错误"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(HTTP_BAD_REQUEST))
+                .andExpect(jsonPath("$.bizCode").value("01105"))
+                .andExpect(jsonPath("$.message").value("用户名或密码错误"));
     }
 
     @Test
@@ -65,10 +72,10 @@ class GlobalExceptionHandlerTest {
         MvcResult result = mockMvc.perform(post("/test/validation")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.code").value(400))
-            .andExpect(jsonPath("$.bizCode").value("00101"))
-            .andReturn();
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(HTTP_BAD_REQUEST))
+                .andExpect(jsonPath("$.bizCode").value("00101"))
+                .andReturn();
 
         JsonNode node = mapper.readTree(result.getResponse().getContentAsString());
         assertTrue(node.get("message").asText().contains("参数校验失败"));
@@ -78,28 +85,28 @@ class GlobalExceptionHandlerTest {
     @Test
     void missingParamShouldReturn400And00102() throws Exception {
         mockMvc.perform(get("/test/param"))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.code").value(400))
-            .andExpect(jsonPath("$.bizCode").value("00102"))
-            .andExpect(jsonPath("$.message").value("缺少必要参数：name"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(HTTP_BAD_REQUEST))
+                .andExpect(jsonPath("$.bizCode").value("00102"))
+                .andExpect(jsonPath("$.message").value("缺少必要参数：name"));
     }
 
     @Test
     void typeMismatchShouldReturn400And00103() throws Exception {
         mockMvc.perform(get("/test/type?age=abc"))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.code").value(400))
-            .andExpect(jsonPath("$.bizCode").value("00103"))
-            .andExpect(jsonPath("$.message").value("参数类型错误：age"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(HTTP_BAD_REQUEST))
+                .andExpect(jsonPath("$.bizCode").value("00103"))
+                .andExpect(jsonPath("$.message").value("参数类型错误：age"));
     }
 
     @Test
     void unknownExceptionShouldReturn500And00401() throws Exception {
         mockMvc.perform(get("/test/unknown"))
-            .andExpect(status().isInternalServerError())
-            .andExpect(jsonPath("$.code").value(500))
-            .andExpect(jsonPath("$.bizCode").value("00401"))
-            .andExpect(jsonPath("$.message").value("系统繁忙，请稍后重试"));
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.code").value(HTTP_INTERNAL_ERROR))
+                .andExpect(jsonPath("$.bizCode").value("00401"))
+                .andExpect(jsonPath("$.message").value("系统繁忙，请稍后重试"));
     }
 
     @RestController

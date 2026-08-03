@@ -26,7 +26,7 @@ public abstract class AbstractEventListener<T extends BaseEvent> {
 
     private final StringRedisTemplate redisTemplate;
 
-    protected abstract void handle(T event) throws Exception;
+    protected abstract void handle(T event);
 
     public void onMessage(T event) {
         if (event == null || event.getEventId() == null) {
@@ -42,10 +42,10 @@ public abstract class AbstractEventListener<T extends BaseEvent> {
         try {
             handle(event);
             log.info("[MQ] consumed, eventId={} type={}", event.getEventId(), event.getEventType());
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             redisTemplate.delete(key);
             log.error("[MQ] consume failed, eventId={} type={}", event.getEventId(), event.getEventType(), e);
-            throw new RuntimeException(e);
+            throw e;
         }
     }
 

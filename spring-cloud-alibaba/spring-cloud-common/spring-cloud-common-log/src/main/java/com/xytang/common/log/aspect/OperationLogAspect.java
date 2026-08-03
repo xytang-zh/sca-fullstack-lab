@@ -9,6 +9,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -39,6 +40,8 @@ import java.util.Map;
 public class OperationLogAspect {
 
     private static final String EXCHANGE_LOG_OPERATION = "log.operation";
+    private static final int RESPONSE_MAX_LEN = 2000;
+    private static final int ARG_MAX_LEN = 500;
 
     private final RabbitTemplate rabbitTemplate;
 
@@ -69,13 +72,13 @@ public class OperationLogAspect {
             result = pjp.proceed();
             logEntry.put("status", 1);
             if (operationLog.saveResponse() && result != null) {
-                logEntry.put("responseResult", truncate(String.valueOf(result), 2000));
+                logEntry.put("responseResult", truncate(String.valueOf(result), RESPONSE_MAX_LEN));
             }
             return result;
-        } catch (Throwable e) {
+        } catch (RuntimeException e) {
             error = e;
             logEntry.put("status", 0);
-            logEntry.put("errorMsg", truncate(e.getMessage(), 2000));
+            logEntry.put("errorMsg", truncate(e.getMessage(), RESPONSE_MAX_LEN));
             throw e;
         } finally {
             if (operationLog.saveCost()) {
@@ -83,7 +86,7 @@ public class OperationLogAspect {
             }
             try {
                 rabbitTemplate.convertAndSend(EXCHANGE_LOG_OPERATION, logEntry);
-            } catch (Exception e) {
+            } catch (AmqpException e) {
                 log.error("[OperationLog] send to MQ failed, logEntry={}", logEntry, e);
             }
         }
@@ -114,15 +117,19 @@ public class OperationLogAspect {
         }
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < args.length; i++) {
-            if (i > 0) sb.append(",");
+            if (i > 0) {
+                sb.append(",");
+            }
             String s = String.valueOf(args[i]);
-            sb.append(truncate(s, 500));
+            sb.append(truncate(s, ARG_MAX_LEN));
         }
         return sb.append("]").toString();
     }
 
     private String truncate(String s, int max) {
-        if (s == null) return "";
+        if (s == null) {
+            return "";
+        }
         return s.length() > max ? s.substring(0, max) + "...(truncated)" : s;
     }
 }

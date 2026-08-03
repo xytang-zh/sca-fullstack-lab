@@ -36,6 +36,9 @@
         <!-- ===== 认证与权限 ===== -->
         <sa-token.version>1.44.0</sa-token.version>
 
+        <!-- ===== 验证码 ===== -->
+        <tianai-captcha.version>1.5.2</tianai-captcha.version>
+
         <!-- ===== ORM / 数据 ===== -->
         <mybatis-plus.version>3.5.9</mybatis-plus.version>
         <dynamic-datasource.version>4.3.1</dynamic-datasource.version>
@@ -168,6 +171,13 @@
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk18on</artifactId>
                 <version>${bouncycastle.version}</version>
+            </dependency>
+
+            <!-- tianai-captcha 行为验证码（不在任何 BOM 中） -->
+            <dependency>
+                <groupId>cloud.tianai.captcha</groupId>
+                <artifactId>tianai-captcha-springboot-starter</artifactId>
+                <version>${tianai-captcha.version}</version>
             </dependency>
 
             <!-- ArchUnit（架构守护，不在任何 BOM 中） -->
@@ -325,6 +335,8 @@
                     <version>${maven-checkstyle-plugin.version}</version>
                     <configuration>
                         <configLocation>${maven.multiModuleProjectDirectory}/src/checkstyle.xml</configLocation>
+                        <suppressionsLocation>${maven.multiModuleProjectDirectory}/src/checkstyle-suppressions.xml</suppressionsLocation>
+                        <suppressionsFileExpression>checkstyle.suppressions.file</suppressionsFileExpression>
                         <consoleOutput>true</consoleOutput>
                         <failOnViolation>true</failOnViolation>
                         <includeTestSourceDirectory>true</includeTestSourceDirectory>

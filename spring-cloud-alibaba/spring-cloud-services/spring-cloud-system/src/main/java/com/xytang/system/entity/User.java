@@ -13,6 +13,9 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+/**
+ * 系统用户实体。
+ */
 @Data
 @TableName("sys_user")
 public class User implements Serializable {

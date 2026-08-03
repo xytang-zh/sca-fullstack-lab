@@ -9,6 +9,9 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 用户出参。
+ */
 @Data
 @Builder
 @Schema(description = "用户视图对象（敏感字段已脱敏）")

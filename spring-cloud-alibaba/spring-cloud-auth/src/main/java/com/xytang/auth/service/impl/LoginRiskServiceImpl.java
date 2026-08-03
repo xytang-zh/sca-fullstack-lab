@@ -11,10 +11,15 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 登录风控：失败计数、账号锁定、IP 黑名单。
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class LoginRiskServiceImpl implements LoginRiskService {
+
+    private static final int SECONDS_PER_MINUTE = 60;
 
     private final StringRedisTemplate stringRedisTemplate;
 
@@ -25,7 +30,8 @@ public class LoginRiskServiceImpl implements LoginRiskService {
         if (locked != null) {
             Long ttl = stringRedisTemplate.getExpire(lockKey, TimeUnit.SECONDS);
             log.warn("[LoginRisk] account locked: username={} ttlSec={}", username, ttl);
-            throw new AccountLockedException("账号已锁定，请 " + (ttl == null ? 0 : (ttl + 60) / 60) + " 分钟后重试");
+            throw new AccountLockedException("账号已锁定，请 "
+                + (ttl == null ? 0 : (ttl + SECONDS_PER_MINUTE) / SECONDS_PER_MINUTE) + " 分钟后重试");
         }
     }
 
@@ -39,8 +45,8 @@ public class LoginRiskServiceImpl implements LoginRiskService {
         if (count != null && count >= AuthConstants.LOGIN_MAX_FAIL_COUNT) {
             String lockKey = AuthConstants.LOGIN_LOCK_PREFIX + username;
             stringRedisTemplate.opsForValue().set(
-                lockKey, "1",
-                Duration.ofMinutes(AuthConstants.LOGIN_LOCK_MINUTES));
+                    lockKey, "1",
+                    Duration.ofMinutes(AuthConstants.LOGIN_LOCK_MINUTES));
             log.warn("[LoginRisk] account locked by failures: username={} count={}", username, count);
         }
     }

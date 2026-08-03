@@ -24,17 +24,17 @@
     <module name="FileLength">
         <property name="max" value="2000"/>
     </module>
-    <!-- 阿里规范：一个 .java 文件只能有一个顶层类 -->
-    <module name="OneTopLevelClass"/>
-    <!-- 阿里规范：包/import/类/字段/方法之间必须有空行分隔 -->
-    <module name="EmptyLineSeparator">
-        <property name="tokens" value="PACKAGE_DEF, IMPORT, CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF, VARIABLE_DEF"/>
-        <property name="allowNoEmptyLineBetweenFields" value="true"/>
-        <property name="allowMultipleEmptyLines" value="false"/>
-    </module>
-
     <!-- ===== 单元规则：所有 .java 文件 ===== -->
     <module name="TreeWalker">
+
+        <!-- 阿里规范：一个 .java 文件只能有一个顶层类 -->
+        <module name="OneTopLevelClass"/>
+        <!-- 阿里规范：包/import/类/字段/方法之间必须有空行分隔 -->
+        <module name="EmptyLineSeparator">
+            <property name="tokens" value="PACKAGE_DEF, IMPORT, CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF, VARIABLE_DEF"/>
+            <property name="allowNoEmptyLineBetweenFields" value="true"/>
+            <property name="allowMultipleEmptyLines" value="false"/>
+        </module>
 
         <!-- 注释 -->
         <module name="JavadocMethod"/>
@@ -63,7 +63,7 @@
 
         <!-- 缩进与空白（阿里规范：4 空格强制） -->
         <module name="Indentation">
-            <property name="basicIndentation" value="4"/>
+            <property name="basicOffset" value="4"/>
             <property name="braceAdjustment" value="0"/>
             <property name="caseIndent" value="4"/>
             <property name="throwsIndent" value="4"/>
@@ -105,7 +105,7 @@
         <module name="InterfaceIsType"/>
         <module name="VisibilityModifier">
             <property name="allowPublicFinalFields" value="false"/>
-            <property name="allowProtectedFinalFields" value="true"/>
+            <property name="protectedAllowed" value="true"/>
         </module>
 
         <!-- 异常 -->
@@ -158,7 +158,7 @@
 
     <!-- ===== 文件级抑制 ===== -->
     <module name="SuppressionFilter">
-        <property name="file" value="${maven.multiModuleProjectDirectory}/src/checkstyle-suppressions.xml"/>
+        <property name="file" value="${checkstyle.suppressions.file}"/>
         <property name="optional" value="true"/>
     </module>
 </module>

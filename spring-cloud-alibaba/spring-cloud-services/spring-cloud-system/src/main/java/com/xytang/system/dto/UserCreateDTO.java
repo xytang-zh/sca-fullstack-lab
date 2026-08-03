@@ -10,6 +10,9 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 
+/**
+ * 新增用户入参。
+ */
 @Data
 public class UserCreateDTO implements Serializable {
 

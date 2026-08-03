@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AxiosMockAdapter from 'axios-mock-adapter'
 import { request, registerMessageHandler } from '../request'
 import type { R } from '@sca/types'
@@ -146,7 +146,7 @@ describe('request.ts axios 拦截器', () => {
 
   it('请求拦截器应自动携带 X-Trace-Id', async () => {
     mock.onGet('/api/test').reply((config) => {
-      expect(config.headers['X-Trace-Id']).toBe('test-trace-id')
+      expect(config.headers?.['X-Trace-Id']).toBe('test-trace-id')
       return [200, {
         code: 200,
         bizCode: '00000',
@@ -163,6 +163,6 @@ describe('request.ts axios 拦截器', () => {
 // 恢复 window.location
 describe('cleanup', () => {
   it('restore location', () => {
-    window.location = originalLocation
+    window.location.href = originalLocation.href
   })
 })

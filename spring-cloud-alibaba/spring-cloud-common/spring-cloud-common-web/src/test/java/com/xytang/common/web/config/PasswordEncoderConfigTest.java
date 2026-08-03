@@ -1,12 +1,12 @@
 package com.xytang.common.web.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.lang.reflect.Field;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -22,7 +22,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *   <li>打印 admin123 的 Argon2id 哈希供 T028 SQL 脚本回填</li>
  * </ul>
  */
+@Slf4j
 class PasswordEncoderConfigTest {
+
+    private static final int SALT_LENGTH = 16;
+    private static final int KEY_LENGTH = 32;
+    private static final int PARALLELISM = 2;
+    private static final int MEMORY_KB = 16384;
+    private static final int ITERATIONS = 3;
+    private static final int MIN_HASH_LEN = 90;
+    private static final int MAX_HASH_LEN = 100;
 
     private PasswordEncoderConfig config;
     private PasswordEncoder encoder;
@@ -30,11 +39,11 @@ class PasswordEncoderConfigTest {
     @BeforeEach
     void setUp() throws Exception {
         config = new PasswordEncoderConfig();
-        setField("saltLength", 16);
-        setField("keyLength", 32);
-        setField("parallelism", 2);
-        setField("memory", 16384);
-        setField("iterations", 3);
+        setField("saltLength", SALT_LENGTH);
+        setField("keyLength", KEY_LENGTH);
+        setField("parallelism", PARALLELISM);
+        setField("memory", MEMORY_KB);
+        setField("iterations", ITERATIONS);
         encoder = config.passwordEncoder();
     }
 
@@ -49,10 +58,10 @@ class PasswordEncoderConfigTest {
         String hash = encoder.encode("admin123");
         assertNotNull(hash);
         assertTrue(hash.startsWith("$argon2id$"),
-            "Argon2id 哈希应以 $argon2id$ 开头，实际：" + hash);
+                "Argon2id 哈希应以 $argon2id$ 开头，实际：" + hash);
         int len = hash.length();
-        assertTrue(len >= 90 && len <= 100,
-            "Argon2id 编码串长度应在 [90, 100] 区间，实际：" + len + " 字符");
+        assertTrue(len >= MIN_HASH_LEN && len <= MAX_HASH_LEN,
+                "Argon2id 编码串长度应在 [90, 100] 区间，实际：" + len + " 字符");
     }
 
     @Test
@@ -75,16 +84,14 @@ class PasswordEncoderConfigTest {
     void printAdminPasswordHashForSeedSql() {
         String hash = encoder.encode("admin123");
         assertTrue(encoder.matches("admin123", hash));
-        assertEquals(1, 1);
-        System.out.println("[Argon2id for admin123 (paste into sca-system-init.sql)]");
-        System.out.println(hash);
-        System.out.println("[length=" + hash.length() + "]");
+        log.info("[Argon2id for admin123 (paste into sca-system-init.sql)] {}", hash);
     }
 
     @Test
     void matchesShouldAcceptHashFromDatabaseSeed() {
-        String dbHash = "$argon2id$v=19$m=16384,t=3,p=2$+27WTLFAqxSTRl5oyRAIjw$FDm+vGxZbK72A/m7fGobGmU6Kgg6RsyuHLHJnwyfXzc";
+        String dbHash = "$argon2id$v=19$m=16384,t=3,p=2$"
+                + "+27WTLFAqxSTRl5oyRAIjw$FDm+vGxZbK72A/m7fGobGmU6Kgg6RsyuHLHJnwyfXzc";
         assertTrue(encoder.matches("admin123", dbHash),
-            "数据库 seed 中的 Argon2id 哈希必须能匹配 admin123");
+                "数据库 seed 中的 Argon2id 哈希必须能匹配 admin123");
     }
 }

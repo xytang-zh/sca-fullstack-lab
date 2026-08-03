@@ -8,6 +8,9 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 
+/**
+ * 登录成功返回。
+ */
 @Data
 @Builder
 @Schema(description = "登录返回")
@@ -42,4 +45,7 @@ public class LoginVO implements Serializable {
 
     @Schema(description = "权限点列表")
     private List<String> perms;
+
+    @Schema(description = "Refresh Token（7d 有效，用于静默续期）")
+    private String refreshToken;
 }

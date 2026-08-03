@@ -26,6 +26,7 @@ import java.util.regex.Pattern;
 public final class PasswordPolicyValidator {
 
     private static final int MIN_LENGTH = 8;
+    private static final int MIN_CATEGORIES = 3;
 
     private static final Pattern LOWER = Pattern.compile("[a-z]");
     private static final Pattern UPPER = Pattern.compile("[A-Z]");
@@ -66,7 +67,7 @@ public final class PasswordPolicyValidator {
                 devMessage != null ? devMessage : "password contains whitespace");
         }
         int categories = countCategories(password);
-        if (categories < 3) {
+        if (categories < MIN_CATEGORIES) {
             throw new BusinessException(BizCode.PASSWORD_WEAK,
                 "密码必须包含大小写字母、数字、符号中的至少 3 类",
                 devMessage != null ? devMessage : "only " + categories + " categories present");
@@ -75,10 +76,18 @@ public final class PasswordPolicyValidator {
 
     private static int countCategories(String password) {
         int count = 0;
-        if (LOWER.matcher(password).find()) count++;
-        if (UPPER.matcher(password).find()) count++;
-        if (DIGIT.matcher(password).find()) count++;
-        if (SYMBOL.matcher(password).find()) count++;
+        if (LOWER.matcher(password).find()) {
+            count++;
+        }
+        if (UPPER.matcher(password).find()) {
+            count++;
+        }
+        if (DIGIT.matcher(password).find()) {
+            count++;
+        }
+        if (SYMBOL.matcher(password).find()) {
+            count++;
+        }
         return count;
     }
 }

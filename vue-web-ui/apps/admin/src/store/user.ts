@@ -4,6 +4,20 @@ import * as authApi from '@/api/auth'
 import { getToken, setToken, clearToken } from '@sca/utils'
 import type { LoginDTO, UserInfoVO } from '@sca/types'
 
+const REFRESH_TOKEN_KEY = 'refresh_token'
+
+function getRefreshToken(): string {
+  return localStorage.getItem(REFRESH_TOKEN_KEY) ?? ''
+}
+
+function setRefreshToken(token: string) {
+  localStorage.setItem(REFRESH_TOKEN_KEY, token)
+}
+
+function removeRefreshToken() {
+  localStorage.removeItem(REFRESH_TOKEN_KEY)
+}
+
 export const useUserStore = defineStore('user', () => {
   const token = ref<string>(getToken())
   const userInfo = ref<UserInfoVO | null>(null)
@@ -20,6 +34,10 @@ export const useUserStore = defineStore('user', () => {
       : `Bearer ${data.tokenValue}`
     token.value = bearer
     setToken(bearer)
+    // 保存 refreshToken
+    if (data.refreshToken) {
+      setRefreshToken(data.refreshToken)
+    }
     roles.value = data.roles ?? []
     perms.value = data.perms ?? []
     userInfo.value = {
@@ -53,6 +71,7 @@ export const useUserStore = defineStore('user', () => {
     perms.value = []
     roles.value = []
     clearToken()
+    removeRefreshToken()
   }
 
   function hasPerm(perm: string): boolean {
@@ -75,6 +94,9 @@ export const useUserStore = defineStore('user', () => {
     logout,
     reset,
     hasPerm,
-    hasRole
+    hasRole,
+    getRefreshToken,
+    setRefreshToken,
+    removeRefreshToken
   }
 })

@@ -25,6 +25,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class MybatisPlusConfig {
 
+    private static final long MAX_PAGE_LIMIT = 500L;
+
     @Bean
     public MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
@@ -32,7 +34,7 @@ public class MybatisPlusConfig {
         interceptor.addInnerInterceptor(new DataPermissionInnerInterceptor());
         // 2. 分页（MySQL 方言；通过 ShardingSphere 适配层兼容 KingbaseES / DM8）
         PaginationInnerInterceptor page = new PaginationInnerInterceptor(DbType.MYSQL);
-        page.setMaxLimit(500L);
+        page.setMaxLimit(MAX_PAGE_LIMIT);
         page.setOverflow(false);
         interceptor.addInnerInterceptor(page);
         // 3. 乐观锁（配合 @Version + version 字段；冲突抛 OptimisticLockException）

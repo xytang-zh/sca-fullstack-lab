@@ -13,6 +13,9 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+/**
+ * 系统参数实体。
+ */
 @Data
 @TableName("sys_param")
 public class Param implements Serializable {

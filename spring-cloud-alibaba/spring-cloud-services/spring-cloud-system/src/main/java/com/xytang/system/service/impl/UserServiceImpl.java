@@ -27,10 +27,17 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * 用户服务实现。
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
+
+    private static final int PHONE_MIN_LEN = 7;
+    private static final int PHONE_HEAD_LEN = 3;
+    private static final int PHONE_TAIL_LEN = 4;
 
     private final PasswordEncoder passwordEncoder;
 
@@ -90,10 +97,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (user == null) {
             throw new UserNotFoundException();
         }
-        if (dto.getNickname() != null) user.setNickname(dto.getNickname());
-        if (dto.getEmail() != null) user.setEmail(dto.getEmail());
-        if (dto.getPhone() != null) user.setPhone(dto.getPhone());
-        if (dto.getDeptId() != null) user.setDeptId(dto.getDeptId());
+        if (dto.getNickname() != null) {
+            user.setNickname(dto.getNickname());
+        }
+        if (dto.getEmail() != null) {
+            user.setEmail(dto.getEmail());
+        }
+        if (dto.getPhone() != null) {
+            user.setPhone(dto.getPhone());
+        }
+        if (dto.getDeptId() != null) {
+            user.setDeptId(dto.getDeptId());
+        }
         if (dto.getStatus() != null) {
             if (CommonConstants.STATUS_DELETED == dto.getStatus()) {
                 guardLastSuperAdmin(user.getId());
@@ -184,15 +199,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         int at = email.indexOf('@');
         String prefix = email.substring(0, at);
         String maskedPrefix = prefix.isEmpty() ? ""
-            : prefix.charAt(0) + "*".repeat(Math.max(0, prefix.length() - 1));
+                : prefix.charAt(0) + "*".repeat(Math.max(0, prefix.length() - 1));
         return maskedPrefix + email.substring(at);
     }
 
     private String maskPhone(String phone) {
-        if (phone == null || phone.length() < 7) {
+        if (phone == null || phone.length() < PHONE_MIN_LEN) {
             return phone;
         }
-        return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
+        return phone.substring(0, PHONE_HEAD_LEN) + "****"
+            + phone.substring(phone.length() - PHONE_TAIL_LEN);
     }
 
     @SuppressWarnings("unused")

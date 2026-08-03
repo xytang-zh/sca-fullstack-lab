@@ -8,6 +8,9 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+/**
+ * 通知公告出参。
+ */
 @Data
 @Builder
 @Schema(description = "通知视图对象")

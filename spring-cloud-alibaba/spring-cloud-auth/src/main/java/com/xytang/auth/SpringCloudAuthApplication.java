@@ -5,6 +5,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
+/**
+ * 认证中心启动类。
+ */
 @SpringBootApplication(scanBasePackages = {"com.xytang.auth", "com.xytang.common"})
 @EnableDiscoveryClient
 @MapperScan("com.xytang.auth.mapper")

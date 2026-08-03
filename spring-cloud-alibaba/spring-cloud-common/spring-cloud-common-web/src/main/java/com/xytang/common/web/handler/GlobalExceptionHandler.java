@@ -11,7 +11,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -38,7 +37,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<R<Void>> handleBusiness(BusinessException e, HttpServletRequest req) {
         log.warn("[BizException] {} {} -> bizCode={} msg={}",
-            req.getMethod(), req.getRequestURI(), e.getBizCode().code(), e.getMessage());
+                req.getMethod(), req.getRequestURI(), e.getBizCode().code(), e.getMessage());
         fillDevMessageIfNeeded(e);
         HttpStatus status = HttpStatus.valueOf(e.getBizCode().httpCode());
         return ResponseEntity.status(status).body(R.fail(e.getBizCode(), e.getMessage()));
@@ -47,8 +46,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<R<Void>> handleValidation(MethodArgumentNotValidException e, HttpServletRequest req) {
         String detail = e.getBindingResult().getFieldErrors().stream()
-            .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
-            .collect(Collectors.joining("; "));
+                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
+                .collect(Collectors.joining("; "));
         String message = BizCode.PARAM_ERROR.message() + "：" + detail;
         log.warn("[ParamInvalid] {} {} -> {}", req.getMethod(), req.getRequestURI(), detail);
         fillDevMessageIfNeeded(e);
@@ -59,8 +58,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BindException.class)
     public ResponseEntity<R<Void>> handleBind(BindException e, HttpServletRequest req) {
         String detail = e.getBindingResult().getFieldErrors().stream()
-            .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
-            .collect(Collectors.joining("; "));
+                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
+                .collect(Collectors.joining("; "));
         String message = BizCode.PARAM_ERROR.message() + "：" + detail;
         log.warn("[BindInvalid] {} {} -> {}", req.getMethod(), req.getRequestURI(), detail);
         fillDevMessageIfNeeded(e);

@@ -9,6 +9,9 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 当前用户信息返回。
+ */
 @Data
 @Builder
 @Schema(description = "当前用户信息")
@@ -53,6 +56,9 @@ public class UserInfoVO implements Serializable {
     @Schema(description = "最后登录 IP")
     private String lastLoginIp;
 
+    /**
+     * 角色简要信息。
+     */
     @Data
     @Builder
     @Schema(description = "角色简要信息")

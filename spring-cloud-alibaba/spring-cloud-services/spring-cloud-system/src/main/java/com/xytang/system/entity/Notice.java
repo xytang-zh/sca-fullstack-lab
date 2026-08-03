@@ -13,6 +13,9 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+/**
+ * 通知公告实体。
+ */
 @Data
 @TableName("sys_notice")
 public class Notice implements Serializable {

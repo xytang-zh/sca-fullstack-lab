@@ -12,6 +12,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  *
  * <p>MVP 阶段仅做基础路由拦截：登录/验证码/健康检查允许匿名，其余接口要求已登录。
  * SSO 模式二、OAuth2 Server、踢人下线 Pub/Sub 在 US2 完善。
+ *
+ * <p>白名单路径：/sso/** 覆盖 SSO 全端点（auth/code/code2session/logout/refresh/online/kickout）。
  */
 @Configuration
 public class SaTokenConfig implements WebMvcConfigurer {
@@ -19,6 +21,7 @@ public class SaTokenConfig implements WebMvcConfigurer {
     private static final String[] WHITELIST = new String[] {
         "/login",
         "/captcha",
+        "/captcha/check",
         "/sso/**",
         "/oauth2/**",
         "/actuator/**",
@@ -32,8 +35,8 @@ public class SaTokenConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new SaInterceptor(handler -> SaRouter.match("/**")
-            .notMatch(WHITELIST)
-            .check(r -> StpUtil.checkLogin())))
-            .addPathPatterns("/**");
+                .notMatch(WHITELIST)
+                .check(r -> StpUtil.checkLogin())))
+                .addPathPatterns("/**");
     }
 }

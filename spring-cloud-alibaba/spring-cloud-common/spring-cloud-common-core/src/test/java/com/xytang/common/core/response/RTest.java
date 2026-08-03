@@ -16,14 +16,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RTest {
 
+    private static final int HTTP_OK = 200;
+    private static final int HTTP_BAD_REQUEST = 400;
+    private static final int HTTP_TOO_MANY_REQUESTS = 429;
+    private static final int HTTP_INTERNAL_ERROR = 500;
+
     private static final ObjectMapper MAPPER = new ObjectMapper()
-        .registerModule(new JavaTimeModule())
-        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     @Test
     void okShouldReturnSuccessEnvelope() {
         R<String> r = R.ok("payload");
-        assertEquals(200, r.getCode());
+        assertEquals(HTTP_OK, r.getCode());
         assertEquals("00000", r.getBizCode());
         assertEquals("操作成功", r.getMessage());
         assertEquals("payload", r.getData());
@@ -34,7 +39,7 @@ class RTest {
     @Test
     void okNoDataShouldHaveNullData() {
         R<Void> r = R.ok();
-        assertEquals(200, r.getCode());
+        assertEquals(HTTP_OK, r.getCode());
         assertEquals("00000", r.getBizCode());
         assertNull(r.getData());
     }
@@ -49,7 +54,7 @@ class RTest {
     @Test
     void failByBizCodeShouldUseHttpAndBizCodeFromEnum() {
         R<Void> r = R.fail(BizCode.AUTH_PASSWORD_ERROR);
-        assertEquals(400, r.getCode());
+        assertEquals(HTTP_BAD_REQUEST, r.getCode());
         assertEquals("01105", r.getBizCode());
         assertEquals("用户名或密码错误", r.getMessage());
         assertNull(r.getData());
@@ -65,8 +70,8 @@ class RTest {
 
     @Test
     void failByHttpBizCodeMessageShouldSetAllFields() {
-        R<Void> r = R.fail(429, "00201", "限流");
-        assertEquals(429, r.getCode());
+        R<Void> r = R.fail(HTTP_TOO_MANY_REQUESTS, "00201", "限流");
+        assertEquals(HTTP_TOO_MANY_REQUESTS, r.getCode());
         assertEquals("00201", r.getBizCode());
         assertEquals("限流", r.getMessage());
     }
@@ -74,9 +79,9 @@ class RTest {
     @Test
     void chainShouldFillTraceIdPathDevMessage() {
         R<Void> r = R.<Void>fail(BizCode.SYS_ERROR)
-            .traceId("abc-123")
-            .path("/api/test")
-            .devMessage("NullPointer at line 42");
+                .traceId("abc-123")
+                .path("/api/test")
+                .devMessage("NullPointer at line 42");
         assertEquals("abc-123", r.getTraceId());
         assertEquals("/api/test", r.getPath());
         assertEquals("NullPointer at line 42", r.getDevMessage());
@@ -87,10 +92,10 @@ class RTest {
         R<Void> r1 = R.ok();
         assertTrue(r1.isSuccess());
 
-        R<Void> r2 = R.fail(200, "00101", "参数错误");
+        R<Void> r2 = R.fail(HTTP_OK, "00101", "参数错误");
         assertFalse(r2.isSuccess());
 
-        R<Void> r3 = R.fail(500, "00000", "意外");
+        R<Void> r3 = R.fail(HTTP_INTERNAL_ERROR, "00000", "意外");
         assertFalse(r3.isSuccess());
     }
 
@@ -106,7 +111,7 @@ class RTest {
     @Test
     void shouldSerializeDevMessageWhenPresent() throws Exception {
         R<Void> r = R.<Void>fail(BizCode.AUTH_PASSWORD_ERROR)
-            .devMessage("Argon2id matches 返回 false");
+                .devMessage("Argon2id matches 返回 false");
         String json = MAPPER.writeValueAsString(r);
         JsonNode node = MAPPER.readTree(json);
         assertTrue(node.has("devMessage"));

@@ -1,100 +1,88 @@
 package com.xytang.auth.service.impl;
 
-import com.xytang.auth.constant.AuthConstants;
+import cloud.tianai.captcha.application.ImageCaptchaApplication;
+import cloud.tianai.captcha.application.vo.CaptchaResponse;
+import cloud.tianai.captcha.application.vo.ImageCaptchaVO;
+import cloud.tianai.captcha.common.constant.CaptchaTypeConstant;
+import cloud.tianai.captcha.common.response.ApiResponse;
+import cloud.tianai.captcha.validator.common.model.dto.ImageCaptchaTrack;
 import com.xytang.auth.service.CaptchaService;
 import com.xytang.auth.vo.CaptchaVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.time.Duration;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
+/**
+ * 行为滑块验证码服务：生成滑块、轨迹校验、签发一次性 checkToken。
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class CaptchaServiceImpl implements CaptchaService {
 
-    private static final char[] CHARS =
-        "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".toCharArray();
+    private static final String CHECK_TOKEN_PREFIX = "auth:captcha:check:";
+    private static final Duration CHECK_TOKEN_TTL = Duration.ofSeconds(60);
 
+    private final ImageCaptchaApplication imageCaptchaApplication;
     private final StringRedisTemplate stringRedisTemplate;
 
     @Override
     public CaptchaVO generate() {
-        String key = UUID.randomUUID().toString();
-        String code = randomCode(4);
-        BufferedImage image = drawImage(code);
-        String base64 = "data:image/png;base64," + toBase64(image);
-        stringRedisTemplate.opsForValue().set(
-            AuthConstants.CAPTCHA_PREFIX + key,
-            code,
-            Duration.ofMinutes(AuthConstants.CAPTCHA_TTL_MINUTES));
-        return CaptchaVO.builder().captchaKey(key).captchaImg(base64).build();
+        CaptchaResponse<ImageCaptchaVO> response =
+                imageCaptchaApplication.generateCaptcha(CaptchaTypeConstant.SLIDER);
+        ImageCaptchaVO captcha = response.getCaptcha();
+        return CaptchaVO.builder()
+                .captchaId(response.getId())
+                .id(response.getId())
+                .type(captcha.getType())
+                .backgroundImage(captcha.getBackgroundImage())
+                .templateImage(captcha.getTemplateImage())
+                .backgroundImageWidth(captcha.getBackgroundImageWidth())
+                .backgroundImageHeight(captcha.getBackgroundImageHeight())
+                .templateImageWidth(captcha.getTemplateImageWidth())
+                .templateImageHeight(captcha.getTemplateImageHeight())
+                .build();
     }
 
     @Override
-    public boolean verify(String captchaKey, String input) {
-        if (captchaKey == null || input == null || input.length() != 4) {
+    public String check(String captchaId, ImageCaptchaTrack track) {
+        if (!StringUtils.hasText(captchaId) || track == null) {
+            return null;
+        }
+        try {
+            ApiResponse<?> response = imageCaptchaApplication.matching(captchaId, track);
+            if (!response.isSuccess()) {
+                log.warn("[Auth] captcha track check failed: captchaId={} code={} msg={} points={} firstX={} lastX={}",
+                        captchaId, response.getCode(), response.getMsg(),
+                        track.getTrackList() == null ? -1 : track.getTrackList().size(),
+                        track.getTrackList() == null || track.getTrackList().isEmpty()
+                            ? null : track.getTrackList().get(0).getX(),
+                        track.getTrackList() == null || track.getTrackList().isEmpty()
+                            ? null : track.getTrackList().get(track.getTrackList().size() - 1).getX());
+                return null;
+            }
+        } catch (RuntimeException e) {
+            log.warn("[Auth] captcha matching failed: captchaId={}", captchaId, e);
+            return null;
+        }
+        String checkToken = UUID.randomUUID().toString().replace("-", "");
+        stringRedisTemplate.opsForValue().set(
+                CHECK_TOKEN_PREFIX + checkToken, "1", CHECK_TOKEN_TTL);
+        return checkToken;
+    }
+
+    @Override
+    public boolean verifyCheckToken(String checkToken) {
+        if (!StringUtils.hasText(checkToken)) {
             return false;
         }
-        String redisKey = AuthConstants.CAPTCHA_PREFIX + captchaKey;
-        String stored = stringRedisTemplate.opsForValue().get(redisKey);
-        // 校验后立即删除（一次性）
-        stringRedisTemplate.delete(redisKey);
-        return stored != null && stored.equalsIgnoreCase(input);
-    }
-
-    private String randomCode(int len) {
-        StringBuilder sb = new StringBuilder(len);
-        ThreadLocalRandom rnd = ThreadLocalRandom.current();
-        for (int i = 0; i < len; i++) {
-            sb.append(CHARS[rnd.nextInt(CHARS.length)]);
-        }
-        return sb.toString();
-    }
-
-    private BufferedImage drawImage(String code) {
-        int w = 120, h = 40;
-        BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g = img.createGraphics();
-        try {
-            g.setColor(Color.WHITE);
-            g.fillRect(0, 0, w, h);
-            g.setColor(new Color(220, 220, 220));
-            for (int i = 0; i < 8; i++) {
-                g.drawLine(
-                    ThreadLocalRandom.current().nextInt(w),
-                    ThreadLocalRandom.current().nextInt(h),
-                    ThreadLocalRandom.current().nextInt(w),
-                    ThreadLocalRandom.current().nextInt(h));
-            }
-            g.setFont(new Font("Arial", Font.BOLD | Font.ITALIC, 26));
-            for (int i = 0; i < code.length(); i++) {
-                g.setColor(new Color(
-                    ThreadLocalRandom.current().nextInt(50, 200),
-                    ThreadLocalRandom.current().nextInt(50, 200),
-                    ThreadLocalRandom.current().nextInt(50, 200)));
-                g.drawString(String.valueOf(code.charAt(i)), 8 + i * 28, 28);
-            }
-        } finally {
-            g.dispose();
-        }
-        return img;
-    }
-
-    private String toBase64(BufferedImage img) {
-        try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
-            ImageIO.write(img, "png", bos);
-            return java.util.Base64.getEncoder().encodeToString(bos.toByteArray());
-        } catch (Exception e) {
-            throw new IllegalStateException("captcha image encode failed", e);
-        }
+        String redisKey = CHECK_TOKEN_PREFIX + checkToken;
+        Boolean deleted = stringRedisTemplate.delete(redisKey);
+        return Boolean.TRUE.equals(deleted);
     }
 }

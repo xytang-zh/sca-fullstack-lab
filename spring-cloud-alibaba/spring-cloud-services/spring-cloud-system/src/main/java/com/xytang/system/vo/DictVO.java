@@ -7,6 +7,9 @@ import lombok.Data;
 import java.io.Serial;
 import java.io.Serializable;
 
+/**
+ * 字典出参。
+ */
 @Data
 @Builder
 @Schema(description = "字典视图对象")

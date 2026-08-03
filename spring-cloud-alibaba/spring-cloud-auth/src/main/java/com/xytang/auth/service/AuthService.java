@@ -20,6 +20,8 @@ public interface AuthService {
 
     /**
      * 预埋踢人下线接口（具体 SSO Pub/Sub 通知在 US2 完成）
+     *
+     * @param userId 被踢用户 ID
      */
     void kickout(Long userId);
 }

@@ -9,6 +9,9 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 
+/**
+ * 更新用户入参。
+ */
 @Data
 public class UserUpdateDTO implements Serializable {
 

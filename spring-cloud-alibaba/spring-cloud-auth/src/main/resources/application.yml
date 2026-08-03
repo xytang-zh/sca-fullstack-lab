@@ -70,6 +70,25 @@ sa-token:
   is-read-cookie: false
   is-read-header: true
   jwt-secret-key: ${SA_TOKEN_JWT_SECRET:change-me-in-prod-sca-fullstack}
+  sso:
+    # SSO 模式二：Server 端
+    mode: 2
+    title: Aurora 认证中心
+    auth-server-url: http://localhost:8081/sso
+    is-slo: true
+    slo-url: http://localhost:8081/sso/logout
+    client-timeout: 60
+
+# tianai-captcha 行为滑块验证码
+captcha:
+  init-default-resource: true
+  prefix: auth:captcha
+  expire:
+    default: 120000
+
+auth:
+  captcha:
+    enabled: true
 
 management:
   endpoints:

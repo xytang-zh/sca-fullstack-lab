@@ -8,6 +8,9 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 
+/**
+ * 部门出参。
+ */
 @Data
 @Builder
 @Schema(description = "部门视图对象（含子节点树）")

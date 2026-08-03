@@ -4,7 +4,6 @@ import com.xytang.common.core.constant.HeaderConstants;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -49,7 +48,7 @@ public class LogGatewayFilterFactory extends AbstractGatewayFilterFactory<LogGat
                     String method = req.getMethod().name();
                     var status = resp.getStatusCode();
                     String logMsg = String.format("[REQ] traceId=%s %s %s %dms status=%s",
-                        tid, method, uri, cost, status);
+                            tid, method, uri, cost, status);
                     if (cost > SLOW_THRESHOLD_MS) {
                         log.warn("[SLOW] {}", logMsg);
                     } else {
@@ -68,6 +67,9 @@ public class LogGatewayFilterFactory extends AbstractGatewayFilterFactory<LogGat
         return StringUtils.hasText(header) ? header : UNKNOWN_TRACE;
     }
 
+    /**
+     * 过滤器配置（无参数）。
+     */
     @Data
     public static class Config {
     }

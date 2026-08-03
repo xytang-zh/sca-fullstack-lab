@@ -1,5 +1,6 @@
 package com.xytang.gateway.handler;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xytang.common.core.constant.HeaderConstants;
 import com.xytang.common.core.response.BizCode;
@@ -53,22 +54,22 @@ public class GatewayExceptionHandler implements ErrorWebExceptionHandler {
         String traceId = resolveTraceId(exchange);
         resp.getHeaders().add(HeaderConstants.X_TRACE_ID, traceId);
         R<Void> r = R.<Void>fail(bizCode)
-            .path(path)
-            .traceId(traceId);
+                .path(path)
+                .traceId(traceId);
         String body;
         try {
             body = MAPPER.writeValueAsString(r);
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
             body = "{\"code\":" + bizCode.httpCode()
-                + ",\"bizCode\":\"" + bizCode.code() + "\""
-                + ",\"message\":\"" + bizCode.message() + "\""
-                + ",\"data\":null"
-                + ",\"traceId\":\"" + traceId + "\""
-                + ",\"path\":\"" + path + "\"}";
+                    + ",\"bizCode\":\"" + bizCode.code() + "\""
+                    + ",\"message\":\"" + bizCode.message() + "\""
+                    + ",\"data\":null"
+                    + ",\"traceId\":\"" + traceId + "\""
+                    + ",\"path\":\"" + path + "\"}";
         }
         DataBuffer buf = resp.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));
         log.warn("[GatewayException] path={} traceId={} status={} bizCode={} err={}",
-            path, traceId, status, bizCode.code(), ex.getMessage());
+                path, traceId, status, bizCode.code(), ex.getMessage());
         return resp.writeWith(Mono.just(buf));
     }
 

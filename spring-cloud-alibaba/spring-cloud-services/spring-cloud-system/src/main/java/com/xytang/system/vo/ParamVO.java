@@ -7,6 +7,9 @@ import lombok.Data;
 import java.io.Serial;
 import java.io.Serializable;
 
+/**
+ * 系统参数出参。
+ */
 @Data
 @Builder
 @Schema(description = "参数视图对象")

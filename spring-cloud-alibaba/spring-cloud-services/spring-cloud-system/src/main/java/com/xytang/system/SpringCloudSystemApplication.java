@@ -5,6 +5,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
+/**
+ * 系统管理服务启动类。
+ */
 @SpringBootApplication(scanBasePackages = {"com.xytang.system", "com.xytang.common"})
 @EnableDiscoveryClient
 @MapperScan("com.xytang.system.mapper")

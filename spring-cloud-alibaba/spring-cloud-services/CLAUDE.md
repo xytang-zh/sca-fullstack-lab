@@ -88,8 +88,6 @@ spring-cloud-{服务名}/
             └── {Biz}ServiceTest.java
 ```
 
----
-
 ## 4. 各服务详细说明
 
 ### 4.1 spring-cloud-system（系统管理服务）
