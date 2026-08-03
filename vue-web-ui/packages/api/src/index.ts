@@ -2,4 +2,5 @@ export { default as request, registerMessageHandler, storeTokenFromHeader } from
 export type { RequestConfig } from './request'
 export * as authApi from './services/auth'
 export * as articleApi from './services/article'
+export * as commentApi from './services/comment'
 export * as userApi from './services/user'

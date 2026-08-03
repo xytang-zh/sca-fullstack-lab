@@ -9,7 +9,7 @@ import java.io.Serial;
 import java.io.Serializable;
 
 /**
- * 登入参数：账号密码 + 滑块校验凭据。
+ * 登入参数：账号密码 + 文字图形验证码凭据。
  */
 @Data
 @Schema(description = "登入参数")
@@ -18,18 +18,24 @@ public class LoginDTO implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    @Schema(description = "用户名", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "账号", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank
-    @Size(min = 3, max = 64)
-    private String username;
+    @Size(min = 6, max = 18)
+    private String account;
 
     @Schema(description = "密码", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank
     @Size(min = 8, max = 32)
     private String password;
 
-    @Schema(description = "滑块校验通过后签发的一次性凭据（POST /captcha/check 获取，可选，首次登录可不传）")
-    private String checkToken;
+    @Schema(description = "文字验证码 Key（GET /captcha 获取，校验忽略大小写、一次性消费）",
+            requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank
+    private String captchaKey;
+
+    @Schema(description = "文字验证码答案", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank
+    private String captchaCode;
 
     @Schema(description = "记住我（true=7天，false=30分钟）")
     private Boolean rememberMe = Boolean.FALSE;

@@ -76,10 +76,10 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
-        <!-- tianai-captcha 行为滑块验证码 -->
+        <!-- Hutool 文字图形验证码（版本由父 POM hutool-bom 统一管理） -->
         <dependency>
-            <groupId>cloud.tianai.captcha</groupId>
-            <artifactId>tianai-captcha-springboot-starter</artifactId>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-captcha</artifactId>
         </dependency>
 
         <!-- 内部公共模块 -->

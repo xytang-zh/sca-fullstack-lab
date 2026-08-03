@@ -28,6 +28,8 @@ public class SaTokenConfig implements WebMvcConfigurer {
 
     private static final String ARTICLES_PREFIX = "/articles";
 
+    private static final String COLUMNS_PREFIX = "/columns";
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new SaInterceptor(handler -> SaRouter.match("/**")
@@ -35,9 +37,10 @@ public class SaTokenConfig implements WebMvcConfigurer {
                 .check(r -> {
                     String method = SaHolder.getRequest().getMethod();
                     String path = SaHolder.getRequest().getRequestPath();
-                    // 游客浏览：GET 文章列表/详情匿名放行
+                    // 游客浏览：GET 文章列表/详情、专栏列表匿名放行
                     boolean publicRead = "GET".equals(method)
-                            && (ARTICLES_PREFIX.equals(path) || path.startsWith(ARTICLES_PREFIX + "/"));
+                            && (ARTICLES_PREFIX.equals(path) || path.startsWith(ARTICLES_PREFIX + "/")
+                                    || COLUMNS_PREFIX.equals(path) || path.startsWith(COLUMNS_PREFIX + "/"));
                     if (!publicRead) {
                         StpUtil.checkLogin();
                     }

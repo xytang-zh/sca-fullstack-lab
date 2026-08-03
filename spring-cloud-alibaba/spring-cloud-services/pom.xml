@@ -27,6 +27,7 @@
         <module>spring-cloud-portal</module>
         <module>spring-cloud-job</module>
         <module>spring-cloud-article</module>
+        <module>spring-cloud-comment</module>
     </modules>
 
 </project>

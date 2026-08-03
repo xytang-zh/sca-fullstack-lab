@@ -1,19 +1,14 @@
 package com.xytang.auth.controller;
 
-import com.xytang.auth.dto.CaptchaCheckDTO;
 import com.xytang.auth.dto.KickoutDTO;
 import com.xytang.auth.dto.LoginDTO;
 import com.xytang.auth.dto.PasswordUpdateDTO;
-import com.xytang.auth.dto.SmsLoginDTO;
-import com.xytang.auth.dto.SmsSendDTO;
+import com.xytang.auth.dto.RegisterDTO;
 import com.xytang.auth.service.AuthService;
 import com.xytang.auth.service.CaptchaService;
-import com.xytang.auth.service.SmsService;
 import com.xytang.auth.vo.CaptchaVO;
 import com.xytang.auth.vo.LoginVO;
 import com.xytang.auth.vo.UserInfoVO;
-import com.xytang.common.core.exception.AuthException;
-import com.xytang.common.core.response.BizCode;
 import com.xytang.common.core.response.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,10 +23,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
-
 /**
- * 认证中心控制器：验证码/登录/登出/用户信息。
+ * 认证中心控制器：验证码/登录/注册/登出/用户信息。
  */
 @Tag(name = "认证中心")
 @RestController
@@ -42,51 +35,33 @@ public class AuthController {
 
     private final AuthService authService;
     private final CaptchaService captchaService;
-    private final SmsService smsService;
 
-    @Operation(summary = "获取验证码")
+    @Operation(summary = "获取文字图形验证码")
     @GetMapping("/captcha")
     public R<CaptchaVO> captcha() {
         return R.ok(captchaService.generate());
     }
 
-    @Operation(summary = "获取验证码（tianai SDK 用 POST 请求）")
+    @Operation(summary = "获取文字图形验证码（POST）")
     @PostMapping("/captcha")
     public R<CaptchaVO> captchaByPost() {
         return R.ok(captchaService.generate());
     }
 
-    @Operation(summary = "校验滑块并签发一次性 checkToken（tianai SDK 回调接口）")
-    @PostMapping("/captcha/check")
-    public R<Map<String, String>> captchaCheck(@RequestBody @Valid CaptchaCheckDTO dto) {
-        String checkToken = captchaService.check(dto.getId(), dto.getData());
-        if (checkToken == null) {
-            throw new AuthException(BizCode.AUTH_CAPTCHA_ERROR);
-        }
-        return R.ok(Map.of("checkToken", checkToken));
-    }
-
-    @Operation(summary = "发送短信验证码（需先通过滑块验证，同一手机号 60 秒一次）")
-    @PostMapping("/sms/send")
-    public R<Void> sendSmsCode(@RequestBody @Valid SmsSendDTO dto) {
-        smsService.sendCode(dto);
-        return R.ok();
-    }
-
-    @Operation(summary = "手机验证码登录/注册（新用户自动注册并登录，老用户直接登录）")
-    @PostMapping("/sms/login")
-    public R<LoginVO> smsLogin(@RequestBody @Valid SmsLoginDTO dto, HttpServletRequest request) {
-        String ip = resolveIp(request);
-        String ua = request.getHeader("User-Agent");
-        return R.ok(authService.smsLogin(dto, ip, ua));
-    }
-
-    @Operation(summary = "登录")
+    @Operation(summary = "账号密码登录（需文字验证码）")
     @PostMapping("/login")
     public R<LoginVO> login(@RequestBody @Valid LoginDTO dto, HttpServletRequest request) {
         String ip = resolveIp(request);
         String ua = request.getHeader("User-Agent");
         return R.ok(authService.login(dto, ip, ua));
+    }
+
+    @Operation(summary = "账号注册（注册成功自动登录）")
+    @PostMapping("/register")
+    public R<LoginVO> register(@RequestBody @Valid RegisterDTO dto, HttpServletRequest request) {
+        String ip = resolveIp(request);
+        String ua = request.getHeader("User-Agent");
+        return R.ok(authService.register(dto, ip, ua));
     }
 
     @Operation(summary = "登出")

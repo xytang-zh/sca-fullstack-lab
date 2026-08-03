@@ -1,11 +1,10 @@
 package com.xytang.auth.service.impl;
 
-import cloud.tianai.captcha.application.ImageCaptchaApplication;
-import cloud.tianai.captcha.application.vo.CaptchaResponse;
-import cloud.tianai.captcha.application.vo.ImageCaptchaVO;
-import cloud.tianai.captcha.common.constant.CaptchaTypeConstant;
-import cloud.tianai.captcha.common.response.ApiResponse;
-import cloud.tianai.captcha.validator.common.model.dto.ImageCaptchaTrack;
+import cn.hutool.captcha.CaptchaUtil;
+import cn.hutool.captcha.LineCaptcha;
+import cn.hutool.core.codec.Base64;
+import cn.hutool.core.util.IdUtil;
+import com.xytang.auth.constant.AuthConstants;
 import com.xytang.auth.service.CaptchaService;
 import com.xytang.auth.vo.CaptchaVO;
 import lombok.RequiredArgsConstructor;
@@ -15,74 +14,48 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.Duration;
-import java.util.UUID;
 
 /**
- * 行为滑块验证码服务：生成滑块、轨迹校验、签发一次性 checkToken。
+ * 文字图形验证码服务：生成图片验证码，答案存 Redis（TTL 5 分钟），校验忽略大小写且一次性消费。
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class CaptchaServiceImpl implements CaptchaService {
 
-    private static final String CHECK_TOKEN_PREFIX = "auth:captcha:check:";
-    private static final Duration CHECK_TOKEN_TTL = Duration.ofSeconds(60);
+    private static final int CAPTCHA_WIDTH = 120;
+    private static final int CAPTCHA_HEIGHT = 40;
+    private static final int CAPTCHA_CODE_COUNT = 4;
+    private static final int CAPTCHA_LINE_COUNT = 20;
+    private static final Duration CAPTCHA_TTL = Duration.ofMinutes(AuthConstants.CAPTCHA_TTL_MINUTES);
 
-    private final ImageCaptchaApplication imageCaptchaApplication;
     private final StringRedisTemplate stringRedisTemplate;
 
     @Override
     public CaptchaVO generate() {
-        CaptchaResponse<ImageCaptchaVO> response =
-                imageCaptchaApplication.generateCaptcha(CaptchaTypeConstant.SLIDER);
-        ImageCaptchaVO captcha = response.getCaptcha();
+        LineCaptcha captcha = CaptchaUtil.createLineCaptcha(
+                CAPTCHA_WIDTH, CAPTCHA_HEIGHT, CAPTCHA_CODE_COUNT, CAPTCHA_LINE_COUNT);
+        String captchaKey = IdUtil.fastSimpleUUID();
+        stringRedisTemplate.opsForValue().set(
+                AuthConstants.CAPTCHA_IMAGE_PREFIX + captchaKey, captcha.getCode(), CAPTCHA_TTL);
         return CaptchaVO.builder()
-                .captchaId(response.getId())
-                .id(response.getId())
-                .type(captcha.getType())
-                .backgroundImage(captcha.getBackgroundImage())
-                .templateImage(captcha.getTemplateImage())
-                .backgroundImageWidth(captcha.getBackgroundImageWidth())
-                .backgroundImageHeight(captcha.getBackgroundImageHeight())
-                .templateImageWidth(captcha.getTemplateImageWidth())
-                .templateImageHeight(captcha.getTemplateImageHeight())
+                .captchaKey(captchaKey)
+                .imageBase64("data:image/png;base64," + Base64.encode(captcha.getImageBytes()))
                 .build();
     }
 
     @Override
-    public String check(String captchaId, ImageCaptchaTrack track) {
-        if (!StringUtils.hasText(captchaId) || track == null) {
-            return null;
-        }
-        try {
-            ApiResponse<?> response = imageCaptchaApplication.matching(captchaId, track);
-            if (!response.isSuccess()) {
-                log.warn("[Auth] captcha track check failed: captchaId={} code={} msg={} points={} firstX={} lastX={}",
-                        captchaId, response.getCode(), response.getMsg(),
-                        track.getTrackList() == null ? -1 : track.getTrackList().size(),
-                        track.getTrackList() == null || track.getTrackList().isEmpty()
-                            ? null : track.getTrackList().get(0).getX(),
-                        track.getTrackList() == null || track.getTrackList().isEmpty()
-                            ? null : track.getTrackList().get(track.getTrackList().size() - 1).getX());
-                return null;
-            }
-        } catch (RuntimeException e) {
-            log.warn("[Auth] captcha matching failed: captchaId={}", captchaId, e);
-            return null;
-        }
-        String checkToken = UUID.randomUUID().toString().replace("-", "");
-        stringRedisTemplate.opsForValue().set(
-                CHECK_TOKEN_PREFIX + checkToken, "1", CHECK_TOKEN_TTL);
-        return checkToken;
-    }
-
-    @Override
-    public boolean verifyCheckToken(String checkToken) {
-        if (!StringUtils.hasText(checkToken)) {
+    public boolean verify(String captchaKey, String code) {
+        if (!StringUtils.hasText(captchaKey) || !StringUtils.hasText(code)) {
             return false;
         }
-        String redisKey = CHECK_TOKEN_PREFIX + checkToken;
-        Boolean deleted = stringRedisTemplate.delete(redisKey);
-        return Boolean.TRUE.equals(deleted);
+        String redisKey = AuthConstants.CAPTCHA_IMAGE_PREFIX + captchaKey;
+        String savedCode = stringRedisTemplate.opsForValue().get(redisKey);
+        if (savedCode == null) {
+            return false;
+        }
+        // 一次性消费：无论答案是否匹配都删除，防止对同一验证码暴力重试
+        stringRedisTemplate.delete(redisKey);
+        return savedCode.equalsIgnoreCase(code.trim());
     }
 }

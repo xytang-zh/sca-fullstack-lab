@@ -1,0 +1,60 @@
+- generic [ref=f2e121]:
+  - complementary [ref=f2e122]:
+    - button "Sca 博客" [ref=f2e124] [cursor=pointer]
+    - menu [ref=f2e127]:
+      - menuitem "个人主页" [ref=f2e128]
+      - menuitem "修改密码" [ref=f2e129]
+      - menuitem "文章" [ref=f2e130]
+      - menuitem "草稿" [ref=f2e131]
+      - menuitem "专栏" [ref=f2e132]
+      - menuitem "收藏" [ref=f2e133]
+      - menuitem "点赞" [ref=f2e134]
+      - menuitem "回答" [ref=f2e135]
+      - menuitem "关注订阅" [ref=f2e136]
+      - menuitem "撰写文章" [ref=f2e137]
+    - generic [ref=f2e138]:
+      - generic [ref=f2e139]: Bob
+      - button "退出登录" [ref=f2e140] [cursor=pointer]
+  - generic [ref=f2e142]:
+    - banner [ref=f2e143]:
+      - button [ref=f2e144] [cursor=pointer]
+      - generic [ref=f2e148]: 返回首页
+      - generic [ref=f2e149]: B
+    - main [ref=f2e151]:
+      - generic [ref=f2e152]:
+        - generic [ref=f2e153]:
+          - generic [ref=f2e154]:
+            - generic [ref=f2e155]: B
+            - generic [ref=f2e157]:
+              - heading "Bob" [level=1] [ref=f2e158]
+              - generic [ref=f2e159]: "@bobuser"
+              - generic [ref=f2e160]: "å‰\x8dç«¯å·¥ç¨‹å¸ˆï¼Œå–œæ¬¢ Vue ä¸Ž TypeScriptã€‚"
+          - generic [ref=f2e161]:
+            - generic [ref=f2e162]:
+              - generic [ref=f2e163]: "1"
+              - text: 关注
+            - generic [ref=f2e164]:
+              - generic [ref=f2e165]: "1"
+              - text: 粉丝
+            - generic [ref=f2e166]:
+              - generic [ref=f2e167]: "4"
+              - text: 文章
+            - generic [ref=f2e168]:
+              - generic [ref=f2e169]: "2"
+              - text: 专栏
+        - generic [ref=f2e170]:
+          - heading [ref=f2e171]:
+            - heading "最近文章" [ref=f2e172]
+          - generic [ref=f2e173]:
+            - generic [ref=f2e174] [cursor=pointer]:
+              - generic [ref=f2e175]: Test Published
+              - generic [ref=f2e176]: 2026-08-04
+            - generic [ref=f2e177] [cursor=pointer]:
+              - generic [ref=f2e178]: "Naive UI ä¸»é¢˜å®šåˆ¶ä¸Žæš—é»‘æ¨¡å¼\x8f"
+              - generic [ref=f2e179]: 2026-07-31
+            - generic [ref=f2e180] [cursor=pointer]:
+              - generic [ref=f2e181]: Vite æž„å»ºä¼˜åŒ–ä¸Žåˆ†åŒ…ç–ç•¥
+              - generic [ref=f2e182]: 2026-07-29
+            - generic [ref=f2e183] [cursor=pointer]:
+              - generic [ref=f2e184]: "Vue 3 ç»„å\x90ˆå¼\x8f API å®žæˆ˜"
+              - generic [ref=f2e185]: 2026-07-17

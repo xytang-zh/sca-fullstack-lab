@@ -1,9 +1,14 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { MenuOutline } from '@vicons/ionicons5'
 import { articleApi } from '@sca/api'
 import { useUserStore } from '@/store/user'
 import type { ArticleDetailVO } from '@sca/types'
+import ArticleMarkdown from '@/components/ArticleMarkdown.vue'
+import TocNav from '@/components/TocNav.vue'
+import CommentPanel from '@/components/CommentPanel.vue'
+import { useArticleToc, type TocItem } from '@/hooks/useArticleToc'
 
 const route = useRoute()
 const router = useRouter()
@@ -11,6 +16,19 @@ const userStore = useUserStore()
 
 const article = ref<ArticleDetailVO | null>(null)
 const loading = ref(false)
+const toc = ref<TocItem[]>([])
+const tocCollapsed = ref(false)
+const isWide = ref(true)
+
+const { activeId } = useArticleToc(toc)
+
+function onResize() {
+  isWide.value = window.innerWidth >= 1024
+}
+
+function onTocUpdated(items: TocItem[]) {
+  toc.value = items
+}
 
 async function load() {
   loading.value = true
@@ -52,32 +70,262 @@ async function toggleFavorite() {
   article.value.favorites += favorited ? 1 : -1
 }
 
-onMounted(load)
+onMounted(() => {
+  onResize()
+  tocCollapsed.value = !isWide.value
+  window.addEventListener('resize', onResize)
+  load()
+})
+
+onBeforeUnmount(() => window.removeEventListener('resize', onResize))
 </script>
 
 <template>
-  <div class="max-w-3xl mx-auto px-4 py-8">
-    <button class="text-sm text-gray-400 hover:text-gray-600 mb-4" @click="router.back()">
-      ← 返回列表
-    </button>
-    <n-spin :show="loading">
-      <template v-if="article">
-        <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ article.title }}</h1>
-        <div class="flex items-center gap-4 text-sm text-gray-400 mb-8">
-          <span>{{ formatTime(article.publishTime) }}</span>
-          <span>阅读 {{ article.views }}</span>
+  <div class="detail-page">
+    <div
+      class="detail-layout"
+      :class="{ 'detail-layout--collapsed': tocCollapsed }"
+    >
+      <aside class="toc-sidebar" :class="{ 'toc-sidebar--visible': !tocCollapsed }">
+        <div class="toc-sidebar__inner">
+          <TocNav :toc="toc" :active-id="activeId" />
         </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-6 mb-6">
-          <pre class="text-sm leading-7 text-gray-700 whitespace-pre-wrap font-mono">{{ article.contentMd }}</pre>
+      </aside>
+
+      <main class="content-col">
+        <div class="content-col__inner">
+          <n-button quaternary size="small" class="mb-4 px-0" @click="router.back()">
+            ← 返回列表
+          </n-button>
+
+          <n-spin :show="loading">
+            <template v-if="article">
+              <h1 class="article-title">{{ article.title }}</h1>
+
+              <div class="article-meta">
+                <n-avatar round size="small" class="article-meta__avatar">
+                  {{ article.authorId.charAt(0) }}
+                </n-avatar>
+                <span class="article-meta__author">#{{ article.authorId.slice(0, 8) }}</span>
+                <span class="article-meta__divider">/</span>
+                <span class="article-meta__tag">发布于 {{ formatTime(article.publishTime) }}</span>
+                <span class="article-meta__divider">/</span>
+                <span class="article-meta__tag">阅读 {{ article.views }}</span>
+              </div>
+
+              <ArticleMarkdown
+                :content-md="article.contentMd"
+                @toc-updated="onTocUpdated"
+              />
+
+              <div class="article-actions">
+                <n-button class="article-actions__btn" @click="toggleLike">
+                  赞 {{ article.likes }}
+                </n-button>
+                <n-button class="article-actions__btn" @click="toggleFavorite">
+                  收藏 {{ article.favorites }}
+                </n-button>
+              </div>
+            </template>
+
+            <n-empty
+              v-else-if="!loading"
+              class="py-24"
+              description="文章不存在或已下架"
+            />
+          </n-spin>
         </div>
-        <div class="flex items-center gap-3">
-          <n-button @click="toggleLike">点赞 {{ article.likes }}</n-button>
-          <n-button @click="toggleFavorite">收藏 {{ article.favorites }}</n-button>
-          <span v-if="!userStore.token" class="text-xs text-gray-400">
-            登录后可点赞、收藏、评论
-          </span>
+
+        <button
+          type="button"
+          class="toc-toggle"
+          :title="tocCollapsed ? '显示目录' : '隐藏目录'"
+          @click="tocCollapsed = !tocCollapsed"
+        >
+          <n-icon :component="MenuOutline" />
+        </button>
+      </main>
+
+      <aside class="comment-col">
+        <div class="comment-col__inner">
+          <CommentPanel v-if="article" :article-id="article.id" :article-title="article.title" />
         </div>
-      </template>
-    </n-spin>
+      </aside>
+    </div>
   </div>
 </template>
+
+<style scoped>
+.detail-page {
+  padding: 1.5rem 2rem 4rem;
+}
+.detail-layout {
+  max-width: 1440px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
+  gap: 2.5rem;
+  align-items: start;
+  transition: grid-template-columns 0.25s ease;
+}
+.detail-layout--collapsed {
+  grid-template-columns: 0fr minmax(0, 2fr) minmax(0, 1fr);
+}
+
+.toc-sidebar {
+  min-width: 0;
+  overflow: hidden;
+}
+.toc-sidebar__inner {
+  position: sticky;
+  top: 88px;
+  max-height: calc(100vh - 112px);
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  border-right: 1px solid #f4f4f5;
+  padding-top: 1rem;
+}
+
+.content-col {
+  position: relative;
+  min-width: 0;
+}
+.content-col__inner {
+  max-width: 760px;
+}
+.article-title {
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #18181b;
+  margin: 0.25rem 0 1rem;
+}
+.article-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #f4f4f5;
+  flex-wrap: wrap;
+}
+.article-meta__avatar {
+  background: #0d9488;
+  color: #fff;
+  font-weight: 600;
+}
+.article-meta__author {
+  font-family: ui-monospace, 'JetBrains Mono', Consolas, monospace;
+  font-size: 0.8rem;
+  color: #0d9488;
+  font-weight: 600;
+}
+.article-meta__divider {
+  color: #d4d4d8;
+}
+.article-meta__tag {
+  font-family: ui-monospace, 'JetBrains Mono', Consolas, monospace;
+  font-size: 0.75rem;
+  color: #71717a;
+}
+.article-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #f4f4f5;
+}
+.article-actions__btn {
+  min-width: 7rem;
+}
+
+.toc-toggle {
+  position: fixed;
+  left: 1.25rem;
+  bottom: 1.5rem;
+  z-index: 30;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  border: none;
+  background: #0d9488;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35);
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+.toc-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(13, 148, 136, 0.45);
+}
+
+.comment-col {
+  min-width: 0;
+}
+.comment-col__inner {
+  position: sticky;
+  top: 88px;
+  max-height: calc(100vh - 112px);
+  overflow-y: auto;
+  padding-left: 0.5rem;
+}
+
+/* 窄屏（<1024px）：左栏改为覆盖层，默认隐藏 */
+@media (max-width: 1023px) {
+  .detail-layout {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    transition: none;
+  }
+  .detail-layout--collapsed {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
+  .toc-sidebar {
+    position: fixed;
+    left: 0;
+    top: 56px;
+    bottom: 0;
+    width: 240px;
+    z-index: 25;
+    background: #fff;
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.12);
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+  .toc-sidebar--visible {
+    transform: translateX(0);
+  }
+  .toc-sidebar__inner {
+    position: static;
+    max-height: none;
+    height: 100%;
+    border-right: none;
+    padding: 1.5rem 1.25rem;
+  }
+}
+
+/* 小屏（<768px）：单列，评论堆叠到内容下方 */
+@media (max-width: 767px) {
+  .detail-page {
+    padding: 1rem 1rem 3rem;
+  }
+  .detail-layout,
+  .detail-layout--collapsed {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+  .comment-col__inner {
+    position: static;
+    max-height: none;
+    padding-left: 0;
+  }
+  .toc-toggle {
+    left: 1rem;
+    bottom: 1rem;
+  }
+}
+</style>

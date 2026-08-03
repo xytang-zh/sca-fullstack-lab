@@ -21,8 +21,12 @@ const nickname = computed(() => userStore.userInfo?.nickname ?? userStore.userIn
   <div class="dashboard">
     <n-card class="welcome">
       <div class="welcome-text">
-        <h2>{{ greeting }}，{{ nickname }}！</h2>
-        <p>欢迎使用 Spring Cloud Alibaba 一体化管理平台 MVP。</p>
+        <n-text class="block text-lg font-bold" :style="{ color: '#fff' }">
+          {{ greeting }}，{{ nickname }}！
+        </n-text>
+        <n-text class="block" :style="{ color: 'rgba(255,255,255,0.85)' }">
+          欢迎使用 Spring Cloud Alibaba 一体化管理平台 MVP。
+        </n-text>
       </div>
     </n-card>
 

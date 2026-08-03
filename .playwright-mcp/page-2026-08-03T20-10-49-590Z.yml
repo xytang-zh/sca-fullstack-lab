@@ -1,0 +1,61 @@
+- generic [ref=f3e112]:
+  - complementary [ref=f3e113]:
+    - button "Sca 博客" [ref=f3e115] [cursor=pointer]
+    - menu [ref=f3e118]:
+      - menuitem "个人主页" [ref=f3e119]
+      - menuitem "修改密码" [ref=f3e120]
+      - menuitem "文章" [ref=f3e121]
+      - menuitem "草稿" [ref=f3e122]
+      - menuitem "专栏" [ref=f3e123]
+      - menuitem "收藏" [ref=f3e124]
+      - menuitem "点赞" [ref=f3e125]
+      - menuitem "回答" [ref=f3e126]
+      - menuitem "关注订阅" [ref=f3e127]
+      - menuitem "撰写文章" [ref=f3e128]
+      - menuitem "统计" [ref=f3e129]
+      - menuitem "文章审核" [ref=f3e130]
+      - menuitem "评论审核" [ref=f3e131]
+      - menuitem "用户管理" [ref=f3e132]
+    - generic [ref=f3e133]:
+      - generic [ref=f3e134]: "è¶…çº§ç®¡ç\x90†å‘˜"
+      - button "退出登录" [ref=f3e135] [cursor=pointer]
+  - generic [ref=f3e137]:
+    - banner [ref=f3e138]:
+      - button [ref=f3e139] [cursor=pointer]
+      - generic [ref=f3e143]: 返回首页
+      - generic [ref=f3e144]: è
+    - main [ref=f3e146]:
+      - generic [ref=f3e147]:
+        - generic [ref=f3e148]:
+          - generic [ref=f3e149]:
+            - generic [ref=f3e150]: è
+            - generic [ref=f3e152]:
+              - 'heading "è¶…çº§ç®¡ç†å‘˜" [level=1] [ref=f3e153]'
+              - generic [ref=f3e154]: "@superadmin"
+              - generic [ref=f3e155]: "å¹³å\x8f°ç®¡ç\x90†å‘˜ï¼Œè´Ÿè´£å†…å®¹å®¡æ ¸ä¸Žç”¨æˆ·ç®¡ç\x90†ã€‚"
+          - generic [ref=f3e156]:
+            - generic [ref=f3e157]:
+              - generic [ref=f3e158]: "0"
+              - text: 关注
+            - generic [ref=f3e159]:
+              - generic [ref=f3e160]: "0"
+              - text: 粉丝
+            - generic [ref=f3e161]:
+              - generic [ref=f3e162]: "3"
+              - text: 文章
+            - generic [ref=f3e163]:
+              - generic [ref=f3e164]: "0"
+              - text: 专栏
+        - generic [ref=f3e165]:
+          - heading [ref=f3e166]:
+            - heading "最近文章" [ref=f3e167]
+          - generic [ref=f3e168]:
+            - generic [ref=f3e169] [cursor=pointer]:
+              - generic [ref=f3e170]: Sa-Token 认证体系详解
+              - generic [ref=f3e171]: 2026-08-03
+            - generic [ref=f3e172] [cursor=pointer]:
+              - generic [ref=f3e173]: Vue 3 + Vite 前端工程化实践
+              - generic [ref=f3e174]: 2026-08-02
+            - generic [ref=f3e175] [cursor=pointer]:
+              - generic [ref=f3e176]: Spring Cloud Alibaba 微服务入门
+              - generic [ref=f3e177]: 2026-08-01

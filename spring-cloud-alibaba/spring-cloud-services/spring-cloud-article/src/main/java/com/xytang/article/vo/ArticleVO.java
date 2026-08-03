@@ -32,6 +32,12 @@ public class ArticleVO implements Serializable {
     @Schema(description = "作者 ID")
     private String authorId;
 
+    @Schema(description = "所属专栏 ID")
+    private String columnId;
+
+    @Schema(description = "状态：1=草稿 2=待审核 3=已发布 4=已驳回")
+    private Integer status;
+
     @Schema(description = "阅读量")
     private Long views;
 

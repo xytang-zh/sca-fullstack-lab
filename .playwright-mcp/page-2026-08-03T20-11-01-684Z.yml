@@ -1,0 +1,122 @@
+- generic [ref=f3e178]:
+  - banner [ref=f3e179]:
+    - generic [ref=f3e180]:
+      - button "Sca 博客" [ref=f3e181]
+      - navigation [ref=f3e182]:
+        - button "关注" [ref=f3e183]
+        - button "最新" [ref=f3e184]
+        - button "热门" [ref=f3e185]
+        - button "专栏" [ref=f3e186]
+      - generic [ref=f3e190]:
+        - textbox "搜索你感兴趣的内容…" [ref=f3e191]
+        - generic: 搜索你感兴趣的内容…
+      - generic [ref=f3e194]:
+        - button "＋" [ref=f3e195] [cursor=pointer]
+        - button "🔔" [ref=f3e198] [cursor=pointer]
+        - button "✉️" [ref=f3e201] [cursor=pointer]
+        - button "登录" [ref=f3e204] [cursor=pointer]
+  - main [ref=f3e206]:
+    - generic [ref=f3e207]:
+      - generic [ref=f3e208]:
+        - heading "文章" [level=2] [ref=f3e209]
+        - generic [ref=f3e210]:
+          - generic [ref=f3e211] [cursor=pointer]:
+            - radio "最新" [checked]
+            - generic [ref=f3e212]: 最新
+          - generic [ref=f3e214] [cursor=pointer]:
+            - radio "最热"
+            - generic [ref=f3e215]: 最热
+      - generic [ref=f3e216]:
+        - generic [ref=f3e219] [cursor=pointer]:
+          - heading "Test Published" [level=3] [ref=f3e220]
+          - generic [ref=f3e221]:
+            - generic [ref=f3e222]: 2026-08-04
+            - generic [ref=f3e228]: "1"
+            - generic [ref=f3e234]: "0"
+            - generic [ref=f3e243]: "0"
+            - generic [ref=f3e248]: "0"
+        - generic [ref=f3e255] [cursor=pointer]:
+          - heading "Sa-Token 认证体系详解" [level=3] [ref=f3e256]
+          - generic [ref=f3e257]: 登录、权限与 SSO 会话管理
+          - generic [ref=f3e258]:
+            - generic [ref=f3e259]: 2026-08-03
+            - generic [ref=f3e265]: "177"
+            - generic [ref=f3e271]: "18"
+            - generic [ref=f3e280]: "6"
+            - generic [ref=f3e285]: "3"
+        - generic [ref=f3e292] [cursor=pointer]:
+          - heading "Vue 3 + Vite 前端工程化实践" [level=3] [ref=f3e293]
+          - generic [ref=f3e294]: Monorepo 下的类型安全与构建优化
+          - generic [ref=f3e295]:
+            - generic [ref=f3e296]: 2026-08-02
+            - generic [ref=f3e302]: "218"
+            - generic [ref=f3e308]: "30"
+            - generic [ref=f3e317]: "9"
+            - generic [ref=f3e322]: "5"
+        - generic [ref=f3e329] [cursor=pointer]:
+          - heading "Spring Cloud Alibaba 微服务入门" [level=3] [ref=f3e330]
+          - generic [ref=f3e331]: 从零搭建微服务网关与认证中心
+          - generic [ref=f3e332]:
+            - generic [ref=f3e333]: 2026-08-01
+            - generic [ref=f3e339]: "327"
+            - generic [ref=f3e345]: "45"
+            - generic [ref=f3e354]: "12"
+            - generic [ref=f3e359]: "8"
+        - generic [ref=f3e366] [cursor=pointer]:
+          - 'heading "Naive UI ä¸»é¢˜å®šåˆ¶ä¸Žæš—é»‘æ¨¡å¼" [level=3] [ref=f3e367]'
+          - generic [ref=f3e368]: "åŸºäºŽ Naive UI çš„ä¸»é¢˜é…\x8dç½®ä¸Žæš—é»‘æ¨¡å¼\x8fåˆ‡æ\x8d¢ã€‚"
+          - generic [ref=f3e369]:
+            - generic [ref=f3e370]: 2026-07-31
+            - generic [ref=f3e376]: "321"
+            - generic [ref=f3e382]: "44"
+            - generic [ref=f3e391]: "17"
+            - generic [ref=f3e396]: "4"
+        - generic [ref=f3e403] [cursor=pointer]:
+          - 'heading "åˆ†å¸ƒå¼ä¸€è‡´æ€§ç®—æ³•æ¦‚è§ˆ" [level=3] [ref=f3e404]'
+          - generic [ref=f3e405]: "Raft ä¸Ž Paxos çš„æ ¸å¿ƒæ€\x9dæƒ³ç®€æž\x90ã€‚"
+          - generic [ref=f3e406]:
+            - generic [ref=f3e407]: 2026-07-30
+            - generic [ref=f3e413]: "689"
+            - generic [ref=f3e419]: "92"
+            - generic [ref=f3e428]: "47"
+            - generic [ref=f3e433]: "11"
+        - generic [ref=f3e440] [cursor=pointer]:
+          - heading "Vite æž„å»ºä¼˜åŒ–ä¸Žåˆ†åŒ…ç–ç•¥" [level=3] [ref=f3e441]
+          - generic [ref=f3e442]: "manualChunks ä¸Žæž„å»ºæ€§èƒ½æ\x8f\x90å\x8d‡ã€‚"
+          - generic [ref=f3e443]:
+            - generic [ref=f3e444]: 2026-07-29
+            - generic [ref=f3e450]: "433"
+            - generic [ref=f3e456]: "55"
+            - generic [ref=f3e465]: "21"
+            - generic [ref=f3e470]: "6"
+        - generic [ref=f3e477] [cursor=pointer]:
+          - 'heading "Kubernetes å…¥é—¨ä¸Žèµ„æºæ¸…å•" [level=3] [ref=f3e478]'
+          - generic [ref=f3e479]: "Podã€\x81Deploymentã€\x81Service çš„æ ¸å¿ƒæ¦‚å¿µã€‚"
+          - generic [ref=f3e480]:
+            - generic [ref=f3e481]: 2026-07-27
+            - generic [ref=f3e487]: "543"
+            - generic [ref=f3e493]: "66"
+            - generic [ref=f3e502]: "28"
+            - generic [ref=f3e507]: "7"
+        - generic [ref=f3e514] [cursor=pointer]:
+          - 'heading "Docker åŒ–éƒ¨ç½² Spring Boot æœåŠ¡" [level=3] [ref=f3e515]'
+          - generic [ref=f3e516]: ç¼–å†™ Dockerfile ä¸Ž docker-compose çš„å¤šé˜¶æ®µæž„å»ºã€‚
+          - generic [ref=f3e517]:
+            - generic [ref=f3e518]: 2026-07-25
+            - generic [ref=f3e524]: "655"
+            - generic [ref=f3e530]: "77"
+            - generic [ref=f3e539]: "33"
+            - generic [ref=f3e544]: "9"
+        - generic [ref=f3e551] [cursor=pointer]:
+          - 'heading "Nacos ä¸é…ç½®çƒæ›´æ–°å®žè·µ" [level=3] [ref=f3e552]'
+          - generic [ref=f3e553]: "@RefreshScope ä¸Žé…\x8dç½®ä¸å¿ƒçš„æœ€ä½³å®žè·µã€‚"
+          - generic [ref=f3e554]:
+            - generic [ref=f3e555]: 2026-07-23
+            - generic [ref=f3e561]: "756"
+            - generic [ref=f3e567]: "88"
+            - generic [ref=f3e576]: "41"
+            - generic [ref=f3e581]: "12"
+      - generic [ref=f3e587]:
+        - generic [ref=f3e592] [cursor=pointer]: "1"
+        - generic [ref=f3e593] [cursor=pointer]: "2"
+  - contentinfo [ref=f3e598]: Sca 博客 · 企业级一体化智能管理平台示例

@@ -11,10 +11,6 @@ export function getCaptcha() {
   return request.get<CaptchaVO>('/api/auth/captcha')
 }
 
-export function checkCaptcha(id: string, data: unknown) {
-  return request.post<{ checkToken: string }>('/api/auth/captcha/check', { id, data })
-}
-
 export function login(dto: LoginDTO) {
   return request.post<LoginVO>('/api/auth/login', dto, { skipErrorHandler: true })
 }

@@ -1,0 +1,28 @@
+- generic [active] [ref=f4e1]:
+  - generic [ref=f4e7]:
+    - generic [ref=f4e8]:
+      - paragraph [ref=f4e9]: SCA FULLSTACK LAB
+      - heading "Sca Admin" [level=1] [ref=f4e10]
+      - paragraph [ref=f4e11]: Spring Cloud Alibaba 一体化管理平台
+    - generic [ref=f4e12]:
+      - generic [ref=f4e22]:
+        - textbox "用户名" [ref=f4e23]
+        - generic: 用户名
+      - generic [ref=f4e35]:
+        - textbox "密码" [ref=f4e36]
+        - generic: 密码
+      - checkbox "7 天内免登录" [ref=f4e49] [cursor=pointer]
+      - button "登 录" [ref=f4e58] [cursor=pointer]
+  - generic [ref=f4e61]:
+    - heading [ref=f4e62]:
+      - heading "安全验证" [ref=f4e63]
+      - button "close" [ref=f4e64] [cursor=pointer]
+    - generic [ref=f4e78]:
+      - generic [ref=f4e79]:
+        - img "缺口拼图"
+      - generic [ref=f4e80] [cursor=pointer]:
+        - generic: 向右拖动滑块完成验证
+        - generic [ref=f4e81]: ▶
+    - generic [ref=f4e74]:
+      - generic [ref=f4e75]: 2 分钟内未完成验证将自动失效
+      - button "刷新" [ref=f4e76] [cursor=pointer]

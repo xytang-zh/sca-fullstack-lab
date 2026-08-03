@@ -31,6 +31,9 @@ public class UserUpdateDTO implements Serializable {
     @Size(max = 20, message = "手机号长度不能超过 20")
     private String phone;
 
+    @Size(max = 512, message = "个人简介长度不能超过 512")
+    private String bio;
+
     private Long deptId;
     private Integer status;
 

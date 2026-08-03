@@ -271,6 +271,11 @@ sca-fullstack-lab/
 - **强制**所有 URL 用环境变量 `import.meta.env.VITE_XXX`，**禁止**硬编码
 - **强制**懒加载所有页面组件 `() => import('...')`
 - **强制**组件卸载时清理 WebSocket / EventListener
+- **强制**页面要尽可能使用 Naive UI 组件
+- **强制**分支语句或者判断语句必须使用大括号 {} 包裹，`NeedBraces`：`if`/`else`/`for`/`while`/`do` **必须**加大括号，即使只有一句
+- **强制**vue 文件中，从上到下的结构必须是<template></template>、<script setup></script>、<style></style>
+- **强制**相同或类似的页面，要保持页面的风格样式统一，可以通过提取出公共样式来实现
+- **强制**整个项目的页面风格要尽可能保持一致，需要有一个或多个全局的样式文件
 
 ### 7.3 Git 提交规范（Conventional Commits）
 

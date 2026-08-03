@@ -13,6 +13,7 @@ public final class AuthConstants {
     public static final String LOGIN_FAIL_PREFIX = "auth:login:fail:";
     public static final String LOGIN_LOCK_PREFIX = "auth:login:lock:";
     public static final String CAPTCHA_PREFIX = "auth:captcha:";
+    public static final String CAPTCHA_IMAGE_PREFIX = "auth:captcha:image:";
     public static final String IP_BLACKLIST_PREFIX = "auth:ip:blacklist:";
     public static final String SMS_CODE_PREFIX = "auth:sms:code:";
     public static final String SMS_LIMIT_PREFIX = "auth:sms:limit:";

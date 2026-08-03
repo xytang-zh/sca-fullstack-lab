@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xytang.auth.constant.AuthConstants;
 import com.xytang.auth.dto.LoginDTO;
 import com.xytang.auth.dto.PasswordUpdateDTO;
-import com.xytang.auth.dto.SmsLoginDTO;
+import com.xytang.auth.dto.RegisterDTO;
 import com.xytang.auth.entity.AuthUser;
 import com.xytang.auth.enums.DeviceTypeEnum;
 import com.xytang.auth.enums.LoginTypeEnum;
@@ -38,6 +38,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import cn.hutool.core.util.RandomUtil;
 
 /**
@@ -53,7 +54,6 @@ public class AuthServiceImpl implements AuthService {
     private static final int PHONE_HEAD_LEN = 3;
     private static final int PHONE_TAIL_LEN = 4;
     private static final int REFRESH_TOKEN_LENGTH = 64;
-    private static final int RANDOM_PASSWORD_LENGTH = 32;
 
     private final AuthUserMapper authUserMapper;
     private final CaptchaService captchaService;
@@ -64,130 +64,99 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginVO login(LoginDTO dto, String ip, String userAgent) {
-        // 1. 按需校验滑块 checkToken（有值则校验，无值则跳过）
-        if (StringUtils.hasText(dto.getCheckToken())) {
-            if (!captchaService.verifyCheckToken(dto.getCheckToken())) {
-                publishLoginEvent(null, dto.getUsername(), LoginTypeEnum.LOGIN, ip, userAgent,
-                        Boolean.FALSE, "captcha invalid");
-                DevMessageHolder.set("滑块验证码凭据无效或已过期，checkToken=" + dto.getCheckToken());
-                throw new AuthException(BizCode.AUTH_CAPTCHA_ERROR);
-            }
+        // 1. 校验文字验证码（忽略大小写、一次性消费；失败不查账号，防枚举）
+        if (!captchaService.verify(dto.getCaptchaKey(), dto.getCaptchaCode())) {
+            publishLoginEvent(null, dto.getAccount(), LoginTypeEnum.LOGIN, ip, userAgent,
+                    Boolean.FALSE, "captcha invalid");
+            DevMessageHolder.set("文字验证码无效或已过期，captchaKey=" + dto.getCaptchaKey());
+            throw new AuthException(BizCode.AUTH_CAPTCHA_ERROR);
         }
 
         // 2. 检查账号锁定
-        loginRiskService.assertNotLocked(dto.getUsername());
+        loginRiskService.assertNotLocked(dto.getAccount());
 
         // 3. 查询用户
         AuthUser user = authUserMapper.selectOne(new LambdaQueryWrapper<AuthUser>()
-                .eq(AuthUser::getUsername, dto.getUsername())
+                .eq(AuthUser::getUsername, dto.getAccount())
                 .last("LIMIT 1"));
         if (user == null) {
-            loginRiskService.recordFailure(dto.getUsername());
-            publishLoginEvent(null, dto.getUsername(), LoginTypeEnum.LOGIN, ip, userAgent,
+            loginRiskService.recordFailure(dto.getAccount());
+            publishLoginEvent(null, dto.getAccount(), LoginTypeEnum.LOGIN, ip, userAgent,
                     Boolean.FALSE, "user not found");
-            DevMessageHolder.set("用户不存在，username=" + dto.getUsername());
-            throw new AuthException(BizCode.AUTH_PASSWORD_ERROR);
+            DevMessageHolder.set("用户不存在，account=" + dto.getAccount());
+            throw new AuthException(BizCode.AUTH_PASSWORD_ERROR, "账号或密码错误");
         }
 
-        // 4. 校验密码（统一返回"账号或密码错误"，不区分用户名与密码错误）
+        // 4. 校验密码（统一返回"账号或密码错误"，不区分账号与密码错误）
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
-            loginRiskService.recordFailure(dto.getUsername());
-            publishLoginEvent(user.getId(), dto.getUsername(), LoginTypeEnum.LOGIN, ip, userAgent,
+            loginRiskService.recordFailure(dto.getAccount());
+            publishLoginEvent(user.getId(), dto.getAccount(), LoginTypeEnum.LOGIN, ip, userAgent,
                     Boolean.FALSE, "password mismatch");
             DevMessageHolder.set("Argon2id matches 返回 false，输入密码 '"
                     + dto.getPassword() + "' 与数据库哈希 '"
                     + user.getPassword().substring(0, Math.min(HASH_PREVIEW_LEN,
                         user.getPassword().length())) + "' 不匹配");
-            throw new AuthException(BizCode.AUTH_PASSWORD_ERROR);
+            throw new AuthException(BizCode.AUTH_PASSWORD_ERROR, "账号或密码错误");
         }
 
         // 5. 校验状态（被禁用/删除）
         if (user.getStatus() == null
                 || CommonConstants.STATUS_NORMAL != user.getStatus()) {
-            publishLoginEvent(user.getId(), dto.getUsername(), LoginTypeEnum.LOGIN, ip, userAgent,
+            publishLoginEvent(user.getId(), dto.getAccount(), LoginTypeEnum.LOGIN, ip, userAgent,
                     Boolean.FALSE, "account disabled");
             DevMessageHolder.set("用户已被禁用，status=" + user.getStatus());
             throw new AuthException(BizCode.AUTH_USER_DISABLED);
         }
 
         // 6. 登录成功：清失败计数 + 签发会话
-        loginRiskService.clearFailure(dto.getUsername());
+        loginRiskService.clearFailure(dto.getAccount());
         long timeout = Boolean.TRUE.equals(dto.getRememberMe())
                 ? AuthConstants.REMEMBER_ME_TIMEOUT_SECONDS
                 : AuthConstants.LOGIN_TOKEN_TIMEOUT_SECONDS;
-        return doLogin(user, timeout, LoginTypeEnum.LOGIN, ip, userAgent,
-                List.of(CommonConstants.SUPER_ADMIN_ROLE_CODE), List.of(AuthConstants.SUPER_ADMIN_PERMS));
+        List<String> roleCodes = authUserMapper.selectRoleCodesByUserId(user.getId());
+        return doLogin(user, timeout, LoginTypeEnum.LOGIN, ip, userAgent, roleCodes, List.of());
     }
 
     @Override
-    public LoginVO smsLogin(SmsLoginDTO dto, String ip, String userAgent) {
-        String phone = dto.getPhone();
-
-        // 1. 校验并作废短信验证码（一次性消费）
-        String codeKey = AuthConstants.SMS_CODE_PREFIX + phone;
-        String savedCode = stringRedisTemplate.opsForValue().get(codeKey);
-        if (savedCode == null || !savedCode.equals(dto.getCode())) {
-            publishLoginEvent(null, phone, LoginTypeEnum.SMS, ip, userAgent,
-                    Boolean.FALSE, "sms code invalid");
-            throw new AuthException(BizCode.AUTH_CAPTCHA_ERROR, "验证码错误或已过期");
+    @Transactional(rollbackFor = Exception.class)
+    public LoginVO register(RegisterDTO dto, String ip, String userAgent) {
+        if (!dto.getPassword().equals(dto.getConfirmPassword())) {
+            throw new AuthException(BizCode.PARAM_ERROR, "两次输入的密码不一致");
         }
-        stringRedisTemplate.delete(codeKey);
 
-        // 2. 风控检查
-        loginRiskService.assertNotLocked(phone);
-
-        // 3. 按手机号查用户，不存在则自动注册（登录/注册一体）
-        AuthUser user = authUserMapper.selectOne(new LambdaQueryWrapper<AuthUser>()
-                .eq(AuthUser::getPhone, phone)
+        // 1. 账号查重（并发场景由唯一索引 + DuplicateKeyException 兜底）
+        AuthUser exists = authUserMapper.selectOne(new LambdaQueryWrapper<AuthUser>()
+                .eq(AuthUser::getUsername, dto.getAccount())
                 .last("LIMIT 1"));
-        if (user == null) {
-            user = registerByPhone(phone);
+        if (exists != null) {
+            publishLoginEvent(null, dto.getAccount(), LoginTypeEnum.LOGIN, ip, userAgent,
+                    Boolean.FALSE, "account existed");
+            throw new AuthException(BizCode.AUTH_USER_EXISTED, "账号已存在");
         }
 
-        // 4. 状态校验（被禁用/删除）
-        if (user.getStatus() == null || CommonConstants.STATUS_NORMAL != user.getStatus()) {
-            publishLoginEvent(user.getId(), user.getUsername(), LoginTypeEnum.SMS, ip, userAgent,
-                    Boolean.FALSE, "account disabled");
-            throw new AuthException(BizCode.AUTH_USER_DISABLED);
-        }
-
-        // 5. 登录成功
-        loginRiskService.clearFailure(phone);
-        List<String> roleCodes = authUserMapper.selectRoleCodesByUserId(user.getId());
-        return doLogin(user, AuthConstants.LOGIN_TOKEN_TIMEOUT_SECONDS, LoginTypeEnum.SMS, ip, userAgent,
-                roleCodes, List.of());
-    }
-
-    /**
-     * 手机号自动注册：username=手机号、随机不可登录密码、默认 USER 角色。
-     *
-     * @param phone 手机号
-     * @return 注册后的用户
-     */
-    private AuthUser registerByPhone(String phone) {
+        // 2. 插入用户（Argon2id 加密，默认 USER 角色）
         AuthUser user = new AuthUser();
-        user.setUsername(phone);
-        user.setPassword(passwordEncoder.encode(RandomUtil.randomString(RANDOM_PASSWORD_LENGTH)));
-        user.setNickname(maskPhone(phone));
-        user.setPhone(phone);
+        user.setUsername(dto.getAccount());
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        user.setNickname(dto.getAccount());
         user.setStatus(CommonConstants.STATUS_NORMAL);
         try {
             authUserMapper.insert(user);
         } catch (DuplicateKeyException e) {
-            // 并发注册时唯一索引兜底：重新查询已存在用户
-            AuthUser existing = authUserMapper.selectOne(new LambdaQueryWrapper<AuthUser>()
-                    .eq(AuthUser::getPhone, phone)
-                    .last("LIMIT 1"));
-            if (existing != null) {
-                return existing;
-            }
-            throw e;
+            // 并发注册唯一索引兜底：同样视为账号已存在
+            publishLoginEvent(null, dto.getAccount(), LoginTypeEnum.LOGIN, ip, userAgent,
+                    Boolean.FALSE, "account existed");
+            throw new AuthException(BizCode.AUTH_USER_EXISTED, "账号已存在");
         }
         Long roleId = authUserMapper.selectUserRoleId();
         if (roleId != null) {
             authUserMapper.insertUserRole(user.getId(), roleId);
         }
-        return user;
+
+        // 3. 注册成功自动登录
+        List<String> roleCodes = authUserMapper.selectRoleCodesByUserId(user.getId());
+        return doLogin(user, AuthConstants.LOGIN_TOKEN_TIMEOUT_SECONDS, LoginTypeEnum.LOGIN,
+                ip, userAgent, roleCodes, List.of());
     }
 
     /**
@@ -265,6 +234,13 @@ public class AuthServiceImpl implements AuthService {
             DevMessageHolder.set("当前登录用户在 sys_user 表不存在，userId=" + userId);
             throw new UserNotFoundException();
         }
+        List<String> roleCodes = authUserMapper.selectRoleCodesByUserId(userId);
+        List<UserInfoVO.RoleBriefVO> roles = roleCodes.stream()
+                .map(code -> UserInfoVO.RoleBriefVO.builder()
+                        .code(code)
+                        .name(code)
+                        .build())
+                .collect(Collectors.toList());
         return UserInfoVO.builder()
             .id(user.getId())
             .username(user.getUsername())
@@ -274,13 +250,8 @@ public class AuthServiceImpl implements AuthService {
             .avatar(user.getAvatar())
             .deptId(user.getDeptId())
             .deptName(null)
-            .roles(List.of(UserInfoVO.RoleBriefVO.builder()
-                .id(1L)
-                .code(CommonConstants.SUPER_ADMIN_ROLE_CODE)
-                .name("超级管理员")
-                .dataScope(CommonConstants.DATA_SCOPE_ALL)
-                .build()))
-            .perms(List.of(AuthConstants.SUPER_ADMIN_PERMS))
+            .roles(roles)
+            .perms(List.of())
             .lastLoginTime(user.getLastLoginTime())
             .lastLoginIp(user.getLastLoginIp())
             .build();

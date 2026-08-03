@@ -7,6 +7,8 @@ import com.xytang.article.vo.ArticleVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 /**
  * 文章 Mapper：分页查询支持时间/热度排序（热度权重参数化，防 SQL 注入）。
  */
@@ -20,8 +22,9 @@ public interface ArticleMapper extends BaseMapper<Article> {
      * @param sort     time=发布时间倒序，hot=热度降序
      * @param wViews   阅读量权重
      * @param wLikes   点赞数权重
-     * @param wFav     收藏数权重
-     * @param wComm    评论数权重
+     * @param wFav       收藏数权重
+     * @param wComm      评论数权重
+     * @param authorIds  作者 ID 过滤（可空，用于关注 Feed）
      * @return 文章列表分页
      */
     IPage<ArticleVO> selectPublishedPage(IPage<ArticleVO> page,
@@ -29,7 +32,8 @@ public interface ArticleMapper extends BaseMapper<Article> {
                                          @Param("wViews") double wViews,
                                          @Param("wLikes") double wLikes,
                                          @Param("wFav") double wFav,
-                                         @Param("wComm") double wComm);
+                                         @Param("wComm") double wComm,
+                                         @Param("authorIds") List<Long> authorIds);
 
     /**
      * 点赞/收藏后同步计数 +1（原子更新）。

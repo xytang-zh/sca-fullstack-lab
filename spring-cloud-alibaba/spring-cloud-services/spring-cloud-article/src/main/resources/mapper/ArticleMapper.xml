@@ -18,6 +18,12 @@
             publish_time AS publishTime
         FROM t_article
         WHERE deleted = 0 AND status = 3
+        <if test="authorIds != null and authorIds.size() > 0">
+            AND author_id IN
+            <foreach collection="authorIds" item="aid" open="(" separator="," close=")">
+                #{aid}
+            </foreach>
+        </if>
         <choose>
             <when test="sort == 'hot'">
                 ORDER BY (CAST(#{wViews} AS DECIMAL(10, 2)) * views

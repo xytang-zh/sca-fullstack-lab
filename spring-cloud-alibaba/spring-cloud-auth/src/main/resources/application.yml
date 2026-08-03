@@ -79,17 +79,6 @@ sa-token:
     slo-url: http://localhost:8081/sso/logout
     client-timeout: 60
 
-# tianai-captcha 行为滑块验证码
-captcha:
-  init-default-resource: true
-  prefix: auth:captcha
-  expire:
-    default: 120000
-
-auth:
-  captcha:
-    enabled: true
-
 management:
   endpoints:
     web:

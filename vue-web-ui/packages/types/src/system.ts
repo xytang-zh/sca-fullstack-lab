@@ -1,16 +1,19 @@
 export interface UserVO {
-  id: number
+  id: string
   username: string
   nickname?: string
   email?: string
   phone?: string
   avatar?: string
-  deptId?: number
+  bio?: string
+  followCount?: number
+  followerCount?: number
+  deptId?: string
   status: number
   lastLoginTime?: string
   lastLoginIp?: string
   createTime?: string
-  roles?: Array<{ id?: number; code?: string; name?: string }>
+  roles?: Array<{ id?: string; code?: string; name?: string }>
 }
 
 export interface UserCreateDTO {
@@ -19,15 +22,16 @@ export interface UserCreateDTO {
   nickname?: string
   email?: string
   phone?: string
-  deptId?: number
+  deptId?: string
 }
 
 export interface UserUpdateDTO {
-  id: number
+  id: string
   nickname?: string
   email?: string
   phone?: string
-  deptId?: number
+  bio?: string
+  deptId?: string
   status?: number
   version?: number
 }

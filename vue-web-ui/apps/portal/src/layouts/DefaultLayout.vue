@@ -51,21 +51,23 @@ function handleDropdown(key: string) {
 <template>
   <div class="min-h-screen flex flex-col bg-gray-50">
     <header class="h-14 bg-white border-b border-gray-200 sticky top-0 z-10">
-      <div class="max-w-5xl mx-auto h-full px-4 flex items-center justify-between">
-        <button class="flex items-center gap-2 text-lg font-bold text-gray-800" @click="goHome">
+      <div class="max-w-[1440px] mx-auto h-full px-4 flex items-center justify-between">
+        <n-button text class="text-lg font-bold text-gray-800" @click="goHome">
           Sca 博客
-        </button>
+        </n-button>
         <div class="flex items-center gap-3">
           <template v-if="isLoggedIn">
             <n-dropdown :options="dropdownOptions" trigger="click" @select="handleDropdown">
-              <button class="flex items-center gap-2 hover:opacity-80">
-                <n-avatar round size="small" :src="userStore.userInfo?.avatar">
-                  {{ (userStore.userInfo?.nickname ?? userStore.userInfo?.username ?? 'U').charAt(0) }}
-                </n-avatar>
-                <span class="text-sm text-gray-700">
+              <n-button text class="hover:opacity-80">
+                <template #icon>
+                  <n-avatar round size="small" :src="userStore.userInfo?.avatar">
+                    {{ (userStore.userInfo?.nickname ?? userStore.userInfo?.username ?? 'U').charAt(0) }}
+                  </n-avatar>
+                </template>
+                <n-text class="text-sm text-gray-700">
                   {{ userStore.userInfo?.nickname ?? userStore.userInfo?.username }}
-                </span>
-              </button>
+                </n-text>
+              </n-button>
             </n-dropdown>
           </template>
           <template v-else>
@@ -79,8 +81,8 @@ function handleDropdown(key: string) {
       <router-view />
     </main>
 
-    <footer class="py-6 text-center text-xs text-gray-400">
-      Sca 博客 · 企业级一体化智能管理平台示例
+    <footer class="py-6 text-center">
+      <n-text depth="3" class="text-xs">Sca 博客 · 企业级一体化智能管理平台示例</n-text>
     </footer>
   </div>
 </template>

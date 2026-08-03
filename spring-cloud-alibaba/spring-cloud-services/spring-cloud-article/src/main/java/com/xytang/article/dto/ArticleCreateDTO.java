@@ -37,4 +37,10 @@ public class ArticleCreateDTO implements Serializable {
 
     @Schema(description = "封面图 URL")
     private String coverImage;
+
+    @Schema(description = "所属专栏 ID（可空）")
+    private Long columnId;
+
+    @Schema(description = "状态：1=草稿 3=发布（默认发布）", defaultValue = "3")
+    private Integer status;
 }

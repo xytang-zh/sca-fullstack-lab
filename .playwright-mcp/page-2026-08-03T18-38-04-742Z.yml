@@ -1,0 +1,23 @@
+- generic [ref=f10e112]:
+  - banner [ref=f10e113]:
+    - generic [ref=f10e114]:
+      - button "Sca 博客" [ref=f10e115] [cursor=pointer]
+      - button "t testuser01" [ref=f10e118] [cursor=pointer]:
+        - generic [ref=f10e119]: t
+        - generic [ref=f10e122]: testuser01
+  - main [ref=f10e124]:
+    - generic [ref=f10e125]:
+      - generic [ref=f10e127]:
+        - generic [ref=f10e128]: t
+        - generic [ref=f10e130]:
+          - heading "testuser01" [level=1] [ref=f10e131]
+          - generic [ref=f10e132]: "@testuser01"
+      - generic [ref=f10e133]:
+        - generic [ref=f10e135]:
+          - generic [ref=f10e136]: 我的文章
+          - generic [ref=f10e137]: 管理你发布的博客文章
+        - generic [ref=f10e139]:
+          - generic [ref=f10e140]: 我的收藏
+          - generic [ref=f10e141]: 查看收藏的文章
+      - generic [ref=f10e142]: 我的文章 / 我的收藏功能将在后续迭代开放
+  - contentinfo [ref=f10e143]: Sca 博客 · 企业级一体化智能管理平台示例

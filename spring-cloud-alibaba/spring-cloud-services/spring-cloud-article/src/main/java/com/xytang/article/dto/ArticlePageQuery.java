@@ -29,4 +29,7 @@ public class ArticlePageQuery implements Serializable {
     @Schema(description = "排序方式：time=按发布时间倒序，hot=按热度降序", defaultValue = "time")
     @Pattern(regexp = "^(time|hot)$", message = "sort 仅支持 time 或 hot")
     private String sort = "time";
+
+    @Schema(description = "作者 ID 过滤（逗号分隔，可选，用于关注 Feed）")
+    private String authorIds;
 }

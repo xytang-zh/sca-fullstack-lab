@@ -106,6 +106,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (dto.getPhone() != null) {
             user.setPhone(dto.getPhone());
         }
+        if (dto.getBio() != null) {
+            user.setBio(dto.getBio());
+        }
         if (dto.getDeptId() != null) {
             user.setDeptId(dto.getDeptId());
         }
@@ -183,6 +186,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             .email(maskEmail(user.getEmail()))
             .phone(maskPhone(user.getPhone()))
             .avatar(user.getAvatar())
+            .bio(user.getBio())
             .deptId(user.getDeptId())
             .status(user.getStatus())
             .lastLoginTime(user.getLastLoginTime())

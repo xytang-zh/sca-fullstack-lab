@@ -35,6 +35,9 @@ public class ArticleDetailVO implements Serializable {
     @Schema(description = "作者 ID")
     private String authorId;
 
+    @Schema(description = "所属专栏 ID")
+    private String columnId;
+
     @Schema(description = "阅读量")
     private Long views;
 

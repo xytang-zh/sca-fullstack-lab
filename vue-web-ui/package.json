@@ -5,14 +5,13 @@
   "type": "module",
   "packageManager": "pnpm@9.0.0",
   "scripts": {
-    "dev:admin": "pnpm --filter @sca/admin dev",
+    "dev": "pnpm --filter @sca/portal dev",
     "dev:portal": "pnpm --filter @sca/portal dev",
-    "build:admin": "pnpm --filter @sca/admin build",
+    "build": "pnpm --filter @sca/portal build",
     "build:portal": "pnpm --filter @sca/portal build",
-    "build": "pnpm -r build",
-    "lint": "pnpm -r lint",
-    "lint:fix": "pnpm -r lint:fix",
-    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm --filter @sca/portal lint",
+    "lint:fix": "pnpm --filter @sca/portal lint:fix",
+    "typecheck": "pnpm --filter @sca/portal typecheck",
     "test": "vitest"
   },
   "devDependencies": {

@@ -61,6 +61,15 @@ spring:
                 - name: Path
                 - StripPrefix=2
                 - name: Log
+            - id: comment-service
+              uri: lb://spring-cloud-comment
+              predicates:
+                - Path=/api/comments/**
+              filters:
+                - name: TraceId
+                - name: Path
+                - StripPrefix=2
+                - name: Log
   data:
     redis:
       host: ${REDIS_HOST:127.0.0.1}

@@ -38,6 +38,15 @@ public class UserVO implements Serializable {
     @Schema(description = "头像 URL")
     private String avatar;
 
+    @Schema(description = "个人简介")
+    private String bio;
+
+    @Schema(description = "关注数")
+    private Long followCount;
+
+    @Schema(description = "粉丝数")
+    private Long followerCount;
+
     @Schema(description = "所属部门 ID")
     private Long deptId;
 

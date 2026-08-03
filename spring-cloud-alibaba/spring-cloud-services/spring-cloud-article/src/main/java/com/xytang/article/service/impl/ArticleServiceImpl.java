@@ -16,17 +16,23 @@ import com.xytang.article.mapper.FavoriteMapper;
 import com.xytang.article.mapper.LikeRecordMapper;
 import com.xytang.article.service.ArticleService;
 import com.xytang.article.vo.ArticleDetailVO;
+import com.xytang.article.vo.ArticleStatsVO;
 import com.xytang.article.vo.ArticleVO;
 import com.xytang.common.core.exception.BizException;
+import com.xytang.common.core.exception.PermissionException;
 import com.xytang.common.core.response.BizCode;
 import com.xytang.common.core.response.PageVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * 博客文章服务实现。
@@ -34,6 +40,9 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 public class ArticleServiceImpl implements ArticleService {
+
+    /** 文章状态：草稿（仅作者可见） */
+    private static final int STATUS_DRAFT = 1;
 
     /** 文章状态：已发布（游客可见） */
     private static final int STATUS_PUBLISHED = 3;
@@ -46,7 +55,8 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     public PageVO<ArticleVO> page(ArticlePageQuery query) {
-        String cacheKey = query.getSort() + ":" + query.getPageNum() + ":" + query.getPageSize();
+        String cacheKey = query.getSort() + ":" + query.getPageNum() + ":" + query.getPageSize()
+                + ":" + (query.getAuthorIds() == null ? "" : query.getAuthorIds());
         PageVO<ArticleVO> cached = articleListCache.getIfPresent(cacheKey);
         if (cached != null) {
             return cached;
@@ -54,7 +64,8 @@ public class ArticleServiceImpl implements ArticleService {
         Page<ArticleVO> page = new Page<>(query.getPageNum(), query.getPageSize());
         IPage<ArticleVO> result = articleMapper.selectPublishedPage(page, query.getSort(),
                 hotWeight.getViews(), hotWeight.getLikes(),
-                hotWeight.getFavorites(), hotWeight.getComments());
+                hotWeight.getFavorites(), hotWeight.getComments(),
+                parseAuthorIds(query.getAuthorIds()));
         PageVO<ArticleVO> vo = PageVO.of(result.getRecords(), result.getTotal(),
                 Math.toIntExact(result.getCurrent()), Math.toIntExact(result.getSize()));
         articleListCache.put(cacheKey, vo);
@@ -94,15 +105,174 @@ public class ArticleServiceImpl implements ArticleService {
         article.setContentMd(dto.getContentMd());
         article.setSlug(dto.getSlug());
         article.setCoverImage(dto.getCoverImage());
+        article.setColumnId(dto.getColumnId());
         article.setAuthorId(authorId);
-        article.setStatus(STATUS_PUBLISHED);
-        article.setPublishTime(LocalDateTime.now());
+        boolean published = dto.getStatus() == null || Objects.equals(STATUS_PUBLISHED, dto.getStatus());
+        article.setStatus(published ? STATUS_PUBLISHED : STATUS_DRAFT);
+        if (published) {
+            article.setPublishTime(LocalDateTime.now());
+        }
         article.setViews(0L);
         article.setLikes(0L);
         article.setFavorites(0L);
         article.setComments(0L);
         articleMapper.insert(article);
         return toVO(article);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ArticleVO update(ArticleCreateDTO dto, Long articleId, Long userId) {
+        Article article = articleMapper.selectById(articleId);
+        if (article == null) {
+            throw new BizException(BizCode.CONTENT_NOT_FOUND);
+        }
+        if (!Objects.equals(article.getAuthorId(), userId)) {
+            throw new PermissionException(BizCode.DATA_SCOPE_DENIED);
+        }
+        article.setTitle(dto.getTitle());
+        article.setSummary(dto.getSummary());
+        article.setContentMd(dto.getContentMd());
+        article.setSlug(dto.getSlug());
+        article.setCoverImage(dto.getCoverImage());
+        article.setColumnId(dto.getColumnId());
+        boolean published = dto.getStatus() == null || Objects.equals(STATUS_PUBLISHED, dto.getStatus());
+        if (published && !Objects.equals(STATUS_PUBLISHED, article.getStatus())) {
+            article.setStatus(STATUS_PUBLISHED);
+            article.setPublishTime(LocalDateTime.now());
+        } else if (!published && Objects.equals(STATUS_PUBLISHED, article.getStatus())) {
+            article.setStatus(STATUS_DRAFT);
+            article.setPublishTime(null);
+        }
+        articleMapper.updateById(article);
+        return toVO(article);
+    }
+
+    @Override
+    public PageVO<ArticleVO> pageMyArticles(Long userId, int pageNum, int pageSize) {
+        Page<Article> page = new Page<>(pageNum, pageSize);
+        IPage<Article> result = articleMapper.selectPage(page, new LambdaQueryWrapper<Article>()
+                .eq(Article::getAuthorId, userId)
+                .eq(Article::getStatus, STATUS_PUBLISHED)
+                .orderByDesc(Article::getPublishTime));
+        return toPageVO(result);
+    }
+
+    @Override
+    public PageVO<ArticleVO> pageMyDrafts(Long userId, int pageNum, int pageSize) {
+        Page<Article> page = new Page<>(pageNum, pageSize);
+        IPage<Article> result = articleMapper.selectPage(page, new LambdaQueryWrapper<Article>()
+                .eq(Article::getAuthorId, userId)
+                .eq(Article::getStatus, STATUS_DRAFT)
+                .orderByDesc(Article::getUpdateTime));
+        return toPageVO(result);
+    }
+
+    @Override
+    public PageVO<ArticleVO> pageMyLikes(Long userId, int pageNum, int pageSize) {
+        Page<LikeRecord> page = new Page<>(pageNum, pageSize);
+        IPage<LikeRecord> result = likeRecordMapper.selectPage(page, new LambdaQueryWrapper<LikeRecord>()
+                .eq(LikeRecord::getUserId, userId)
+                .orderByDesc(LikeRecord::getCreateTime));
+        List<Long> articleIds = result.getRecords().stream()
+                .map(LikeRecord::getArticleId)
+                .distinct()
+                .collect(Collectors.toList());
+        List<ArticleVO> list = queryByIds(articleIds);
+        return PageVO.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
+    }
+
+    @Override
+    public PageVO<ArticleVO> pageMyFavorites(Long userId, int pageNum, int pageSize) {
+        Page<Favorite> page = new Page<>(pageNum, pageSize);
+        IPage<Favorite> result = favoriteMapper.selectPage(page, new LambdaQueryWrapper<Favorite>()
+                .eq(Favorite::getUserId, userId)
+                .orderByDesc(Favorite::getCreateTime));
+        List<Long> articleIds = result.getRecords().stream()
+                .map(Favorite::getArticleId)
+                .distinct()
+                .collect(Collectors.toList());
+        List<ArticleVO> list = queryByIds(articleIds);
+        return PageVO.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
+    }
+
+    @Override
+    public ArticleStatsVO stats() {
+        ArticleStatsVO vo = new ArticleStatsVO();
+        vo.setTotalArticles(articleMapper.selectCount(new LambdaQueryWrapper<Article>()));
+        vo.setPublishedArticles(articleMapper.selectCount(new LambdaQueryWrapper<Article>()
+                .eq(Article::getStatus, STATUS_PUBLISHED)));
+        vo.setPendingArticles(articleMapper.selectCount(new LambdaQueryWrapper<Article>()
+                .eq(Article::getStatus, 2)));
+        vo.setDraftArticles(articleMapper.selectCount(new LambdaQueryWrapper<Article>()
+                .eq(Article::getStatus, STATUS_DRAFT)));
+        vo.setTotalLikes(likeRecordMapper.selectCount(new LambdaQueryWrapper<LikeRecord>()));
+        vo.setTotalFavorites(favoriteMapper.selectCount(new LambdaQueryWrapper<Favorite>()));
+        return vo;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void audit(Long articleId, Integer status) {
+        Article article = articleMapper.selectById(articleId);
+        if (article == null) {
+            throw new BizException(BizCode.CONTENT_NOT_FOUND);
+        }
+        if (!Objects.equals(2, article.getStatus())) {
+            throw new BizException(BizCode.CONTENT_STATUS_INVALID);
+        }
+        article.setStatus(status);
+        if (Objects.equals(STATUS_PUBLISHED, status)) {
+            article.setPublishTime(LocalDateTime.now());
+        }
+        articleMapper.updateById(article);
+    }
+
+    @Override
+    public PageVO<ArticleVO> pagePending(int pageNum, int pageSize) {
+        Page<Article> page = new Page<>(pageNum, pageSize);
+        IPage<Article> result = articleMapper.selectPage(page, new LambdaQueryWrapper<Article>()
+                .eq(Article::getStatus, 2)
+                .orderByAsc(Article::getCreateTime));
+        return toPageVO(result);
+    }
+
+    @Override
+    public ArticleDetailVO getForEdit(Long articleId, Long userId) {
+        Article article = articleMapper.selectById(articleId);
+        if (article == null) {
+            throw new BizException(BizCode.CONTENT_NOT_FOUND);
+        }
+        if (!Objects.equals(article.getAuthorId(), userId)) {
+            throw new PermissionException(BizCode.DATA_SCOPE_DENIED);
+        }
+        ArticleDetailVO vo = new ArticleDetailVO();
+        vo.setId(String.valueOf(article.getId()));
+        vo.setTitle(article.getTitle());
+        vo.setSummary(article.getSummary());
+        vo.setContentMd(article.getContentMd());
+        vo.setCoverImage(article.getCoverImage());
+        vo.setColumnId(article.getColumnId() == null ? null : String.valueOf(article.getColumnId()));
+        vo.setAuthorId(String.valueOf(article.getAuthorId()));
+        vo.setViews(article.getViews());
+        vo.setLikes(article.getLikes());
+        vo.setFavorites(article.getFavorites());
+        vo.setComments(article.getComments());
+        vo.setPublishTime(article.getPublishTime());
+        return vo;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void delete(Long articleId, Long userId) {
+        Article article = articleMapper.selectById(articleId);
+        if (article == null) {
+            throw new BizException(BizCode.CONTENT_NOT_FOUND);
+        }
+        if (!Objects.equals(article.getAuthorId(), userId)) {
+            throw new PermissionException(BizCode.DATA_SCOPE_DENIED);
+        }
+        articleMapper.deleteById(articleId);
     }
 
     @Override
@@ -153,6 +323,36 @@ public class ArticleServiceImpl implements ArticleService {
         return false;
     }
 
+    private List<Long> parseAuthorIds(String authorIds) {
+        if (authorIds == null || authorIds.isBlank()) {
+            return null;
+        }
+        return Arrays.stream(authorIds.split(","))
+                .filter(StringUtils::hasText)
+                .map(String::trim)
+                .map(Long::valueOf)
+                .collect(Collectors.toList());
+    }
+
+    private List<ArticleVO> queryByIds(List<Long> articleIds) {
+        if (articleIds.isEmpty()) {
+            return List.of();
+        }
+        return articleMapper.selectList(new LambdaQueryWrapper<Article>()
+                        .in(Article::getId, articleIds)
+                        .eq(Article::getStatus, STATUS_PUBLISHED))
+                .stream()
+                .map(this::toVO)
+                .collect(Collectors.toList());
+    }
+
+    private PageVO<ArticleVO> toPageVO(IPage<Article> result) {
+        List<ArticleVO> list = result.getRecords().stream()
+                .map(this::toVO)
+                .collect(Collectors.toList());
+        return PageVO.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
+    }
+
     private ArticleVO toVO(Article article) {
         ArticleVO vo = new ArticleVO();
         vo.setId(String.valueOf(article.getId()));
@@ -160,6 +360,8 @@ public class ArticleServiceImpl implements ArticleService {
         vo.setSummary(article.getSummary());
         vo.setCoverImage(article.getCoverImage());
         vo.setAuthorId(String.valueOf(article.getAuthorId()));
+        vo.setColumnId(article.getColumnId() == null ? null : String.valueOf(article.getColumnId()));
+        vo.setStatus(article.getStatus());
         vo.setViews(article.getViews());
         vo.setLikes(article.getLikes());
         vo.setFavorites(article.getFavorites());

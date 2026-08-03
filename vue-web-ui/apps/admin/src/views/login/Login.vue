@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { NForm, NFormItem, NInput, NButton, NCheckbox, useMessage } from 'naive-ui'
-import { Person, LockClosed } from '@vicons/ionicons5'
+import { ImageOutline, LockClosed, Person } from '@vicons/ionicons5'
 import { useUserStore } from '@/store/user'
-import CaptchaModal from '@/components/common/CaptchaModal.vue'
-import type { R } from '@sca/types'
+import { getCaptcha } from '@/api/auth'
+import type { CaptchaVO, R } from '@sca/types'
 
 const router = useRouter()
 const route = useRoute()
@@ -13,74 +13,63 @@ const message = useMessage()
 const userStore = useUserStore()
 
 const loading = ref(false)
-const showCaptcha = ref(false)
-const captchaRequired = ref(false)
+const captcha = ref<CaptchaVO | null>(null)
 
 const form = reactive({
-  username: '',
+  account: '',
   password: '',
+  captchaCode: '',
   rememberMe: false
 })
 
 const rules = {
-  username: { required: true, message: '请输入用户名', trigger: 'blur' },
-  password: { required: true, message: '请输入密码', trigger: 'blur' }
+  account: { required: true, message: '请输入账号', trigger: 'blur' },
+  password: { required: true, message: '请输入密码', trigger: 'blur' },
+  captchaCode: { required: true, message: '请输入验证码', trigger: 'blur' }
+}
+
+async function loadCaptcha() {
+  try {
+    captcha.value = await getCaptcha()
+    form.captchaCode = ''
+  } catch {
+    captcha.value = null
+  }
 }
 
 async function handleLogin(e: Event) {
   e.preventDefault()
-  if (!form.username || !form.password) {
-    message.warning('请填写用户名和密码')
+  if (!form.account || !form.password) {
+    message.warning('请填写账号和密码')
     return
   }
-  // 如果没有要求验证码，直接提交登录
-  if (!captchaRequired.value) {
-    await submitLogin('')
-  } else {
-    // 需要验证码 → 弹出滑块
-    showCaptcha.value = true
+  if (!captcha.value) {
+    message.warning('验证码加载失败，请点击图片刷新')
+    return
   }
-}
-
-async function onCaptchaSuccess(checkToken: string) {
-  showCaptcha.value = false
-  await submitLogin(checkToken)
-}
-
-async function submitLogin(checkToken: string) {
+  if (!form.captchaCode) {
+    message.warning('请输入验证码')
+    return
+  }
   loading.value = true
   try {
     await userStore.login({
-      username: form.username,
+      account: form.account,
       password: form.password,
-      checkToken,
+      captchaKey: captcha.value.captchaKey,
+      captchaCode: form.captchaCode,
       rememberMe: form.rememberMe
     })
     message.success('登录成功')
     const redirect = (route.query.redirect as string) || '/dashboard'
     router.replace(redirect)
   } catch (err: unknown) {
-    const bizCode = extractBizCode(err)
-    if (bizCode === '01201') {
-      // 验证码错误 → 下次登录需要验证码
-      captchaRequired.value = true
-      showCaptcha.value = true
-    } else {
-      message.error(extractBizMessage(err))
-    }
+    message.error(extractBizMessage(err))
+    // 登录失败后刷新验证码
+    await loadCaptcha()
   } finally {
     loading.value = false
   }
-}
-
-function extractBizCode(err: unknown): string | null {
-  if (err && typeof err === 'object') {
-    const r = err as Partial<R<unknown> & { code?: string }>
-    if (r.code) return String(r.code)
-    const axiosErr = err as { response?: { data?: Partial<R<unknown> & { code?: string }> } }
-    if (axiosErr.response?.data?.code) return String(axiosErr.response.data.code)
-  }
-  return null
 }
 
 function extractBizMessage(err: unknown): string {
@@ -99,20 +88,25 @@ function extractBizMessage(err: unknown): string {
   }
   return '登录失败'
 }
+
+onMounted(loadCaptcha)
 </script>
 
 <template>
-  <div class="login-page">
-    <div class="login-card">
-      <div class="login-title">
-        <h1>Sca Admin</h1>
-        <p>Spring Cloud Alibaba 一体化管理平台</p>
+  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 to-violet-600 relative overflow-hidden">
+    <div class="absolute -top-24 -left-24 w-80 h-80 rounded-full bg-white/10" />
+    <div class="absolute -bottom-32 -right-16 w-96 h-96 rounded-full bg-white/5" />
+    <div class="relative w-[420px] p-10 bg-white rounded-2xl shadow-2xl">
+      <div class="text-center mb-6">
+        <n-text class="text-xs tracking-widest text-indigo-500 mb-2 block">SCA FULLSTACK LAB</n-text>
+        <n-text tag="h1" class="m-0 text-[28px] font-bold text-gray-800 block">Sca Admin</n-text>
+        <n-text depth="3" class="m-0 mt-1.5 text-[13px] block">Spring Cloud Alibaba 一体化管理平台</n-text>
       </div>
       <n-form :model="form" :rules="rules" label-placement="top" size="large">
-        <n-form-item path="username">
+        <n-form-item path="account">
           <n-input
-            v-model:value="form.username"
-            placeholder="用户名"
+            v-model:value="form.account"
+            placeholder="账号"
             clearable
             :input-props="{ autocomplete: 'username' }"
           >
@@ -131,6 +125,28 @@ function extractBizMessage(err: unknown): string {
             <template #prefix><n-icon :component="LockClosed" /></template>
           </n-input>
         </n-form-item>
+        <n-form-item path="captchaCode">
+          <div class="flex w-full gap-2">
+            <n-input
+              v-model:value="form.captchaCode"
+              placeholder="验证码"
+              maxlength="4"
+              class="flex-1"
+              @keyup.enter="handleLogin"
+            >
+              <template #prefix><n-icon :component="ImageOutline" /></template>
+            </n-input>
+            <n-image
+              v-if="captcha"
+              :src="captcha.imageBase64"
+              alt="验证码"
+              preview-disabled
+              class="w-24 h-10 cursor-pointer shrink-0 rounded"
+              object-fit="cover"
+              @click="loadCaptcha"
+            />
+          </div>
+        </n-form-item>
         <n-form-item>
           <n-checkbox v-model:checked="form.rememberMe">7 天内免登录</n-checkbox>
         </n-form-item>
@@ -145,37 +161,5 @@ function extractBizMessage(err: unknown): string {
         </n-button>
       </n-form>
     </div>
-    <captcha-modal :show="showCaptcha" @success="onCaptchaSuccess" @close="showCaptcha = false" />
   </div>
 </template>
-
-<style scoped>
-.login-page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-.login-card {
-  width: 420px;
-  padding: 40px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-}
-.login-title {
-  text-align: center;
-  margin-bottom: 24px;
-}
-.login-title h1 {
-  margin: 0;
-  font-size: 28px;
-  color: #1f2937;
-}
-.login-title p {
-  margin: 6px 0 0;
-  font-size: 13px;
-  color: #6b7280;
-}
-</style>

@@ -1,22 +1,15 @@
 export interface LoginDTO {
-  username: string
+  account: string
   password: string
-  checkToken?: string
+  captchaKey: string
+  captchaCode: string
   rememberMe?: boolean
 }
 
-export interface SmsSendDTO {
-  phone: string
-  checkToken: string
-}
-
-export interface SmsLoginDTO {
-  phone: string
-  code: string
-}
-
-export interface CaptchaCheckResult {
-  checkToken: string
+export interface RegisterDTO {
+  account: string
+  password: string
+  confirmPassword: string
 }
 
 export interface LoginVO {
@@ -33,15 +26,8 @@ export interface LoginVO {
 }
 
 export interface CaptchaVO {
-  captchaId: string
-  id: string
-  type: string
-  backgroundImage: string
-  templateImage: string
-  backgroundImageWidth?: number
-  backgroundImageHeight?: number
-  templateImageWidth?: number
-  templateImageHeight?: number
+  captchaKey: string
+  imageBase64: string
 }
 
 export interface UserInfoVO {

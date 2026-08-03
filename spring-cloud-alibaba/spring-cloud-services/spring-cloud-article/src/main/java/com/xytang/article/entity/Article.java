@@ -30,6 +30,7 @@ public class Article implements Serializable {
     private Long authorId;
     private String slug;
     private String coverImage;
+    private Long columnId;
     private Long views;
     private Long likes;
     private Long favorites;

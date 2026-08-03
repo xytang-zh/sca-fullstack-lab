@@ -1,29 +1,20 @@
 package com.xytang.auth.service;
 
-import cloud.tianai.captcha.validator.common.model.dto.ImageCaptchaTrack;
 import com.xytang.auth.vo.CaptchaVO;
 
 /**
- * 验证码服务：生成行为滑块验证码，轨迹校验后签发一次性 checkToken（登录使用）
+ * 文字图形验证码服务：生成图片验证码，校验答案（忽略大小写、一次性消费）。
  */
 public interface CaptchaService {
 
     CaptchaVO generate();
 
     /**
-     * 校验滑块轨迹，通过则签发一次性 checkToken（短 TTL，登录时消费）。
+     * 校验并消费验证码答案。
      *
-     * @param captchaId 验证码 ID
-     * @param track     用户滑动轨迹
-     * @return checkToken；校验失败返回 null
+     * @param captchaKey 验证码 Key
+     * @param code       用户输入的答案
+     * @return 校验通过 true；key 不存在、已消费或答案错误 false
      */
-    String check(String captchaId, ImageCaptchaTrack track);
-
-    /**
-     * 校验并消费一次性 checkToken。
-     *
-     * @param checkToken 登录携带的凭据
-     * @return 有效 true；不存在或已消费 false
-     */
-    boolean verifyCheckToken(String checkToken);
+    boolean verify(String captchaKey, String code);
 }

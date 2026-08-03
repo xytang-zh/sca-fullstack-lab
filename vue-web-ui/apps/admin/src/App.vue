@@ -12,6 +12,7 @@ import {
   useLoadingBar
 } from 'naive-ui'
 import { registerMessageHandler } from '@sca/api'
+import { themeOverrides } from '@sca/ui'
 
 const GlobalMessageBridge = defineComponent({
   name: 'GlobalMessageBridge',
@@ -32,7 +33,7 @@ const GlobalMessageBridge = defineComponent({
 </script>
 
 <template>
-  <n-config-provider :locale="zhCN" :date-locale="dateZhCN">
+  <n-config-provider :locale="zhCN" :date-locale="dateZhCN" :theme-overrides="themeOverrides">
     <n-loading-bar-provider>
       <n-message-provider>
         <n-dialog-provider>

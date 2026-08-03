@@ -3,6 +3,7 @@ package com.xytang.article.service;
 import com.xytang.article.dto.ArticleCreateDTO;
 import com.xytang.article.dto.ArticlePageQuery;
 import com.xytang.article.vo.ArticleDetailVO;
+import com.xytang.article.vo.ArticleStatsVO;
 import com.xytang.article.vo.ArticleVO;
 import com.xytang.common.core.response.PageVO;
 
@@ -28,13 +29,104 @@ public interface ArticleService {
     ArticleDetailVO detail(Long id);
 
     /**
-     * 发布文章（需登录）：MVP 直接置为已发布，审核流程由后续变更承接。
+     * 发布文章（需登录）。
      *
-     * @param dto      文章内容
+     * @param dto      文章内容（含状态：草稿/发布）
      * @param authorId 作者（当前登录用户）
      * @return 列表项 VO
      */
     ArticleVO create(ArticleCreateDTO dto, Long authorId);
+
+    /**
+     * 更新文章（仅作者）。
+     *
+     * @param dto       文章内容
+     * @param articleId 文章 ID
+     * @param userId    当前登录用户
+     * @return 更新后的列表项 VO
+     */
+    ArticleVO update(ArticleCreateDTO dto, Long articleId, Long userId);
+
+    /**
+     * 我的已发布文章（登录用户，按用户隔离）。
+     *
+     * @param userId   当前登录用户
+     * @param pageNum  页码
+     * @param pageSize 每页条数
+     * @return 分页结果
+     */
+    PageVO<ArticleVO> pageMyArticles(Long userId, int pageNum, int pageSize);
+
+    /**
+     * 我的草稿（登录用户，按用户隔离）。
+     *
+     * @param userId   当前登录用户
+     * @param pageNum  页码
+     * @param pageSize 每页条数
+     * @return 分页结果
+     */
+    PageVO<ArticleVO> pageMyDrafts(Long userId, int pageNum, int pageSize);
+
+    /**
+     * 我点赞的文章（登录用户，按用户隔离）。
+     *
+     * @param userId   当前登录用户
+     * @param pageNum  页码
+     * @param pageSize 每页条数
+     * @return 分页结果
+     */
+    PageVO<ArticleVO> pageMyLikes(Long userId, int pageNum, int pageSize);
+
+    /**
+     * 我收藏的文章（登录用户，按用户隔离）。
+     *
+     * @param userId   当前登录用户
+     * @param pageNum  页码
+     * @param pageSize 每页条数
+     * @return 分页结果
+     */
+    PageVO<ArticleVO> pageMyFavorites(Long userId, int pageNum, int pageSize);
+
+    /**
+     * 删除文章（仅作者，软删除）。
+     *
+     * @param articleId 文章 ID
+     * @param userId    当前登录用户
+     */
+    void delete(Long articleId, Long userId);
+
+    /**
+     * 获取文章用于编辑（仅作者，含草稿/待审核状态）。
+     *
+     * @param articleId 文章 ID
+     * @param userId    当前登录用户
+     * @return 编辑用详情
+     */
+    ArticleDetailVO getForEdit(Long articleId, Long userId);
+
+    /**
+     * 文章统计（管理员）。
+     *
+     * @return 统计 VO
+     */
+    ArticleStatsVO stats();
+
+    /**
+     * 待审核文章分页（管理员）。
+     *
+     * @param pageNum  页码
+     * @param pageSize 每页条数
+     * @return 分页结果
+     */
+    PageVO<ArticleVO> pagePending(int pageNum, int pageSize);
+
+    /**
+     * 审核文章（管理员，3=通过 4=驳回）。
+     *
+     * @param articleId 文章 ID
+     * @param status    审核结果
+     */
+    void audit(Long articleId, Integer status);
 
     /**
      * 点赞/取消（幂等）：第一次点赞返回 true，再次执行取消返回 false。
