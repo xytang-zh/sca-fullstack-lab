@@ -61,11 +61,26 @@
 - **WHEN** 对照变更清单检查仓库目录与聚合 POM
 - **THEN** 新增的 2 个服务存在且已纳入聚合，删除的 3 个服务/1 个子模块/1 个 Starter 不在任何聚合 POM 中，portal/search/system 职责按上述边界调整，无清单外的服务被删除
 
-### Requirement: 前后端结构对应
+### Requirement: 前端根级单应用结构
 
-前端 `vue-web-ui` SHALL 与后端服务结构保持对应关系，门户类功能在 `apps/portal`、管理类功能在 `apps/admin`，共享代码在 `packages/*`；若博客域需要独立前端应用，SHALL 在变更清单中显式声明。
+前端 `vue-web-ui` SHALL 为单一根级应用：应用代码位于 `vue-web-ui/src`，根 `package.json` 即为应用本体（包名 `@sca/web`），dev 端口 SHALL 为 5173；`vue-web-ui/apps` 目录 SHALL 被删除，不再存在 `apps/portal` 与 `apps/admin`；共享代码 SHALL 保留在 `packages/*`（api/types/utils/ui/uno-preset）。
 
-#### Scenario: 前端应用映射
+#### Scenario: 应用代码位于根级 src
 
-- **WHEN** 查看 `vue-web-ui/apps/` 目录与各应用路由
-- **THEN** 每个应用的功能域与后端服务职责一一对应，无功能域悬挂（未映射到任何后端服务）
+- **WHEN** 查看 `vue-web-ui/` 目录结构
+- **THEN** 存在 `src/`（含 main.ts、App.vue、router、store、views、layouts、components、api 等）与 `packages/`，不存在 `apps/` 目录
+
+#### Scenario: 根 package.json 为应用本体
+
+- **WHEN** 查看 `vue-web-ui/package.json`
+- **THEN** `name` 为 `@sca/web`，包含 `dev/build/typecheck/lint` 等应用脚本，并声明 `packages/*` 为 workspace 依赖
+
+#### Scenario: dev 端口为 5173
+
+- **WHEN** 运行 `pnpm dev`
+- **THEN** 应用在 `http://localhost:5173` 启动，网关 CORS 白名单包含该端口
+
+#### Scenario: 公共包保留
+
+- **WHEN** 查看 `vue-web-ui/packages/`
+- **THEN** `api`、`types`、`utils`、`ui`、`uno-preset` 等公共包保留，且应用通过 `@sca/*` 引用它们

@@ -4,7 +4,7 @@
 
 ## 定位
 
-`@sca/ui`：Naive UI 二次封装组件库，被 apps/admin、apps/portal 复用。
+`@sca/ui`：Naive UI 二次封装组件库，被根级 src 应用复用。
 
 ## 核心组件
 

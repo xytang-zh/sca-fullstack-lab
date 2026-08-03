@@ -8,10 +8,9 @@
 
 ## 1. 项目定位
 
-`vue-web-ui` 是 `sca-fullstack-lab` 项目的 **前端 pnpm Monorepo**，包含 2 个独立部署的 Vue 3 应用 + 5 个共享包：
+`vue-web-ui` 是 `sca-fullstack-lab` 项目的 **前端 pnpm Monorepo**，包含 1 个根级 Vue 3 应用 + 5 个共享包：
 
-- 一体化管理平台（`apps/admin`）— 管理员主入口（含博客审核/用户管理/统计），对接 Spring Cloud Gateway
-- 公开门户（`apps/portal`）— 博客前台 + SEO/GEO 友好的对外内容站，Vite SSG 静态生成
+- 根级应用（`src/`，包名 `@sca/web`）— 单一应用，承载公开博客（知乎风格顶栏/文章列表/详情）+ 登录/注册（二合一卡片）+ 登录后 dashboard 用户中心（角色菜单）+ 管理员管理页，dev 端口 5173
 - 公共包（`packages/*`）— UI 二次封装、统一 API、工具函数、TS 类型、UnoCSS 预设
 
 **包管理器**：pnpm 9+（强制，**禁止**使用 npm 或 yarn）
@@ -24,105 +23,40 @@
 
 ```
 vue-web-ui/
-├── package.json                 monorepo 根 package
-├── pnpm-workspace.yaml          workspace 声明
-├── tsconfig.base.json           共享 TS 配置
+├── package.json                 应用本体（name=@sca/web）+ workspace 依赖
+├── pnpm-workspace.yaml          workspace 声明（packages/*）
+├── vite.config.ts               应用构建配置（dev 端口 5173）
+├── tsconfig.json / tsconfig.base.json
+├── index.html
 ├── .npmrc                       pnpm 配置
 ├── .eslintrc.cjs                ESLint 配置
 ├── .prettierrc                  Prettier 配置
-├── apps/                        子应用
-│   ├── admin/                   一体化管理平台
-│   │   ├── package.json
-│   │   ├── vite.config.ts
-│   │   ├── tsconfig.json
-│   │   ├── index.html
-│   │   └── src/
-│   │       ├── main.ts
-│   │       ├── App.vue
-│   │       ├── api/             接口调用（按服务分子目录）
-│   │       │   ├── system/      system-service 接口
-│   │       │   ├── auth/        auth-center 接口
-│   │       │   ├── monitor/     monitor 接口
-│   │       │   ├── article/     article 博客文章接口 ★
-│   │       │   ├── comment/     comment 博客评论接口 ★
-│   │       │   ├── message/     message 接口
-│   │       │   ├── file/        file 接口
-│   │       │   ├── search/      search 接口
-│   │       │   └── request.ts   axios 实例 + 拦截器
-│   │       ├── components/      通用组件
-│   │       │   ├── business/    业务通用（用户选择器）
-│   │       │   └── common/      基础通用（表格、表单、图标）
-│   │       ├── layouts/         布局
-│   │       │   ├── default/    默认布局（含侧栏 + 顶栏 + 多 Tab）
-│   │       │   └── blank/       空白布局（登录页用）
-│   │       ├── views/           页面
-│   │       │   ├── login/
-│   │       │   ├── system/      系统管理（用户/角色/菜单，RBAC）
-│   │       │   ├── blog/        博客管理（文章审核、评论审核、统计）★
-│   │       │   ├── monitor/     服务器监控大盘
-│   │       │   ├── message/     消息中心（站内信、在线客服）
-│   │       │   ├── file/        文件管理（上传、预览）
-│   │       │   ├── log/         日志查询
-│   │       │   ├── job/         定时任务
-│   │       │   └── error/       403 / 404 / 500
-│   │       ├── router/          路由
-│   │       │   ├── index.ts
-│   │       │   ├── routes.ts    静态路由
-│   │       │   └── permission.ts  动态路由守卫
-│   │       ├── store/           Pinia
-│   │       │   ├── user.ts      用户信息 + Token
-│   │       │   ├── permission.ts  动态路由 + 菜单
-│   │       │   ├── app.ts       全局 UI 状态（侧栏折叠、主题）
-│   │       │   ├── tags.ts      多 Tab
-│   │       │   └── dict.ts      字典缓存
-│   │       ├── hooks/           组合式函数
-│   │       │   ├── useTable.ts  表格通用逻辑
-│   │       │   ├── useForm.ts   表单通用逻辑
-│   │       │   ├── useDict.ts   字典加载
-│   │       │   └── usePermission.ts  按钮权限
-│   │       ├── utils/           工具函数
-│   │       ├── types/           TS 类型声明
-│   │       ├── styles/          全局样式
-│   │       │   ├── index.scss
-│   │       │   └── variables.scss
-│   │       ├── assets/          静态资源
-│   │       └── uno.config.ts   应用级 UnoCSS 配置
-│   └── portal/                  公开门户（SSG）
-│       └── src/
-│           ├── pages/           页面（about、blog、news、product）
-│           ├── components/
-│           └── ...
+├── src/                         根级应用（唯一应用，不再有 apps/）
+│   ├── main.ts
+│   ├── App.vue
+│   ├── api/                     API 封装（经 @sca/api 复用）
+│   ├── components/              通用组件（NavBar、ArticleMarkdown、CommentPanel、TocNav）
+│   ├── layouts/                 布局（PublicLayout 知乎顶栏 / DashboardLayout 侧栏 / BlankLayout）
+│   ├── views/                   页面
+│   │   ├── Home.vue             博客首页（知乎风格顶栏 + 文章列表）
+│   │   ├── ArticleDetail.vue    文章详情
+│   │   ├── Search.vue           搜索占位
+│   │   ├── Login.vue            登录/注册二合一卡片（渐变背景 + 居中卡片）
+│   │   └── dashboard/           用户中心 + 管理页（profile/password/articles/drafts/write/columns/favorites/likes/answers/follows/stats/audit/users）
+│   ├── router/                  index.ts（路由 + 守卫）
+│   ├── store/                   Pinia（user.ts、permission.ts 角色菜单）
+│   ├── hooks/                   组合式函数
+│   ├── auto-imports.d.ts / components.d.ts
+│   └── uno.css
 └── packages/                    共享包
     ├── ui/                      Naive UI 二次封装
-    │   └── src/
-    │       ├── BasicTable/      基础表格（封装 NDataTable）
-    │       ├── BasicForm/       基础表单
-    │       ├── BasicModal/      基础弹窗
-    │       ├── PageContainer/   页面容器
-    │       └── index.ts
-    ├── api/                     统一 API 调用（被各 app 复用）
-    │   └── src/
-    │       ├── types.ts         API 类型
-    │       ├── request.ts      axios 实例
-    │       └── services/       各服务的 API 模块
+    ├── api/                     统一 API 调用（被应用复用）
     ├── utils/                   工具函数
-    │   └── src/
-    │       ├── auth.ts          Token 管理
-    │       ├── date.ts          日期格式化
-    │       ├── validator.ts     表单校验器
-    │       ├── tree.ts          树形数据处理
-    │       └── download.ts      文件下载
     ├── types/                   全局 TS 类型
-    │   └── src/
-    │       ├── api.d.ts         R<T>、PageVO<T>
-    │       ├── system.d.ts      sys_user、sys_role 等
-    │       └── blog.d.ts        博客域类型（文章/评论/互动）★
     └── uno-preset/              UnoCSS 预设（计划中）
-        └── src/
-            └── index.ts         自定义预设配置
 ```
 
-> ⚠️ `apps/flow-web`（工作流子系统）已随后端 workflow 服务删除，不再规划。`packages/uno-preset`（UnoCSS 预设）为计划中，落地时补充。
+> ⚠️ `apps/` 目录已删除（原 `apps/admin`、`apps/portal` 已合并为根级 `src/` 单应用）。`packages/uno-preset`（UnoCSS 预设）为计划中，落地时补充。
 
 ---
 
@@ -130,31 +64,39 @@ vue-web-ui/
 
 ```yaml
 packages:
-  - 'apps/*'
   - 'packages/*'
 ```
 
 ---
 
-## 4. 根 package.json
+## 4. 根 package.json（应用本体）
 
 ```json
 {
-  "name": "@sca/vue-web-ui",
+  "name": "@sca/web",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@9.0.0",
   "scripts": {
-    "dev:admin": "pnpm --filter @sca/admin dev",
-    "dev:portal": "pnpm --filter @sca/portal dev",
-    "build:admin": "pnpm --filter @sca/admin build",
-    "build:portal": "pnpm --filter @sca/portal build",
-    "build": "pnpm -r build",
-    "lint": "pnpm -r lint",
-    "lint:fix": "pnpm -r lint:fix",
-    "typecheck": "pnpm -r typecheck",
-    "test": "vitest"
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json",
+    "lint": "eslint . --ext .vue,.ts,.tsx --fix"
+  },
+  "dependencies": {
+    "@sca/api": "workspace:*",
+    "@sca/types": "workspace:*",
+    "@sca/ui": "workspace:*",
+    "@sca/utils": "workspace:*",
+    "vue": "^3.5.0",
+    "vue-router": "^4.4.0",
+    "pinia": "^2.2.0",
+    "naive-ui": "^2.39.0",
+    "@vicons/ionicons5": "^0.12.0",
+    "axios": "^1.7.0",
+    "@vueuse/core": "^11.0.0"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.0.0",

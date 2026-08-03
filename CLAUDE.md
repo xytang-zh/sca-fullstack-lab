@@ -17,7 +17,7 @@
 |------|-----|
 | 顶层 groupId | `com.xytang` |
 | 后端聚合 artifactId | `spring-cloud-alibaba` |
-| 前端 Monorepo 包名 | `@sca/vue-web-ui` |
+| 前端应用包名 | `@sca/web` |
 | 当前 version | `1.0-SNAPSHOT` |
 | JDK 版本 | 21（兼容 17+，建议保持 21） |
 | Node 版本 | 20+ |
@@ -184,8 +184,7 @@ sca-fullstack-lab/
 
 | 应用 | dev 端口 |
 |------|---------|
-| apps/admin | 5173 |
-| apps/portal | 5174 |
+| 根级应用（`vue-web-ui/src`，@sca/web） | 5173 |
 
 ### 5.3 基础设施（Docker Compose）
 
@@ -225,8 +224,7 @@ sca-fullstack-lab/
 详见 [`vue-web-ui/CLAUDE.md`](./vue-web-ui/CLAUDE.md)。
 
 包含：
-- `apps/admin` — 一体化管理平台（含博客审核/用户管理/统计）
-- `apps/portal` — 公开门户（博客前台）
+- `src/` — 根级单一应用（包名 `@sca/web`，dev 端口 5173），承载公开博客 + 登录/注册 + dashboard 用户中心 + 管理页
 - `packages/ui` — UI 二次封装
 - `packages/api` — 统一 API 调用
 - `packages/utils` — 工具函数

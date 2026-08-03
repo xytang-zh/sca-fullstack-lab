@@ -4,7 +4,7 @@
 
 ## 定位
 
-`@sca/uno-preset`：项目自定义 UnoCSS 预设，统一主题变量（颜色、断点、间距），被 apps/admin、apps/portal 复用。
+`@sca/uno-preset`：项目自定义 UnoCSS 预设，统一主题变量（颜色、断点、间距），被根级 src 应用复用。
 
 ## 预设内容（计划）
 
