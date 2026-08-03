@@ -15,7 +15,7 @@
     <packaging>pom</packaging>
 
     <name>spring-cloud-common</name>
-    <description>SCA 公共能力下沉层（16 个子模块）</description>
+    <description>SCA 公共能力下沉层（15 个子模块）</description>
 
     <modules>
         <module>spring-cloud-common-core</module>
@@ -27,7 +27,6 @@
         <module>spring-cloud-common-mq</module>
         <module>spring-cloud-common-mongo</module>
         <module>spring-cloud-common-es</module>
-        <module>spring-cloud-common-ai</module>
         <module>spring-cloud-common-satoken</module>
         <module>spring-cloud-common-security</module>
         <module>spring-cloud-common-log</module>

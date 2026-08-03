@@ -15,10 +15,9 @@
     <packaging>pom</packaging>
 
     <name>spring-cloud-starters</name>
-    <description>项目自定义 Starter 聚合（SSO Client / Monitor Agent）</description>
+    <description>项目自定义 Starter 聚合（Monitor Agent）</description>
 
     <modules>
-        <module>spring-cloud-starter-sso-client</module>
         <module>spring-cloud-starter-monitor-agent</module>
     </modules>
 

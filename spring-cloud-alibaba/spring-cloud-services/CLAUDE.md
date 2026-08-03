@@ -7,35 +7,34 @@
 
 ## 1. 聚合模块定位
 
-`spring-cloud-services` 是 11 个业务/基础设施微服务的 **Maven 聚合 POM**，本身不含代码，只通过 `<modules>` 声明子服务。
+`spring-cloud-services` 是 10 个业务/基础设施微服务的 **Maven 聚合 POM**，本身不含代码，只通过 `<modules>` 声明子服务。其中 `spring-cloud-article`、`spring-cloud-comment` 为按个人博客需求文档新增的博客域服务，其余 8 个为保留服务。
 
 | 维度 | 值 |
 |------|-----|
 | 父 POM | `com.xytang:spring-cloud-alibaba:1.0-SNAPSHOT` |
 | 当前 artifactId | `spring-cloud-services` |
 | packaging | `pom` |
-| 子服务数量 | 11 |
+| 子服务数量 | 10 |
 | 顶级包前缀 | `com.xytang.{服务名}` |
 
 ---
 
-## 2. 子服务清单（11 个）
+## 2. 子服务清单（10 个）
 
 | # | 服务 | 端口 | 类型 | 顶级包 | 启动类                              |
 |---|------|------|------|--------|----------------------------------|
 | 1 | `spring-cloud-system` | 8082 | 业务 | `com.xytang.system` | `SpringCloudSystemApplication`   |
 | 2 | `spring-cloud-monitor` | 8083 | 业务 | `com.xytang.monitor` | `SpringCloudMonitorApplication`  |
-| 3 | `spring-cloud-workflow` | 8084 | 业务 | `com.xytang.workflow` | `SpringCloudWorkflowApplication` |
-| 4 | `spring-cloud-ai` | 8085 | 业务 | `com.xytang.ai` | `SpringCloudAiApplication`       |
-| 5 | `spring-cloud-message` | 8086 | 基础设施 | `com.xytang.message` | `SpringCloudMessageApplication`  |
-| 6 | `spring-cloud-search` | 8087 | 基础设施 | `com.xytang.search` | `SpringCloudSearchApplication`   |
-| 7 | `spring-cloud-file` | 8088 | 基础设施 | `com.xytang.file` | `SpringCloudFileApplication`     |
-| 8 | `spring-cloud-log` | 8089 | 基础设施 | `com.xytang.log` | `SpringCloudLogApplication`      |
-| 9 | `spring-cloud-portal` | 8090 | 业务 | `com.xytang.portal` | `SpringCloudPortalApplication`   |
-| 10 | `spring-cloud-job` | 8091 | 基础设施 | `com.xytang.job` | `SpringCloudJobApplication`      |
-| 11 | `spring-cloud-report` | 8092 | 业务 | `com.xytang.report` | `SpringCloudReportApplication`   |
+| 3 | `spring-cloud-message` | 8086 | 基础设施 | `com.xytang.message` | `SpringCloudMessageApplication`  |
+| 4 | `spring-cloud-search` | 8087 | 基础设施 | `com.xytang.search` | `SpringCloudSearchApplication`   |
+| 5 | `spring-cloud-file` | 8088 | 基础设施 | `com.xytang.file` | `SpringCloudFileApplication`     |
+| 6 | `spring-cloud-log` | 8089 | 基础设施 | `com.xytang.log` | `SpringCloudLogApplication`      |
+| 7 | `spring-cloud-portal` | 8090 | 业务 | `com.xytang.portal` | `SpringCloudPortalApplication`   |
+| 8 | `spring-cloud-job` | 8091 | 基础设施 | `com.xytang.job` | `SpringCloudJobApplication`      |
+| 9 | `spring-cloud-article` | 8093 | 业务 ★新增 | `com.xytang.article` | `SpringCloudArticleApplication`  |
+| 10 | `spring-cloud-comment` | 8094 | 业务 ★新增 | `com.xytang.comment` | `SpringCloudCommentApplication`  |
 
-> Dubbo 端口 20882 起，每服务 +1。XXL-JOB 执行器端口 10000 起，每服务 +1。
+> Dubbo 端口：system 20882 起每服务 +1；article 20893、comment 20894。XXL-JOB 执行器端口 10000 起，article 10011、comment 10012。
 
 ---
 
@@ -94,21 +93,18 @@ spring-cloud-{服务名}/
 
 #### 4.1.1 服务定位
 
-项目"地基"——所有系统级配置、权限、字典都在这里。其他服务通过 Dubbo 调它的接口。
+系统管理服务，按个人博客需求文档已**裁剪为 RBAC 核心**：用户/角色/菜单/权限，为博客 USER/AUTHOR/ADMIN 三角色提供数据支撑。其他服务通过 Dubbo 调它的接口。
 
-#### 4.1.2 核心功能
+> ⚠️ 部门/岗位/字典/参数/通知等企业级模块**已移出职责边界**，不再作为本服务核心功能（代码裁剪由后续变更承接）。
+
+#### 4.1.2 核心功能（RBAC 核心）
 
 | 模块 | 功能点 |
 |------|--------|
-| 用户模块 | 用户 CRUD、重置密码、启用禁用、导入导出 Excel、分配角色 |
-| 角色模块 | 角色 CRUD、菜单分配、数据权限（部门级）、岗位分配 |
+| 用户模块 | 用户 CRUD、重置密码、启用禁用、分配角色（USER/AUTHOR/ADMIN） |
+| 角色模块 | 角色 CRUD、菜单分配、权限标识 |
 | 菜单模块 | 菜单树 CRUD、按钮权限标识、路由元数据、缓存策略 |
-| 部门模块 | 部门树 CRUD、负责人、数据权限范围 |
-| 岗位模块 | 岗位 CRUD、用户-岗位关联 |
-| 字典模块 | 字典类型 CRUD、字典数据 CRUD |
-| 参数模块 | 参数 CRUD、参数缓存、与 Nacos 配置镜像 |
-| 通知模块 | 通知 CRUD、已读未读 |
-| 数据权限 | MyBatis-Plus 拦截器 + `@DataScope` 注解 |
+| 权限模块 | 权限标识管理、角色-权限关联、数据权限（MyBatis-Plus 拦截器 + `@DataScope`） |
 
 #### 4.1.3 技术栈
 
@@ -192,103 +188,141 @@ sys_dict_type, sys_dict_data, sys_config, sys_notice, sys_notice_read
 
 ---
 
-### 4.3 spring-cloud-workflow（工作流服务）
+### 4.3 spring-cloud-article（博客文章服务）★新增
 
 #### 4.3.1 服务定位
 
-基于 Warm-Flow 实现 4 类典型审批流程。
+博客内容域核心服务：文章 CRUD、分类/标签、Markdown 渲染、点赞/收藏、阅读量。
 
 #### 4.3.2 核心功能
 
 | 模块 | 功能 |
 |------|------|
-| 流程定义模块 | 导入 JSON、发布、停用、版本管理 |
-| 流程实例模块 | 发起、撤销、催办 |
-| 任务模块 | 待办、已办、审批、驳回、转办、委托、加签、减签 |
-| 历史模块 | 实例历史、节点流转记录 |
-| 请假业务 | 发起表单 |
-| 报销业务 | 发起表单 |
-| 合同业务 | 起草、法务审核、领导审批、归档 |
-| 采购业务 | 申请、采购员、出纳、归档 |
+| 文章模块 | 发布/编辑/删除、草稿/待审核/已发布/已驳回状态流转、slug 唯一标识、置顶、封面图 |
+| 分类模块 | 分类 CRUD、排序、URL 别名 |
+| 标签模块 | 标签 CRUD、URL 别名、文章-标签关联 |
+| Markdown 模块 | Markdown→HTML 渲染（commonmark-java）、XSS 过滤（Jsoup） |
+| 互动模块 | 点赞/取消（幂等）、收藏/取消、阅读量计数 |
+| 同步模块 | 发布后经 Dubbo 同步 ES 索引（search 服务），失败记本地消息表由 job 补偿 |
 
 #### 4.3.3 技术栈
 
-- Warm-Flow 1.8.8（`warm-flow-mybatis-plus-sb3-starter`，**父 POM 未声明**，落地时补充）
-- MyBatis-Plus（业务表）
-- Dubbo（调用 aurora-system 查用户/部门）
-- RabbitMQ（任务待办事件 → aurora-message 推送）
-- MinIO（审批附件）
+- MyBatis-Plus 3.5.9（文章/分类/标签/点赞收藏表）
+- commonmark-java（计划，**父 POM 未声明**，落地时补充）
+- Jsoup 1.17.2（XSS 过滤）
+- Redis / Redisson 4.0.0（点赞去重 Set、阅读量计数、多级缓存）
+- Dubbo 3.3（暴露 `ArticleService`、调用 search 同步索引）
+- Sa-Token 1.44.0（`@SaCheckLogin` / 角色校验）
 
-#### 4.3.4 关键接口
+#### 4.3.4 关键接口（RESTful 草案）
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| POST | `/workflow/definitions` | 导入流程定义 JSON |
-| GET | `/workflow/definitions` | 流程定义分页 |
-| POST | `/workflow/definitions/{id}/publish` | 发布流程 |
-| POST | `/workflow/instances` | 发起流程实例 |
-| GET | `/workflow/tasks/todo` | 我的待办 |
-| GET | `/workflow/tasks/done` | 我的已办 |
-| POST | `/workflow/tasks/{id}/approve` | 审批通过 |
-| POST | `/workflow/tasks/{id}/reject` | 驳回 |
-| POST | `/workflow/tasks/{id}/transfer` | 转办 |
-| POST | `/workflow/tasks/{id}/delegate` | 委托 |
-| POST | `/workflow/leaves` | 发起请假 |
-| POST | `/workflow/expenses` | 发起报销 |
+| GET | `/articles` | 文章分页（?page=&size=&category=&tag=） |
+| GET | `/articles/{id}` | 文章详情（Markdown 原文 + HTML） |
+| POST | `/articles` | 创建文章（AUTHOR/ADMIN 直接发布，USER 进 AUDIT） |
+| PUT | `/articles/{id}` | 更新文章 |
+| DELETE | `/articles/{id}` | 软删除 |
+| PATCH | `/articles/{id}/status` | 状态流转（草稿→发布→审核） |
+| POST | `/articles/{id}/like` | 点赞/取消（幂等） |
+| POST | `/articles/{id}/favorite` | 收藏/取消（幂等） |
+| GET | `/categories` | 分类列表 |
+| GET | `/tags` | 标签列表 |
 
 #### 4.3.5 数据模型
 
-- Warm-Flow 自带 7 张表：`flow_definition`、`flow_node`、`flow_skip`、`flow_instance`、`flow_task`、`flow_his_task`、`flow_user`
-- 业务表：`biz_leave`、`biz_expense`、`biz_contract`、`biz_purchase`
+```
+t_article, t_category, t_tag, t_article_tag,
+t_like_record, t_favorite, t_sync_failed_log（最终一致性补偿）
+```
 
 ---
 
-### 4.4 spring-cloud-ai（AI 助手服务）
+### 4.4 spring-cloud-comment（博客评论服务）★新增
 
 #### 4.4.1 服务定位
 
-基于 Spring AI + RAG 实现企业知识库问答 + 对话历史 + SSE 流式响应。
+博客内容域评论服务：评论发表、二级嵌套回复、评论审核、敏感词过滤。
 
 #### 4.4.2 核心功能
 
 | 模块 | 功能 |
 |------|------|
-| 知识库模块 | 知识库 CRUD、成员权限 |
-| 文档模块 | 上传、分块、向量化、状态管理 |
-| 对话模块 | 会话 CRUD、标题、关联知识库 |
-| 消息模块 | 发消息（流式返回）、消息列表、删除 |
-| 模型模块 | 模型列表、默认模型、按知识库配置 |
-| 上下文模块 | ChatMemoryAdvisor，多轮对话上下文 |
+| 评论模块 | 发表评论、二级嵌套回复、被回复者记录（@ 通知） |
+| 审核模块 | 状态机 PENDING→APPROVED/REJECTED/DELETED，管理员审核 |
+| 敏感词模块 | 发表时敏感词过滤（sensitive-word），过滤后存储 |
+| 安全模块 | XSS 过滤（Jsoup）、IP/UA 记录（反垃圾） |
+| 互动模块 | 评论点赞（幂等） |
 
 #### 4.4.3 技术栈
 
-- Spring AI 1.1.x（`spring-ai-openai-starter` 或 `spring-ai-alibaba`，**父 POM 未声明**，落地时补充）
-- Spring AI Advisor（`QuestionAnswerAdvisor`、`VectorStoreChatMemoryAdvisor`）
-- pgvector（PG 16 + pgvector 0.8）
-- MongoDB（对话历史）
-- MinIO（原文件）
-- RabbitMQ（文档上传事件 → 异步分块向量化）
-- Caffeine（模型配置缓存）
+- MyBatis-Plus 3.5.9（评论表）
+- sensitive-word（计划，**父 POM 未声明**，落地时补充）
+- Jsoup 1.17.2（XSS 过滤）
+- Dubbo 3.3（暴露 `CommentService`、调用 article 校验文章存在）
+- Sa-Token 1.44.0（`@SaCheckLogin`）
+- RabbitMQ（可选：评论创建事件 → message 服务站内通知）
 
-#### 4.4.4 关键接口
+#### 4.4.4 关键接口（RESTful 草案）
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| POST | `/ai/knowledge-bases` | 创建知识库 |
-| GET | `/ai/knowledge-bases` | 知识库分页 |
-| POST | `/ai/documents` | 上传文档（异步处理） |
-| GET | `/ai/documents/{id}/status` | 查文档处理状态 |
-| POST | `/ai/conversations` | 创建会话 |
-| GET | `/ai/conversations/{id}/messages` | 消息列表 |
-| POST | `/ai/chat/stream` | 流式对话（SSE） |
-| GET | `/ai/models` | 模型列表 |
-| PATCH | `/ai/models/default` | 设置默认模型 |
+| GET | `/articles/{articleId}/comments` | 评论列表（按 parent_id 分组） |
+| POST | `/articles/{articleId}/comments` | 发表评论/回复 |
+| DELETE | `/comments/{id}` | 删除（本人或管理员） |
+| POST | `/comments/{id}/like` | 评论点赞/取消（幂等） |
+| GET | `/comments/pending` | 待审核评论（管理员） |
+| POST | `/comments/{id}/audit` | 审核（APPROVED/REJECTED） |
 
 #### 4.4.5 数据模型
 
-- PostgreSQL（pgvector）：`ai_knowledge_base`、`ai_document`、`ai_document_chunk`（含 `embedding vector(1024)`）
-- MongoDB：`ai_conversation`、`ai_message`
-- MinIO：`ai-documents/{kbId}/{docId}/{fileName}`
+```
+t_comment（parent_id 一级评论、reply_to_id 被回复评论、status PENDING/APPROVED/REJECTED/DELETED）
+```
+
+---
+
+### 4.4 spring-cloud-comment（博客评论服务）★新增
+
+#### 4.4.1 服务定位
+
+博客内容域评论服务：评论发表、二级嵌套回复、评论审核、敏感词过滤。
+
+#### 4.4.2 核心功能
+
+| 模块 | 功能 |
+|------|------|
+| 评论模块 | 发表评论、二级嵌套回复、被回复者记录（@ 通知） |
+| 审核模块 | 状态机 PENDING→APPROVED/REJECTED/DELETED，管理员审核 |
+| 敏感词模块 | 发表时敏感词过滤（sensitive-word），过滤后存储 |
+| 安全模块 | XSS 过滤（Jsoup）、IP/UA 记录（反垃圾） |
+| 互动模块 | 评论点赞（幂等） |
+
+#### 4.4.3 技术栈
+
+- MyBatis-Plus 3.5.9（评论表）
+- sensitive-word（计划，**父 POM 未声明**，落地时补充）
+- Jsoup 1.17.2（XSS 过滤）
+- Dubbo 3.3（暴露 `CommentService`、调用 article 校验文章存在）
+- Sa-Token 1.44.0（`@SaCheckLogin`）
+- RabbitMQ（可选：评论创建事件 → message 服务站内通知）
+
+#### 4.4.4 关键接口（RESTful 草案）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/articles/{articleId}/comments` | 评论列表（按 parent_id 分组） |
+| POST | `/articles/{articleId}/comments` | 发表评论/回复 |
+| DELETE | `/comments/{id}` | 删除（本人或管理员） |
+| POST | `/comments/{id}/like` | 评论点赞/取消（幂等） |
+| GET | `/comments/pending` | 待审核评论（管理员） |
+| POST | `/comments/{id}/audit` | 审核（APPROVED/REJECTED） |
+
+#### 4.4.5 数据模型
+
+```
+t_comment（parent_id 一级评论、reply_to_id 被回复评论、status PENDING/APPROVED/REJECTED/DELETED）
+```
 
 ---
 
@@ -510,40 +544,6 @@ XXL-JOB 执行器，所有定时任务集中管理。
 
 ---
 
-### 4.11 spring-cloud-report（低代码报表服务）
-
-#### 4.11.1 服务定位
-
-基于 JimuReport 提供在线报表设计器、大屏、打印、导出。
-
-#### 4.11.2 核心功能
-
-| 模块 | 功能 |
-|------|------|
-| 设计器模块 | JimuReport 自带 UI，路径 `/jmreport/*` |
-| 数据源模块 | 复用 dynamic-datasource 配置 |
-| 报表模块 | 用户增长、订单统计、审批时长、AI 对话量 |
-| 大屏模块 | 综合监控大屏（多数据源混合） |
-| 导出模块 | Excel / PDF / 截图 |
-| 鉴权模块 | Sa-Token 校验 + 角色判断 |
-
-#### 4.11.3 技术栈
-
-- JimuReport 2.3.4（`jimureport-spring-boot3-starter`，**父 POM 未声明**，落地时补充）
-- JimuReport Nosql Starter（MongoDB / Redis 数据集）
-- JimuReport ECharts Starter（图表）
-- Sa-Token（鉴权集成）
-- dynamic-datasource（多数据源）
-
-#### 4.11.4 关键接口
-
-JimuReport 自带，主要路径：
-- `/jmreport/list` 报表列表
-- `/jmreport/design/{id}` 设计器
-- `/jmreport/view/{id}` 预览
-- `/jmreport/export` 导出
-
----
 
 ## 5. 服务间通信规范
 
@@ -551,10 +551,10 @@ JimuReport 自带，主要路径：
 
 | 场景 | 调用方 | 被调方 | 方法 |
 |------|--------|--------|------|
-| 用户信息查询 | workflow | system | `UserRpcService.getById` |
-| 部门树查询 | workflow | system | `DeptRpcService.tree` |
 | 文件元数据 | portal | file | `FileRpcService.getMeta` |
 | 用户角色 | monitor | system | `UserRpcService.getRoles` |
+| 文章索引同步 | article | search | `SearchRpcService.syncArticleIndex` |
+| 文章存在校验 | comment | article | `ArticleRpcService.existsById` |
 
 > Dubbo 接口定义在 `spring-cloud-common-core` 的 `rpc` 包（计划，未实现），由被调方实现 `*RpcProvider`。
 
@@ -564,12 +564,11 @@ JimuReport 自带，主要路径：
 |------|----------|--------|--------|
 | 用户注册 | `user.register` | auth | message, log |
 | 用户更新 | `user.update` | system | message, log, search |
-| 任务待办 | `task.todo` | workflow | message |
 | 告警 | `alert.trigger` | monitor | message |
-| 文档上传 | `doc.uploaded` | ai | search |
+| 评论通知 | `comment.created` | comment | message |
 | 操作日志 | `log.operation` | 所有 | log |
 | 文件上传 | `file.uploaded` | file | log |
-| 文章发布 | `article.published` | portal | search |
+| 文章发布 | `article.published` | article | search |
 
 > 所有事件**必须**继承 `BaseEvent`，**必须**用 `AbstractEventListener<T>` 消费（自动幂等）。
 
@@ -842,3 +841,22 @@ management:
 14. ❌ 业务配置硬编码（必须放 Nacos）
 15. ❌ 接口未加 `@SaCheckPermission`/`@SaCheckRole`
 16. ❌ Controller 不加 `@Tag` / `@Operation` 注解
+
+---
+
+## 11. 子服务 CLAUDE.md 索引
+
+每个子服务目录下都有独立的 `CLAUDE.md`，包含定位、核心功能、技术栈、关键接口与红线：
+
+| # | 服务 | 文档 |
+|---|------|------|
+| 1 | spring-cloud-system | [CLAUDE.md](./spring-cloud-system/CLAUDE.md) |
+| 2 | spring-cloud-monitor | [CLAUDE.md](./spring-cloud-monitor/CLAUDE.md) |
+| 3 | spring-cloud-message | [CLAUDE.md](./spring-cloud-message/CLAUDE.md) |
+| 4 | spring-cloud-search | [CLAUDE.md](./spring-cloud-search/CLAUDE.md) |
+| 5 | spring-cloud-file | [CLAUDE.md](./spring-cloud-file/CLAUDE.md) |
+| 6 | spring-cloud-log | [CLAUDE.md](./spring-cloud-log/CLAUDE.md) |
+| 7 | spring-cloud-portal | [CLAUDE.md](./spring-cloud-portal/CLAUDE.md) |
+| 8 | spring-cloud-job | [CLAUDE.md](./spring-cloud-job/CLAUDE.md) |
+| 9 | spring-cloud-article ★ | [CLAUDE.md](./spring-cloud-article/CLAUDE.md) |
+| 10 | spring-cloud-comment ★ | [CLAUDE.md](./spring-cloud-comment/CLAUDE.md) |

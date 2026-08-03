@@ -8,7 +8,7 @@
 
 ## 1. 项目定位
 
-本项目是 `sca-fullstack-lab`（企业级一体化智能管理平台）的 **后端聚合工程**，基于 **Spring Cloud Alibaba** 微服务体系，包含 1 个网关 + 1 个认证中心 + 11 个业务/基础设施服务 + 16 个公共模块 + 2 个自定义 Starter。
+本项目是 `sca-fullstack-lab`（企业级一体化智能管理平台）的 **后端聚合工程**，基于 **Spring Cloud Alibaba** 微服务体系，包含 1 个网关 + 1 个认证中心 + 10 个业务服务 + 15 个公共模块 + 1 个自定义 Starter。
 
 - **顶层 groupId**：`com.xytang`
 - **顶层 artifactId**：`spring-cloud-alibaba`
@@ -27,7 +27,7 @@ spring-cloud-alibaba/
 ├── src/                                 仓库级共享资源
 │   ├── checkstyle.xml                   Checkstyle 规则（阿里规范 + 项目红线）
 │   └── checkstyle-suppressions.xml      规则抑制
-├── spring-cloud-common/                 公共模块（16 个子模块，packaging=pom）
+├── spring-cloud-common/                 公共模块（15 个子模块，packaging=pom）
 │   ├── spring-cloud-common-core         核心工具：异常/响应/常量/枚举
 │   ├── spring-cloud-common-web          Web 通用：全局异常/Trace-Id/密码编码器
 │   ├── spring-cloud-common-redis        Redis 工具/序列化
@@ -37,7 +37,6 @@ spring-cloud-alibaba/
 │   ├── spring-cloud-common-mq           RabbitMQ 配置/事件基类
 │   ├── spring-cloud-common-mongo       MongoDB 配置（空壳）
 │   ├── spring-cloud-common-es          ElasticSearch 配置（空壳）
-│   ├── spring-cloud-common-ai           Spring AI 配置（空壳）
 │   ├── spring-cloud-common-satoken     Sa-Token 配置/StpInterface 实现
 │   ├── spring-cloud-common-security    网关鉴权过滤器
 │   ├── spring-cloud-common-log         日志切面/@OperationLog 注解
@@ -46,20 +45,18 @@ spring-cloud-alibaba/
 │   └── spring-cloud-common-netty       Netty Server/WebSocket 协议（空壳）
 ├── spring-cloud-gateway/                网关服务（端口 8080）
 ├── spring-cloud-auth/                   认证中心（端口 8081）
-├── spring-cloud-services/               业务服务聚合（11 个微服务，packaging=pom）
-│   ├── spring-cloud-system              系统管理（8082）
+├── spring-cloud-services/               业务服务聚合（10 个微服务，packaging=pom）
+│   ├── spring-cloud-system              系统管理/RBAC 核心（8082）
 │   ├── spring-cloud-monitor             服务器监控（8083）
-│   ├── spring-cloud-workflow            工作流（8084）
-│   ├── spring-cloud-ai                  AI 助手（8085）
 │   ├── spring-cloud-message             消息中心（8086）
 │   ├── spring-cloud-search              全文检索（8087）
 │   ├── spring-cloud-file                文件服务（8088）
 │   ├── spring-cloud-log                 日志服务（8089）
 │   ├── spring-cloud-portal              公开门户（8090）
 │   ├── spring-cloud-job                 定时任务执行器（8091）
-│   └── spring-cloud-report              低代码报表（8092）
+│   ├── spring-cloud-article             博客文章/互动 ★新增（8093）
+│   └── spring-cloud-comment             博客评论/审核 ★新增（8094）
 └── spring-cloud-starters/               自定义 Starter 聚合（packaging=pom）
-    ├── spring-cloud-starter-sso-client          SSO Client 自动装配
     └── spring-cloud-starter-monitor-agent       监控 Agent
 ```
 
@@ -101,17 +98,14 @@ spring-cloud-alibaba/
 
 | 技术 | 计划版本 | 用途 | 落地时机 |
 |------|---------|------|---------|
-| Spring AI | 1.1.0 | ChatClient/Advisor/VectorStore | `spring-cloud-common-ai` 落地时 |
-| pgvector | 0.8+ | RAG 向量检索 | 同上 |
-| Warm-Flow | 1.8.8 | 流程定义/审批 | `spring-cloud-workflow` 落地时 |
+| commonmark-java | 0.21.x | Markdown → HTML 渲染 | `spring-cloud-article` 落地时 |
+| sensitive-word | 0.x | 评论敏感词过滤 | `spring-cloud-comment` 落地时 |
 | XXL-JOB | 3.5.0 | 分布式调度 | `spring-cloud-job` 落地时 |
-| JimuReport | 2.3.4 | 在线报表 | `spring-cloud-report` 落地时 |
 | Nacos | 2.4+ | 注册配置中心 | 基础设施部署 |
 | Sentinel | 1.8.8+ | 限流/熔断 | Spring Cloud Alibaba 自带 |
 | Seata | 2.2+ | 分布式事务 | 同上 |
 | Dubbo | 3.3+ | 内部 RPC | 同上 |
 | MySQL | 8.4 LTS | 业务主库 | 基础设施部署 |
-| PostgreSQL | 16+ | 向量库 | 同上 |
 | 人大金仓 KingbaseES | V8 R6 | 国产化适配 | 国产化落地 |
 | 达梦 DM8 | DM8 | 国产化适配 | 国产化落地 |
 | MinIO | latest stable | 对象存储 | 基础设施部署 |
@@ -120,7 +114,7 @@ spring-cloud-alibaba/
 | RabbitMQ | 3.13+ | 消息队列 | 基础设施部署 |
 | Redis | 7.4+ | 分布式缓存 | 基础设施部署 |
 | ElasticSearch | 8.15+ | 全文检索 | 基础设施部署 |
-| MongoDB | 7.0+ | 对话/日志 | 基础设施部署 |
+| MongoDB | 7.0+ | 日志存储 | 基础设施部署 |
 | Prometheus | 2.55+ | 指标采集 | 监控部署 |
 | Grafana | 11.x | 大盘 | 同上 |
 
@@ -301,7 +295,6 @@ com.xytang
   │   ├── mq          spring-cloud-common-mq
   │   ├── mongo       spring-cloud-common-mongo
   │   ├── es          spring-cloud-common-es
-  │   ├── ai          spring-cloud-common-ai
   │   ├── satoken     spring-cloud-common-satoken
   │   ├── security    spring-cloud-common-security
   │   ├── log         spring-cloud-common-log
@@ -312,17 +305,15 @@ com.xytang
   ├── auth            认证中心
   ├── system          系统管理
   ├── monitor         监控
-  ├── workflow        工作流
-  ├── ai              AI 助手
   ├── message         消息
   ├── search          搜索
   ├── file            文件
   ├── log             日志
   ├── portal          公开门户
   ├── job             定时任务
-  ├── report          报表
+  ├── article         博客文章
+  ├── comment         博客评论
   └── starter         自定义 Starter 根包
-      ├── ssoclient   SSO Client
       └── monitoragent Monitor Agent
 ```
 
@@ -362,15 +353,14 @@ com.xytang
 | spring-cloud-auth | 8081 | 20881 | - | 9999 |
 | spring-cloud-system | 8082 | 20882 | - | 10000 |
 | spring-cloud-monitor | 8083 | 20883 | 9090 | 10001 |
-| spring-cloud-workflow | 8084 | 20884 | - | 10002 |
-| spring-cloud-ai | 8085 | 20885 | - | 10003 |
 | spring-cloud-message | 8086 | 20886 | 9091 | 10004 |
 | spring-cloud-search | 8087 | 20887 | - | 10005 |
 | spring-cloud-file | 8088 | 20888 | - | 10006 |
 | spring-cloud-log | 8089 | 20889 | - | 10007 |
 | spring-cloud-portal | 8090 | 20890 | - | 10008 |
 | spring-cloud-job | 8091 | 20891 | - | 10009 |
-| spring-cloud-report | 8092 | 20892 | - | 10010 |
+| spring-cloud-article | 8093 | 20893 | - | 10011 |
+| spring-cloud-comment | 8094 | 20894 | - | 10012 |
 
 > **XXL-JOB Admin** 独立部署，端口 8099（避免与 Gateway 8080 冲突）。
 
@@ -478,9 +468,9 @@ GET /api/system/users?pageNum=1&pageSize=10&orderBy=createTime DESC&keyword=admi
 
 | 场景 | 调用方 | 被调方 | 方法 |
 |------|--------|--------|------|
-| 用户信息 | workflow | system | `UserService.getById` |
-| 部门树 | workflow | system | `DeptService.tree` |
 | 文件元数据 | portal | file | `FileService.getMeta` |
+| 文章索引同步 | article | search | `SearchService.syncArticleIndex` |
+| 文章存在校验 | comment | article | `ArticleService.existsById` |
 
 > Dubbo 接口定义在 `spring-cloud-common-core` 的 `rpc` 包（计划），由被调方实现 `*RpcProvider`。
 
@@ -489,9 +479,8 @@ GET /api/system/users?pageNum=1&pageSize=10&orderBy=createTime DESC&keyword=admi
 | 事件 | Exchange | 生产者 | 消费者 |
 |------|----------|--------|--------|
 | 用户注册 | `user.register` | auth | message、log |
-| 任务待办 | `task.todo` | workflow | message |
 | 告警 | `alert.trigger` | monitor | message |
-| 文档上传 | `doc.uploaded` | ai | search |
+| 评论通知 | `comment.created` | comment | message |
 | 操作日志 | `log.operation` | 所有 | log |
 
 > 事件基类 `BaseEvent` 在 `spring-cloud-common-core`，所有事件**必须**继承它。事件 Listener **必须**继承 `AbstractEventListener<T>`（来自 `spring-cloud-common-mq`）以实现幂等消费。
@@ -699,7 +688,6 @@ docker compose -f docker/compose/docker-compose.infra.yml up -d
 - [`spring-cloud-common-mq/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-mq/CLAUDE.md) — 消息队列
 - [`spring-cloud-common-mongo/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-mongo/CLAUDE.md) — MongoDB（空壳）
 - [`spring-cloud-common-es/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-es/CLAUDE.md) — ElasticSearch（空壳）
-- [`spring-cloud-common-ai/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-ai/CLAUDE.md) — Spring AI（空壳）
 - [`spring-cloud-common-satoken/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-satoken/CLAUDE.md) — Sa-Token 集成
 - [`spring-cloud-common-security/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-security/CLAUDE.md) — 网关鉴权
 - [`spring-cloud-common-log/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-log/CLAUDE.md) — 日志切面

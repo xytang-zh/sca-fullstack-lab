@@ -8,11 +8,11 @@
 
 ## 1. 项目定位
 
-`vue-web-ui` 是 `sca-fullstack-lab` 项目的 **前端 pnpm Monorepo**，包含 2 个独立部署的 Vue 3 应用 + 4 个共享包：
+`vue-web-ui` 是 `sca-fullstack-lab` 项目的 **前端 pnpm Monorepo**，包含 2 个独立部署的 Vue 3 应用 + 5 个共享包：
 
-- 一体化管理平台（`apps/admin`）— 管理员主入口，对接 Spring Cloud Gateway
-- 公开门户（`apps/portal`）— SEO/GEO 友好的对外内容站，Vite SSG 静态生成
-- 公共包（`packages/*`）— UI 二次封装、统一 API、工具函数、TS 类型
+- 一体化管理平台（`apps/admin`）— 管理员主入口（含博客审核/用户管理/统计），对接 Spring Cloud Gateway
+- 公开门户（`apps/portal`）— 博客前台 + SEO/GEO 友好的对外内容站，Vite SSG 静态生成
+- 公共包（`packages/*`）— UI 二次封装、统一 API、工具函数、TS 类型、UnoCSS 预设
 
 **包管理器**：pnpm 9+（强制，**禁止**使用 npm 或 yarn）
 **Node 版本**：20+
@@ -43,30 +43,27 @@ vue-web-ui/
 │   │       │   ├── system/      system-service 接口
 │   │       │   ├── auth/        auth-center 接口
 │   │       │   ├── monitor/     monitor 接口
-│   │       │   ├── workflow/    workflow 接口
-│   │       │   ├── ai/          ai 接口
+│   │       │   ├── article/     article 博客文章接口 ★
+│   │       │   ├── comment/     comment 博客评论接口 ★
 │   │       │   ├── message/     message 接口
 │   │       │   ├── file/        file 接口
 │   │       │   ├── search/      search 接口
 │   │       │   └── request.ts   axios 实例 + 拦截器
 │   │       ├── components/      通用组件
-│   │       │   ├── business/    业务通用（用户选择器、部门树）
+│   │       │   ├── business/    业务通用（用户选择器）
 │   │       │   └── common/      基础通用（表格、表单、图标）
 │   │       ├── layouts/         布局
 │   │       │   ├── default/    默认布局（含侧栏 + 顶栏 + 多 Tab）
 │   │       │   └── blank/       空白布局（登录页用）
 │   │       ├── views/           页面
 │   │       │   ├── login/
-│   │       │   ├── system/      系统管理（用户/角色/菜单/部门/字典/参数）
+│   │       │   ├── system/      系统管理（用户/角色/菜单，RBAC）
+│   │       │   ├── blog/        博客管理（文章审核、评论审核、统计）★
 │   │       │   ├── monitor/     服务器监控大盘
-│   │       │   ├── workflow/    工作流（发起/待办/已办/历史）
-│   │       │   ├── ai/          AI 助手（对话界面、知识库管理）
 │   │       │   ├── message/     消息中心（站内信、在线客服）
-│   │       │   ├── file/         文件管理（上传、预览）
+│   │       │   ├── file/        文件管理（上传、预览）
 │   │       │   ├── log/         日志查询
-│   │       │   ├── portal/      公开门户管理
 │   │       │   ├── job/         定时任务
-│   │       │   ├── report/      报表设计器入口
 │   │       │   └── error/       403 / 404 / 500
 │   │       ├── router/          路由
 │   │       │   ├── index.ts
@@ -115,14 +112,17 @@ vue-web-ui/
     │       ├── validator.ts     表单校验器
     │       ├── tree.ts          树形数据处理
     │       └── download.ts      文件下载
-    └── types/                   全局 TS 类型
+    ├── types/                   全局 TS 类型
+    │   └── src/
+    │       ├── api.d.ts         R<T>、PageVO<T>
+    │       ├── system.d.ts      sys_user、sys_role 等
+    │       └── blog.d.ts        博客域类型（文章/评论/互动）★
+    └── uno-preset/              UnoCSS 预设（计划中）
         └── src/
-            ├── api.d.ts         R<T>、PageVO<T>
-            ├── system.d.ts      sys_user、sys_role 等
-            └── workflow.d.ts
+            └── index.ts         自定义预设配置
 ```
 
-> ⚠️ 原规划的 `apps/flow-web`（工作流子系统）和 `packages/uno-preset`（UnoCSS 预设）**尚未实现**，落地时再补充。
+> ⚠️ `apps/flow-web`（工作流子系统）已随后端 workflow 服务删除，不再规划。`packages/uno-preset`（UnoCSS 预设）为计划中，落地时补充。
 
 ---
 
@@ -507,23 +507,21 @@ export function deleteUser(id: string) {
 
 | 模块 | 功能 |
 |------|------|
-| 登录 | SSO 跳转、Token 续期、踢人下线提示 |
-| 系统管理 | 用户/角色/菜单/部门/岗位/字典/参数/通知/在线用户 |
+| 登录 | 登录、Token 续期、踢人下线提示 |
+| 系统管理 | 用户/角色/菜单（RBAC，USER/AUTHOR/ADMIN） |
+| 博客管理 ★ | 文章审核（通过/驳回）、评论审核、博客数据统计面板（ECharts） |
 | 服务器监控 | 实时大盘（WebSocket）、历史曲线（1h/24h/7d）、告警列表 |
-| 工作流 | 流程发起、待办、已办、流程图、审批（通过/驳回/转办/委托） |
-| AI 助手 | 对话界面（SSE 流式）、知识库管理、文档上传 |
 | 消息中心 | 站内信、未读数（WebSocket 推送）、在线客服 |
 | 文件管理 | 分片上传、断点续传、预览（图片/PDF/Office） |
 | 日志查询 | 操作日志、登录日志、审计日志 |
 | 定时任务 | XXL-JOB Admin 跳转（iframe） |
-| 报表设计 | JimuReport 跳转（iframe） |
 | 个人中心 | 修改密码、个人信息、登录日志 |
 
-### 10.2 portal（公开门户）
+### 10.2 portal（公开门户 / 博客前台）
 
 | 模块 | 功能 |
 |------|------|
-| 博客 | 文章列表、详情、标签、分类、搜索 |
+| 博客 ★ | 文章列表、文章详情（Markdown 渲染）、分类/标签、评论（嵌套回复）、点赞/收藏、搜索（高亮/建议） |
 | 新闻 | 栏目、新闻详情 |
 | 产品 | 产品介绍、规格 |
 | 友链/关于 | 简单页面 |

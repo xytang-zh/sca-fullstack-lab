@@ -15,20 +15,17 @@
     <packaging>pom</packaging>
 
     <name>spring-cloud-services</name>
-    <description>业务服务聚合（11 个微服务）</description>
+    <description>业务服务聚合（8 个微服务）</description>
 
     <modules>
         <module>spring-cloud-system</module>
         <module>spring-cloud-monitor</module>
-        <module>spring-cloud-workflow</module>
-        <module>spring-cloud-ai</module>
         <module>spring-cloud-message</module>
         <module>spring-cloud-search</module>
         <module>spring-cloud-file</module>
         <module>spring-cloud-log</module>
         <module>spring-cloud-portal</module>
         <module>spring-cloud-job</module>
-        <module>spring-cloud-report</module>
     </modules>
 
 </project>

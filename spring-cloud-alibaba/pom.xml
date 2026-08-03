@@ -275,11 +275,6 @@
             </dependency>
             <dependency>
                 <groupId>com.xytang</groupId>
-                <artifactId>spring-cloud-common-ai</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xytang</groupId>
                 <artifactId>spring-cloud-common-satoken</artifactId>
                 <version>${project.version}</version>
             </dependency>

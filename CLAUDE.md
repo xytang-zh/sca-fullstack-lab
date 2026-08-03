@@ -10,8 +10,8 @@
 
 `sca-fullstack-lab`（企业级一体化智能管理平台）是一个 **前后端分离的 Monorepo**：
 
-- 后端：Spring Cloud Alibaba 微服务体系（1 个网关 + 1 个认证中心 + 11 个业务/基础设施服务 + 16 个公共子模块 + 2 个自定义 Starter）
-- 前端：Vue 3 + Vite + pnpm Monorepo（3 个独立部署应用 + 5 个共享包）
+- 后端：Spring Cloud Alibaba 微服务体系（1 个网关 + 1 个认证中心 + 10 个业务服务 + 15 个公共子模块 + 1 个自定义 Starter）
+- 前端：Vue 3 + Vite + pnpm Monorepo（2 个独立部署应用 + 5 个共享包）
 
 | 维度 | 值 |
 |------|-----|
@@ -37,15 +37,15 @@ sca-fullstack-lab/
 │   ├── src/                        仓库级共享资源
 │   │   ├── checkstyle.xml          Checkstyle 规则（阿里规范 + 项目红线）
 │   │   └── checkstyle-suppressions.xml
-│   ├── spring-cloud-common/        公共能力下沉层（16 个子模块，packaging=pom）
+│   ├── spring-cloud-common/        公共能力下沉层（15 个子模块，packaging=pom）
 │   ├── spring-cloud-gateway/       网关服务（端口 8080）
 │   ├── spring-cloud-auth/          认证中心（端口 8081）
-│   ├── spring-cloud-services/      业务服务聚合（11 个微服务，packaging=pom）
-│   └── spring-cloud-starters/      自定义 Starter 聚合（2 个 Starter，packaging=pom）
+│   ├── spring-cloud-services/      业务服务聚合（10 个微服务，packaging=pom）
+│   └── spring-cloud-starters/      自定义 Starter 聚合（1 个 Starter，packaging=pom）
 ├── vue-web-ui/                     前端 Monorepo（详见该目录下 CLAUDE.md）
 │   ├── package.json                monorepo 根 package
 │   ├── pnpm-workspace.yaml         workspace 声明
-│   ├── apps/                       3 个独立部署应用（admin / portal / flow-web）
+│   ├── apps/                       2 个独立部署应用（admin / portal）
 │   └── packages/                   5 个共享包（ui / api / utils / types / uno-preset）
 ├── docker/                         基础设施 Compose
 │   └── compose/                    docker-compose 文件（MySQL/Redis/Nacos/RabbitMQ/MinIO 等）
@@ -171,15 +171,14 @@ sca-fullstack-lab/
 | spring-cloud-auth | 8081 | 20881 | - | 9999 |
 | spring-cloud-system | 8082 | 20882 | - | 10000 |
 | spring-cloud-monitor | 8083 | 20883 | 9090 | 10001 |
-| spring-cloud-workflow | 8084 | 20884 | - | 10002 |
-| spring-cloud-ai | 8085 | 20885 | - | 10003 |
 | spring-cloud-message | 8086 | 20886 | 9091 | 10004 |
 | spring-cloud-search | 8087 | 20887 | - | 10005 |
 | spring-cloud-file | 8088 | 20888 | - | 10006 |
 | spring-cloud-log | 8089 | 20889 | - | 10007 |
 | spring-cloud-portal | 8090 | 20890 | - | 10008 |
 | spring-cloud-job | 8091 | 20891 | - | 10009 |
-| spring-cloud-report | 8092 | 20892 | - | 10010 |
+| spring-cloud-article | 8093 | 20893 | - | 10011 |
+| spring-cloud-comment | 8094 | 20894 | - | 10012 |
 
 ### 5.2 前端 dev server
 
@@ -187,7 +186,6 @@ sca-fullstack-lab/
 |------|---------|
 | apps/admin | 5173 |
 | apps/portal | 5174 |
-| apps/flow-web | 5175 |
 
 ### 5.3 基础设施（Docker Compose）
 
@@ -216,10 +214,10 @@ sca-fullstack-lab/
 详见 [`spring-cloud-alibaba/CLAUDE.md`](./spring-cloud-alibaba/CLAUDE.md)。
 
 包含 4 个一级子模块：
-- `spring-cloud-common/` — 公共能力下沉层（16 个子模块），详见 [`spring-cloud-common/CLAUDE.md`](./spring-cloud-alibaba/spring-cloud-common/CLAUDE.md)
+- `spring-cloud-common/` — 公共能力下沉层（15 个子模块），详见 [`spring-cloud-common/CLAUDE.md`](./spring-cloud-alibaba/spring-cloud-common/CLAUDE.md)
 - `spring-cloud-gateway/` — 网关服务，详见 [`spring-cloud-gateway/CLAUDE.md`](./spring-cloud-alibaba/spring-cloud-gateway/CLAUDE.md)
 - `spring-cloud-auth/` — 认证中心，详见 [`spring-cloud-auth/CLAUDE.md`](./spring-cloud-alibaba/spring-cloud-auth/CLAUDE.md)
-- `spring-cloud-services/` — 业务服务聚合（11 个微服务），详见 [`spring-cloud-services/CLAUDE.md`](./spring-cloud-alibaba/spring-cloud-services/CLAUDE.md)
+- `spring-cloud-services/` — 业务服务聚合（10 个微服务），详见 [`spring-cloud-services/CLAUDE.md`](./spring-cloud-alibaba/spring-cloud-services/CLAUDE.md)
 - `spring-cloud-starters/` — 自定义 Starter 聚合（2 个 Starter），详见 [`spring-cloud-starters/CLAUDE.md`](./spring-cloud-alibaba/spring-cloud-starters/CLAUDE.md)
 
 ### 6.2 前端 Monorepo
@@ -227,9 +225,8 @@ sca-fullstack-lab/
 详见 [`vue-web-ui/CLAUDE.md`](./vue-web-ui/CLAUDE.md)。
 
 包含：
-- `apps/admin` — 一体化管理平台
-- `apps/portal` — 公开门户
-- `apps/flow-web` — 工作流子系统
+- `apps/admin` — 一体化管理平台（含博客审核/用户管理/统计）
+- `apps/portal` — 公开门户（博客前台）
 - `packages/ui` — UI 二次封装
 - `packages/api` — 统一 API 调用
 - `packages/utils` — 工具函数
