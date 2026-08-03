@@ -20,6 +20,8 @@ public class SaTokenConfig implements WebMvcConfigurer {
 
     private static final String[] WHITELIST = new String[] {
         "/login",
+        "/sms/send",
+        "/sms/login",
         "/captcha",
         "/captcha/check",
         "/sso/**",

@@ -1,4 +1,5 @@
 export * from './auth'
+export * from './blog'
 export * from './system'
 
 export interface R<T = unknown> {

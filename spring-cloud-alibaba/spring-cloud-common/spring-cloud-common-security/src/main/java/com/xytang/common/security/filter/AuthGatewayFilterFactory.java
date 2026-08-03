@@ -1,16 +1,16 @@
 package com.xytang.common.security.filter;
 
+import cn.dev33.satoken.exception.NotLoginException;
 import cn.dev33.satoken.stp.StpUtil;
 import com.xytang.common.core.constant.HeaderConstants;
 import com.xytang.common.core.response.BizCode;
 import com.xytang.common.core.response.R;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
-import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -34,7 +34,7 @@ import java.util.List;
 @Component
 @Slf4j
 public class AuthGatewayFilterFactory
-    extends AbstractGatewayFilterFactory<AuthGatewayFilterFactory.Config> {
+        extends AbstractGatewayFilterFactory<AuthGatewayFilterFactory.Config> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final AntPathMatcher MATCHER = new AntPathMatcher();
@@ -63,14 +63,14 @@ public class AuthGatewayFilterFactory
                 return unauthorized(exchange, BizCode.GW_TOKEN_MISSING);
             }
             String token = auth.startsWith(HeaderConstants.BEARER_PREFIX)
-                ? auth.substring(HeaderConstants.BEARER_PREFIX.length())
-                : auth;
+                    ? auth.substring(HeaderConstants.BEARER_PREFIX.length())
+                    : auth;
 
             Object loginId;
             try {
                 loginId = StpUtil.getLoginIdByToken(token);
-            } catch (Exception e) {
-                log.warn("[Auth] token invalid, path={} err={}", path, e.getMessage());
+            } catch (NotLoginException e) {
+                log.warn("[Auth] token invalid, path={} type={}", path, e.getType());
                 return unauthorized(exchange, BizCode.GW_TOKEN_INVALID);
             }
             if (loginId == null) {
@@ -78,9 +78,9 @@ public class AuthGatewayFilterFactory
             }
 
             ServerHttpRequest mutated = req.mutate()
-                .header(HeaderConstants.X_LOGIN_ID, String.valueOf(loginId))
-                .header(HeaderConstants.X_TOKEN, token)
-                .build();
+                    .header(HeaderConstants.X_LOGIN_ID, String.valueOf(loginId))
+                    .header(HeaderConstants.X_TOKEN, token)
+                    .build();
             return chain.filter(exchange.mutate().request(mutated).build());
         };
     }
@@ -100,14 +100,17 @@ public class AuthGatewayFilterFactory
         String body;
         try {
             body = MAPPER.writeValueAsString(R.fail(bizCode));
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
             body = "{\"code\":401,\"bizCode\":\"" + bizCode.code()
-                + "\",\"message\":\"" + bizCode.message() + "\",\"data\":null}";
+                    + "\",\"message\":\"" + bizCode.message() + "\",\"data\":null}";
         }
         DataBuffer buf = resp.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));
         return resp.writeWith(Mono.just(buf));
     }
 
+    /**
+     * 过滤器配置：匿名白名单路径。
+     */
     @Data
     public static class Config {
         private List<String> excludePaths = Collections.emptyList();

@@ -1,18 +1,9 @@
 <script setup lang="ts">
-const message = 'Sca Portal (MVP 骨架)'
+import { zhCN, dateZhCN } from 'naive-ui'
 </script>
 
 <template>
-  <div class="portal-root">
-    <h1>{{ message }}</h1>
-    <p>等待后续实现博客、新闻、产品页面。</p>
-  </div>
+  <n-config-provider :locale="zhCN" :date-locale="dateZhCN">
+    <router-view />
+  </n-config-provider>
 </template>
-
-<style scoped>
-.portal-root {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  padding: 2rem;
-  color: #1f2937;
-}
-</style>

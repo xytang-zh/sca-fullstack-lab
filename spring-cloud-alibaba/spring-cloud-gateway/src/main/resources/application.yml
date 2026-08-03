@@ -52,6 +52,15 @@ spring:
                 - name: Path
                 - StripPrefix=2
                 - name: Log
+            - id: article-service
+              uri: lb://spring-cloud-article
+              predicates:
+                - Path=/api/article/**
+              filters:
+                - name: TraceId
+                - name: Path
+                - StripPrefix=2
+                - name: Log
   data:
     redis:
       host: ${REDIS_HOST:127.0.0.1}

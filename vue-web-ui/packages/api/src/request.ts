@@ -99,7 +99,13 @@ function handleBizError(r: R<unknown>) {
 }
 
 function shouldClearToken(bizCode: string): boolean {
-  return bizCode === '01301' || bizCode === '99301' || bizCode === '99302'
+  // 01306=未登录（游客写操作）、01301=禁用、99301/99302=网关 Token 问题
+  return (
+    bizCode === '01306' ||
+    bizCode === '01301' ||
+    bizCode === '99301' ||
+    bizCode === '99302'
+  )
 }
 
 function redirectToLogin() {

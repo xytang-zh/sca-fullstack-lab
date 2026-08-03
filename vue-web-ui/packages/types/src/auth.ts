@@ -1,15 +1,29 @@
 export interface LoginDTO {
   username: string
   password: string
-  checkToken: string
+  checkToken?: string
   rememberMe?: boolean
+}
+
+export interface SmsSendDTO {
+  phone: string
+  checkToken: string
+}
+
+export interface SmsLoginDTO {
+  phone: string
+  code: string
+}
+
+export interface CaptchaCheckResult {
+  checkToken: string
 }
 
 export interface LoginVO {
   tokenName: string
   tokenValue: string
   expiresIn: number
-  userId: number
+  userId: string
   username: string
   nickname: string
   avatar?: string
@@ -31,15 +45,15 @@ export interface CaptchaVO {
 }
 
 export interface UserInfoVO {
-  id: number
+  id: string
   username: string
   nickname: string
   email?: string
   phone?: string
   avatar?: string
-  deptId?: number
+  deptId?: string
   deptName?: string
-  roles?: Array<{ id?: number; code?: string; name?: string; dataScope?: number }>
+  roles?: Array<{ id?: string; code?: string; name?: string; dataScope?: number }>
   perms?: string[]
   lastLoginTime?: string
   lastLoginIp?: string

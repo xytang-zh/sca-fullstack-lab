@@ -53,7 +53,7 @@ spring-cloud-alibaba/
 │   ├── spring-cloud-file                文件服务（8088）
 │   ├── spring-cloud-log                 日志服务（8089）
 │   ├── spring-cloud-portal              公开门户（8090）
-│   ├── spring-cloud-job                 定时任务执行器（8091）
+│   ├── spring-cloud-job                 定时任务执行器（8091），可以用来定时保存博客到冷存表中，防止数据丢失
 │   ├── spring-cloud-article             博客文章/互动 ★新增（8093）
 │   └── spring-cloud-comment             博客评论/审核 ★新增（8094）
 └── spring-cloud-starters/               自定义 Starter 聚合（packaging=pom）

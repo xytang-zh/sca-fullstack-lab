@@ -4,8 +4,11 @@ import com.xytang.auth.dto.CaptchaCheckDTO;
 import com.xytang.auth.dto.KickoutDTO;
 import com.xytang.auth.dto.LoginDTO;
 import com.xytang.auth.dto.PasswordUpdateDTO;
+import com.xytang.auth.dto.SmsLoginDTO;
+import com.xytang.auth.dto.SmsSendDTO;
 import com.xytang.auth.service.AuthService;
 import com.xytang.auth.service.CaptchaService;
+import com.xytang.auth.service.SmsService;
 import com.xytang.auth.vo.CaptchaVO;
 import com.xytang.auth.vo.LoginVO;
 import com.xytang.auth.vo.UserInfoVO;
@@ -39,6 +42,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final CaptchaService captchaService;
+    private final SmsService smsService;
 
     @Operation(summary = "获取验证码")
     @GetMapping("/captcha")
@@ -60,6 +64,21 @@ public class AuthController {
             throw new AuthException(BizCode.AUTH_CAPTCHA_ERROR);
         }
         return R.ok(Map.of("checkToken", checkToken));
+    }
+
+    @Operation(summary = "发送短信验证码（需先通过滑块验证，同一手机号 60 秒一次）")
+    @PostMapping("/sms/send")
+    public R<Void> sendSmsCode(@RequestBody @Valid SmsSendDTO dto) {
+        smsService.sendCode(dto);
+        return R.ok();
+    }
+
+    @Operation(summary = "手机验证码登录/注册（新用户自动注册并登录，老用户直接登录）")
+    @PostMapping("/sms/login")
+    public R<LoginVO> smsLogin(@RequestBody @Valid SmsLoginDTO dto, HttpServletRequest request) {
+        String ip = resolveIp(request);
+        String ua = request.getHeader("User-Agent");
+        return R.ok(authService.smsLogin(dto, ip, ua));
     }
 
     @Operation(summary = "登录")

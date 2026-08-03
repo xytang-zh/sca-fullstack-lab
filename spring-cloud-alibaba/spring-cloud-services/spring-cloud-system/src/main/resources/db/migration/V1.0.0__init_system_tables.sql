@@ -26,8 +26,9 @@ CREATE TABLE IF NOT EXISTS sys_user (
     version         INT            NOT NULL DEFAULT 0                 COMMENT '乐观锁版本号',
     deleted         SMALLINT        NOT NULL DEFAULT 0                COMMENT '逻辑删除：0=未删 1=已删',
     PRIMARY KEY (id),
-    UNIQUE KEY uk_username (username)
-);
+    UNIQUE KEY uk_username (username),
+    UNIQUE KEY uk_phone (phone)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE INDEX idx_sys_user_dept_id ON sys_user (dept_id);
 CREATE INDEX idx_sys_user_status ON sys_user (status);
 CREATE INDEX idx_sys_user_create_time ON sys_user (create_time);
@@ -49,7 +50,7 @@ CREATE TABLE IF NOT EXISTS sys_role (
     deleted         SMALLINT        NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
     UNIQUE KEY uk_role_code (role_code)
-);
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE INDEX idx_sys_role_data_scope ON sys_role (data_scope);
 
 -- ===== 3. sys_menu 菜单表（树形） =====
@@ -72,7 +73,7 @@ CREATE TABLE IF NOT EXISTS sys_menu (
     version         INT            NOT NULL DEFAULT 0,
     deleted         SMALLINT        NOT NULL DEFAULT 0,
     PRIMARY KEY (id)
-);
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE INDEX idx_sys_menu_parent_id ON sys_menu (parent_id);
 CREATE INDEX idx_sys_menu_perms ON sys_menu (perms);
 
@@ -95,7 +96,7 @@ CREATE TABLE IF NOT EXISTS sys_dept (
     deleted         SMALLINT        NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
     UNIQUE KEY uk_dept_code (dept_code)
-);
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE INDEX idx_sys_dept_parent_id ON sys_dept (parent_id);
 CREATE INDEX idx_sys_dept_ancestors ON sys_dept (ancestors);
 
@@ -116,7 +117,7 @@ CREATE TABLE IF NOT EXISTS sys_dict (
     deleted         SMALLINT        NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
     UNIQUE KEY uk_dict_type_value (dict_type, dict_value)
-);
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE INDEX idx_sys_dict_type ON sys_dict (dict_type);
 
 -- ===== 6. sys_param 参数表 =====
@@ -134,7 +135,7 @@ CREATE TABLE IF NOT EXISTS sys_param (
     deleted         SMALLINT        NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
     UNIQUE KEY uk_param_key (param_key)
-);
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- ===== 7. sys_notice 通知公告表 =====
 CREATE TABLE IF NOT EXISTS sys_notice (
@@ -151,7 +152,7 @@ CREATE TABLE IF NOT EXISTS sys_notice (
     version         INT            NOT NULL DEFAULT 0,
     deleted         SMALLINT        NOT NULL DEFAULT 0,
     PRIMARY KEY (id)
-);
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE INDEX idx_sys_notice_status ON sys_notice (status);
 CREATE INDEX idx_sys_notice_publish_time ON sys_notice (publish_time);
 
@@ -182,7 +183,7 @@ CREATE TABLE IF NOT EXISTS portal_content (
     deleted         SMALLINT        NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
     UNIQUE KEY uk_portal_slug (slug)
-);
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE INDEX idx_portal_content_type_status ON portal_content (content_type, status);
 CREATE INDEX idx_portal_content_publish_time ON portal_content (publish_time);
 CREATE INDEX idx_portal_content_author_id ON portal_content (author_id);
@@ -193,7 +194,7 @@ CREATE TABLE IF NOT EXISTS sys_user_role (
     role_id         BIGINT          NOT NULL,
     create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, role_id)
-);
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE INDEX idx_sys_user_role_role_id ON sys_user_role (role_id);
 
 -- ===== 10. sys_role_menu 角色-菜单关联表 =====
@@ -202,7 +203,7 @@ CREATE TABLE IF NOT EXISTS sys_role_menu (
     menu_id         BIGINT          NOT NULL,
     create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (role_id, menu_id)
-);
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE INDEX idx_sys_role_menu_menu_id ON sys_role_menu (menu_id);
 
 -- ===== 11. sys_role_dept 角色-部门关联表（数据范围=5 自定义） =====
@@ -211,7 +212,7 @@ CREATE TABLE IF NOT EXISTS sys_role_dept (
     dept_id         BIGINT          NOT NULL,
     create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (role_id, dept_id)
-);
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE INDEX idx_sys_role_dept_dept_id ON sys_role_dept (dept_id);
 
 -- ===== 12. sys_oauth2_client OAuth2 客户端注册表 =====
@@ -234,7 +235,7 @@ CREATE TABLE IF NOT EXISTS sys_oauth2_client (
     deleted         SMALLINT        NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
     UNIQUE KEY uk_oauth2_client_id (client_id)
-);
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- ===== 13. 初始超级管理员数据 =====
 -- 密码 admin123 已用 BCrypt(cost=10) 加密，第一次登录后强制改密
@@ -248,6 +249,15 @@ ON DUPLICATE KEY UPDATE update_time = CURRENT_TIMESTAMP;
 
 INSERT INTO sys_user_role (user_id, role_id, create_time) VALUES (1, 1, CURRENT_TIMESTAMP)
 ON DUPLICATE KEY UPDATE create_time = CURRENT_TIMESTAMP;
+
+-- 博客三角色：USER（短信验证码注册默认角色）/ AUTHOR（可直接发布文章）
+INSERT INTO sys_role (id, role_code, role_name, data_scope, sort, status, create_time, update_time, version, deleted)
+VALUES (2, 'USER', '普通用户', 4, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0, 0)
+ON DUPLICATE KEY UPDATE update_time = CURRENT_TIMESTAMP;
+
+INSERT INTO sys_role (id, role_code, role_name, data_scope, sort, status, create_time, update_time, version, deleted)
+VALUES (3, 'AUTHOR', '作者', 4, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0, 0)
+ON DUPLICATE KEY UPDATE update_time = CURRENT_TIMESTAMP;
 
 -- ===== 14. 初始字典数据 =====
 INSERT INTO sys_dict (id, dict_type, dict_label, dict_value, sort, status, create_time, update_time)

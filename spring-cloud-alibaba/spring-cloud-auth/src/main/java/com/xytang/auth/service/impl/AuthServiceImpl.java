@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xytang.auth.constant.AuthConstants;
 import com.xytang.auth.dto.LoginDTO;
 import com.xytang.auth.dto.PasswordUpdateDTO;
+import com.xytang.auth.dto.SmsLoginDTO;
 import com.xytang.auth.entity.AuthUser;
 import com.xytang.auth.enums.DeviceTypeEnum;
 import com.xytang.auth.enums.LoginTypeEnum;
@@ -25,6 +26,7 @@ import com.xytang.common.core.response.DevMessageHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.AmqpException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -51,6 +53,7 @@ public class AuthServiceImpl implements AuthService {
     private static final int PHONE_HEAD_LEN = 3;
     private static final int PHONE_TAIL_LEN = 4;
     private static final int REFRESH_TOKEN_LENGTH = 64;
+    private static final int RANDOM_PASSWORD_LENGTH = 32;
 
     private final AuthUserMapper authUserMapper;
     private final CaptchaService captchaService;
@@ -107,35 +110,123 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(BizCode.AUTH_USER_DISABLED);
         }
 
-        // 6. 登录成功：清失败计数 + StpUtil.login
+        // 6. 登录成功：清失败计数 + 签发会话
         loginRiskService.clearFailure(dto.getUsername());
-        boolean rememberMe = Boolean.TRUE.equals(dto.getRememberMe());
-        long timeout = rememberMe
+        long timeout = Boolean.TRUE.equals(dto.getRememberMe())
                 ? AuthConstants.REMEMBER_ME_TIMEOUT_SECONDS
                 : AuthConstants.LOGIN_TOKEN_TIMEOUT_SECONDS;
+        return doLogin(user, timeout, LoginTypeEnum.LOGIN, ip, userAgent,
+                List.of(CommonConstants.SUPER_ADMIN_ROLE_CODE), List.of(AuthConstants.SUPER_ADMIN_PERMS));
+    }
+
+    @Override
+    public LoginVO smsLogin(SmsLoginDTO dto, String ip, String userAgent) {
+        String phone = dto.getPhone();
+
+        // 1. 校验并作废短信验证码（一次性消费）
+        String codeKey = AuthConstants.SMS_CODE_PREFIX + phone;
+        String savedCode = stringRedisTemplate.opsForValue().get(codeKey);
+        if (savedCode == null || !savedCode.equals(dto.getCode())) {
+            publishLoginEvent(null, phone, LoginTypeEnum.SMS, ip, userAgent,
+                    Boolean.FALSE, "sms code invalid");
+            throw new AuthException(BizCode.AUTH_CAPTCHA_ERROR, "验证码错误或已过期");
+        }
+        stringRedisTemplate.delete(codeKey);
+
+        // 2. 风控检查
+        loginRiskService.assertNotLocked(phone);
+
+        // 3. 按手机号查用户，不存在则自动注册（登录/注册一体）
+        AuthUser user = authUserMapper.selectOne(new LambdaQueryWrapper<AuthUser>()
+                .eq(AuthUser::getPhone, phone)
+                .last("LIMIT 1"));
+        if (user == null) {
+            user = registerByPhone(phone);
+        }
+
+        // 4. 状态校验（被禁用/删除）
+        if (user.getStatus() == null || CommonConstants.STATUS_NORMAL != user.getStatus()) {
+            publishLoginEvent(user.getId(), user.getUsername(), LoginTypeEnum.SMS, ip, userAgent,
+                    Boolean.FALSE, "account disabled");
+            throw new AuthException(BizCode.AUTH_USER_DISABLED);
+        }
+
+        // 5. 登录成功
+        loginRiskService.clearFailure(phone);
+        List<String> roleCodes = authUserMapper.selectRoleCodesByUserId(user.getId());
+        return doLogin(user, AuthConstants.LOGIN_TOKEN_TIMEOUT_SECONDS, LoginTypeEnum.SMS, ip, userAgent,
+                roleCodes, List.of());
+    }
+
+    /**
+     * 手机号自动注册：username=手机号、随机不可登录密码、默认 USER 角色。
+     *
+     * @param phone 手机号
+     * @return 注册后的用户
+     */
+    private AuthUser registerByPhone(String phone) {
+        AuthUser user = new AuthUser();
+        user.setUsername(phone);
+        user.setPassword(passwordEncoder.encode(RandomUtil.randomString(RANDOM_PASSWORD_LENGTH)));
+        user.setNickname(maskPhone(phone));
+        user.setPhone(phone);
+        user.setStatus(CommonConstants.STATUS_NORMAL);
+        try {
+            authUserMapper.insert(user);
+        } catch (DuplicateKeyException e) {
+            // 并发注册时唯一索引兜底：重新查询已存在用户
+            AuthUser existing = authUserMapper.selectOne(new LambdaQueryWrapper<AuthUser>()
+                    .eq(AuthUser::getPhone, phone)
+                    .last("LIMIT 1"));
+            if (existing != null) {
+                return existing;
+            }
+            throw e;
+        }
+        Long roleId = authUserMapper.selectUserRoleId();
+        if (roleId != null) {
+            authUserMapper.insertUserRole(user.getId(), roleId);
+        }
+        return user;
+    }
+
+    /**
+     * 登录成功公共流程：签发会话、更新登录信息、发 Refresh Token、记日志事件。
+     *
+     * @param user      已通过校验的用户
+     * @param timeout   Token 有效期（秒）
+     * @param loginType 登录类型
+     * @param ip        客户端 IP
+     * @param userAgent 客户端 UA
+     * @param roles     角色 code 列表
+     * @param perms     权限点列表
+     * @return 登录返回 VO
+     */
+    private LoginVO doLogin(AuthUser user, long timeout, LoginTypeEnum loginType,
+                            String ip, String userAgent, List<String> roles, List<String> perms) {
         SaLoginParameter param = new SaLoginParameter()
                 .setDeviceType(DeviceTypeEnum.PC.name())
                 .setTimeout(timeout)
                 .setIsLastingCookie(Boolean.TRUE);
         StpUtil.login(user.getId(), param);
 
-        // 7. 更新登录信息（last_login_time / last_login_ip）
+        // 更新登录信息（last_login_time / last_login_ip）
         AuthUser update = new AuthUser();
         update.setId(user.getId());
         update.setLastLoginTime(LocalDateTime.now());
         update.setLastLoginIp(ip);
         authUserMapper.updateById(update);
 
-        // 8. 生成 Refresh Token（7d 有效，一次性消费）
+        // 生成 Refresh Token（7d 有效，一次性消费）
         String refreshToken = RandomUtil.randomString(REFRESH_TOKEN_LENGTH);
-        String refreshKey = AuthConstants.REFRESH_TOKEN_PREFIX + refreshToken;
-        stringRedisTemplate.opsForValue().set(refreshKey,
+        stringRedisTemplate.opsForValue().set(
+                AuthConstants.REFRESH_TOKEN_PREFIX + refreshToken,
                 String.valueOf(user.getId()),
                 AuthConstants.REMEMBER_ME_TIMEOUT_SECONDS,
                 TimeUnit.SECONDS);
 
-        // 9. 异步发送登录日志事件
-        publishLoginEvent(user.getId(), user.getUsername(), LoginTypeEnum.LOGIN, ip, userAgent,
+        // 异步发送登录日志事件
+        publishLoginEvent(user.getId(), user.getUsername(), loginType, ip, userAgent,
                 Boolean.TRUE, null);
 
         return LoginVO.builder()
@@ -146,8 +237,8 @@ public class AuthServiceImpl implements AuthService {
                 .username(user.getUsername())
                 .nickname(user.getNickname())
                 .avatar(user.getAvatar())
-                .roles(List.of(CommonConstants.SUPER_ADMIN_ROLE_CODE))
-                .perms(List.of(AuthConstants.SUPER_ADMIN_PERMS))
+                .roles(roles)
+                .perms(perms)
                 .refreshToken(refreshToken)
                 .build();
     }

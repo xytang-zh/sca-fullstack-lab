@@ -9,6 +9,7 @@ package com.xytang.auth.enums;
  *   <li>3 踢人下线</li>
  *   <li>4 SSO 单点登录</li>
  *   <li>5 OAuth2 授权</li>
+ *   <li>6 短信验证码登录</li>
  * </ul>
  */
 public enum LoginTypeEnum {
@@ -17,7 +18,8 @@ public enum LoginTypeEnum {
     LOGOUT(2, "logout"),
     KICKOUT(3, "kickout"),
     SSO(4, "sso"),
-    OAUTH2(5, "oauth2");
+    OAUTH2(5, "oauth2"),
+    SMS(6, "sms");
 
     private final int code;
     private final String msg;

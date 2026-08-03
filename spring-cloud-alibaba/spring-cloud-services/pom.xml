@@ -26,6 +26,7 @@
         <module>spring-cloud-log</module>
         <module>spring-cloud-portal</module>
         <module>spring-cloud-job</module>
+        <module>spring-cloud-article</module>
     </modules>
 
 </project>

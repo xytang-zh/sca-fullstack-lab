@@ -32,6 +32,7 @@ public enum BizCode {
     RATE_LIMIT(429, "00201", "请求过于频繁，请稍后重试"),
     OPTIMISTIC_LOCK(409, "00202", "资源已被他人修改，请刷新后重试"),
     CONTENT_STATUS_INVALID(400, "00203", "内容状态变更非法"),
+    CONTENT_NOT_FOUND(404, "00204", "内容不存在"),
     DATA_SCOPE_DENIED(403, "00302", "无权访问该数据范围"),
 
     SYS_ERROR(500, "00401", "系统繁忙，请稍后重试"),

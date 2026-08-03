@@ -1,5 +1,6 @@
 package com.xytang.common.web.handler;
 
+import cn.dev33.satoken.exception.NotLoginException;
 import com.xytang.common.core.exception.BusinessException;
 import com.xytang.common.core.response.BizCode;
 import com.xytang.common.core.response.DevMessageHolder;
@@ -85,6 +86,15 @@ public class GlobalExceptionHandler {
         fillDevMessageIfNeeded(e);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(R.fail(BizCode.PARAM_TYPE_ERROR, message));
+    }
+
+    @ExceptionHandler(NotLoginException.class)
+    public ResponseEntity<R<Void>> handleNotLogin(NotLoginException e, HttpServletRequest req) {
+        log.warn("[NotLogin] {} {} -> type={}",
+                req.getMethod(), req.getRequestURI(), e.getType());
+        fillDevMessageIfNeeded(e);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(R.fail(BizCode.AUTH_TOKEN_MISSING));
     }
 
     @ExceptionHandler(Exception.class)
