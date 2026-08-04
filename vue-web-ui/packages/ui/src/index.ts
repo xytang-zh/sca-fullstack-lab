@@ -1,5 +1,11 @@
+/**
+ * @sca/ui 主题与二次封装出口。
+ * @description 品牌主色与主题覆盖在此统一声明，全部应用共用，
+ * 保证"整个项目风格一致"；主题色变更只改本包一处。
+ */
 import type { GlobalThemeOverrides } from 'naive-ui'
 
+/** 包名标识（调试/日志用） */
 export const UI_PACKAGE_NAME = '@sca/ui'
 
 /** 品牌主色：indigo-500，与 portal/admin 渐变（indigo→violet）一致 */

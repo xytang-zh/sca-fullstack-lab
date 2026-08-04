@@ -1,15 +1,25 @@
 <script setup lang="ts">
+/**
+ * 用户管理页（管理员）：分页展示系统用户，支持关键字搜索（用户名/昵称）。
+ */
 import { onMounted, ref } from 'vue'
 import { userApi } from '@sca/api'
 import type { UserVO } from '@sca/types'
 
+/** 用户列表 */
 const users = ref<UserVO[]>([])
+/** 总数（分页用） */
 const total = ref(0)
+/** 加载中标识 */
 const loading = ref(false)
+/** 当前页码 */
 const page = ref(1)
+/** 每页条数 */
 const size = 10
+/** 搜索关键字（用户名/昵称模糊） */
 const keyword = ref('')
 
+/** 分页加载用户列表（带关键字过滤） */
 async function load() {
   loading.value = true
   try {
@@ -25,6 +35,7 @@ async function load() {
   }
 }
 
+/** 搜索：重置页码后重新加载 */
 function search() {
   page.value = 1
   load()

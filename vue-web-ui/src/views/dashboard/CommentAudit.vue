@@ -1,16 +1,25 @@
 <script setup lang="ts">
+/**
+ * 评论审核页（管理员）：分页展示待审核评论，支持通过/驳回操作。
+ */
 import { onMounted, ref } from 'vue'
 import { createDiscreteApi } from 'naive-ui'
 import { commentApi } from '@sca/api'
 import type { CommentVO } from '@sca/types'
 
 const { message } = createDiscreteApi(['message'])
+/** 待审核评论列表 */
 const comments = ref<CommentVO[]>([])
+/** 总数（分页用） */
 const total = ref(0)
+/** 加载中标识 */
 const loading = ref(false)
+/** 当前页码 */
 const page = ref(1)
+/** 每页条数 */
 const size = 10
 
+/** 分页加载待审核评论 */
 async function load() {
   loading.value = true
   try {
@@ -22,6 +31,7 @@ async function load() {
   }
 }
 
+/** 审核评论（2=通过 3=驳回），成功后提示并刷新列表 */
 async function audit(comment: CommentVO, status: 2 | 3) {
   await commentApi.auditComment(comment.id, { status })
   message.success(status === 2 ? '已通过' : '已驳回')

@@ -1,7 +1,11 @@
 <script setup lang="ts">
+/**
+ * 数据统计页（管理员）：卡片式展示文章总数/已发布/待审核/草稿/点赞/收藏。
+ */
 import { onMounted, ref } from 'vue'
 import { articleApi } from '@sca/api'
 
+/** 文章统计数据结构（与后端 ArticleStatsVO 对齐） */
 interface Stats {
   totalArticles: number
   publishedArticles: number
@@ -11,8 +15,10 @@ interface Stats {
   totalFavorites: number
 }
 
+/** 统计结果（加载前后为 null） */
 const stats = ref<Stats | null>(null)
 
+/** 统计卡片配置：key 对应 Stats 字段，label 为展示名，color 为数值颜色 */
 const cards = [
   { key: 'totalArticles', label: '文章总数', color: 'text-indigo-600' },
   { key: 'publishedArticles', label: '已发布', color: 'text-green-600' },

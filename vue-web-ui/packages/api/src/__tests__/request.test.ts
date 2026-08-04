@@ -20,6 +20,10 @@ const originalLocation = window.location
 delete (window as any).location
 window.location = { href: '', pathname: '/dashboard' } as any
 
+/**
+ * request.ts 拦截器行为测试：覆盖业务 code 处理、登录态失效跳转、
+ * 错误消息提示与请求头注入四条核心链路。
+ */
 describe('request.ts axios 拦截器', () => {
   let mock: AxiosMockAdapter
 

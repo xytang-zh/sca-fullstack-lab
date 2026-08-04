@@ -1,4 +1,7 @@
 <script setup lang="ts">
+/**
+ * 修改密码页（用户中心）：校验原密码/新密码/确认密码后提交，成功则重新登录。
+ */
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { createDiscreteApi } from 'naive-ui'
@@ -9,9 +12,12 @@ const { message } = createDiscreteApi(['message'])
 const router = useRouter()
 const userStore = useUserStore()
 
+/** 修改密码表单 */
 const form = reactive({ oldPassword: '', newPassword: '', confirmPassword: '' })
+/** 提交中标识（防重复提交） */
 const submitting = ref(false)
 
+/** 提交修改密码：前端校验（非空/长度/两次一致）通过后调用接口，成功后清理登录态回登录页 */
 async function submit() {
   if (!form.oldPassword || !form.newPassword || !form.confirmPassword) {
     message.warning('请填写完整')

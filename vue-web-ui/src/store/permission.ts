@@ -2,10 +2,18 @@ import { computed } from 'vue'
 import { defineStore } from 'pinia'
 import { useUserStore } from './user'
 
+/**
+ * 侧边栏菜单项。
+ * @param roles 可见角色列表（缺省表示所有登录角色可见）
+ */
 export interface MenuItem {
+  /** 路由路径（作为菜单选中态与跳转目标） */
   key: string
+  /** 菜单显示名称 */
   label: string
+  /** 图标名称（映射到 DashboardLayout 的 iconMap） */
   icon?: string
+  /** 可见角色列表（如 ADMIN/super_admin） */
   roles?: string[]
 }
 

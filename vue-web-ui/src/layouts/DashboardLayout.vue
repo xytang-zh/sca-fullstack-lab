@@ -1,4 +1,9 @@
 <script setup lang="ts">
+/**
+ * Dashboard 布局：左侧角色菜单 + 右侧内容区。
+ * - 菜单由 permissionStore 按角色动态生成（用户中心 + 管理员菜单）
+ * - 顶栏含返回首页入口与当前用户头像
+ */
 import { computed, h } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { MenuOption } from 'naive-ui'
@@ -27,6 +32,7 @@ const router = useRouter()
 const userStore = useUserStore()
 const permissionStore = usePermissionStore()
 
+/** 菜单图标映射：permissionStore 的 icon 名称 → Naive UI 图标 VNode */
 const iconMap: Record<string, ReturnType<typeof h>> = {
   person: h(PersonOutline),
   lock: h(LockClosedOutline),
@@ -44,6 +50,7 @@ const iconMap: Record<string, ReturnType<typeof h>> = {
   'user-manage': h(PersonAddOutline)
 }
 
+/** 侧边栏菜单项：由 permissionStore 按角色过滤后的菜单渲染为 Naive UI 菜单配置 */
 const menuOptions = computed<MenuOption[]>(() => {
   return permissionStore.menus.map((m) => {
     const icon = m.icon
@@ -55,10 +62,12 @@ const menuOptions = computed<MenuOption[]>(() => {
   })
 })
 
+/** 菜单选中：跳转到对应路由路径 */
 function handleSelect(key: string) {
   router.push(key)
 }
 
+/** 退出登录并返回首页 */
 async function handleLogout() {
   await userStore.logout()
   router.push('/')

@@ -1,16 +1,25 @@
 <script setup lang="ts">
+/**
+ * 我点赞的文章列表（用户中心"点赞"页）：分页展示当前用户点赞过的文章。
+ */
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { articleApi } from '@sca/api'
 import type { ArticleVO } from '@sca/types'
 
 const router = useRouter()
+/** 点赞文章列表 */
 const articles = ref<ArticleVO[]>([])
+/** 总数（分页用） */
 const total = ref(0)
+/** 加载中标识 */
 const loading = ref(false)
+/** 当前页码 */
 const page = ref(1)
+/** 每页条数 */
 const size = 10
 
+/** 分页加载我点赞的文章 */
 async function load() {
   loading.value = true
   try {
@@ -22,6 +31,7 @@ async function load() {
   }
 }
 
+/** 跳转文章详情 */
 function goDetail(id: string) {
   router.push(`/articles/${id}`)
 }

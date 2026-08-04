@@ -1,4 +1,9 @@
 <script setup lang="ts">
+/**
+ * 文章评论区：一级评论 + 二级回复（嵌套），发表/回复/点赞均需登录。
+ * - 未登录操作时提示并跳转登录页（携带 redirect 回跳）
+ * - 点赞做乐观更新：先本地翻转，接口失败回滚
+ */
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { createDiscreteApi } from 'naive-ui'
@@ -9,7 +14,9 @@ import type { CommentVO } from '@sca/types'
 const { message } = createDiscreteApi(['message'])
 
 const props = defineProps<{
+  /** 所属文章 ID */
   articleId: string
+  /** 文章标题（冗余存储，便于后台展示） */
   articleTitle?: string
 }>()
 
@@ -17,18 +24,29 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
+/** 每页评论条数 */
 const PAGE_SIZE = 10
+/** 评论列表（平铺，含一级与二级，渲染时按 parentId 分组） */
 const comments = ref<CommentVO[]>([])
+/** 评论总数（用于分页与"加载更多"判断） */
 const total = ref(0)
+/** 列表加载中标识 */
 const loading = ref(false)
+/** 提交中标识（防重复提交） */
 const submitting = ref(false)
+/** 新评论输入内容 */
 const newContent = ref('')
+/** 当前正在回复的评论（null 表示未在回复态） */
 const replyTarget = ref<CommentVO | null>(null)
+/** 回复输入内容 */
 const replyContent = ref('')
+/** 正在点赞的评论 ID 列表（防并发重复点击） */
 const liking = ref<string[]>([])
 
+/** 是否已登录 */
 const isLoggedIn = computed(() => userStore.token !== '')
 
+/** 评论按父级分组：roots 为一级评论，replies 按 parentId 归集二级回复 */
 const grouped = computed(() => {
   const roots: CommentVO[] = []
   const replies: Record<string, CommentVO[]> = {}
@@ -42,12 +60,15 @@ const grouped = computed(() => {
   return { roots, replies }
 })
 
+/** 是否还有更多评论（已加载数 < 总数） */
 const hasMore = computed(() => comments.value.length < total.value)
 
+/** 时间格式化：ISO 时间裁剪为 "YYYY-MM-DD HH:mm" */
 function formatTime(value: string): string {
   return value.replace('T', ' ').slice(0, 16)
 }
 
+/** 登录守卫：未登录提示并跳登录页，返回是否可继续操作 */
 function requireLogin(): boolean {
   if (isLoggedIn.value) {
     return true
@@ -57,6 +78,7 @@ function requireLogin(): boolean {
   return false
 }
 
+/** 加载评论列表：append=false 重置第一页，true 追加下一页（"加载更多"） */
 async function load(append = false) {
   loading.value = true
   try {
@@ -72,6 +94,7 @@ async function load(append = false) {
   }
 }
 
+/** 发表一级评论：校验登录与内容非空，成功后清空输入并刷新列表 */
 async function submitComment() {
   if (!requireLogin()) {
     return
@@ -98,6 +121,7 @@ async function submitComment() {
   }
 }
 
+/** 提交回复：指向 replyTarget 评论，成功后退出回复态并刷新列表 */
 async function submitReply() {
   if (!replyTarget.value) {
     return
@@ -130,6 +154,7 @@ async function submitReply() {
   }
 }
 
+/** 点赞/取消点赞（乐观更新）：本地先翻转，接口返回不一致时对齐，失败回滚 */
 async function toggleLike(comment: CommentVO) {
   if (!requireLogin()) {
     return
@@ -155,6 +180,7 @@ async function toggleLike(comment: CommentVO) {
   }
 }
 
+/** 进入回复态：设置回复目标并清空回复输入 */
 function startReply(comment: CommentVO) {
   if (!requireLogin()) {
     return

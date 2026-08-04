@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@9.0.0",
+  "//scripts": "npm 会忽略以 // 开头的键（作为注释）：dev 开发启动 / build 类型检查+构建 / preview 预览构建产物 / typecheck 仅类型检查 / lint 代码规范",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
@@ -11,6 +12,7 @@
     "typecheck": "vue-tsc --noEmit -p tsconfig.json",
     "lint": "eslint . --ext .vue,.ts,.tsx --fix"
   },
+  "//dependencies": "运行时依赖：workspace 包为共享包，其余为 Vue 生态与博客渲染（markdown-it+highlight.js+dompurify）",
   "dependencies": {
     "@sca/api": "workspace:*",
     "@sca/types": "workspace:*",
@@ -28,6 +30,7 @@
     "vue": "^3.5.0",
     "vue-router": "^4.4.0"
   },
+  "//devDependencies": "开发/构建期依赖：TS 类型、ESLint、UnoCSS、Vite 生态与测试（vitest）",
   "devDependencies": {
     "@types/markdown-it": "^14.1.2",
     "@typescript-eslint/eslint-plugin": "^8.0.0",

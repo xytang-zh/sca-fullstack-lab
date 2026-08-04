@@ -1,4 +1,7 @@
 <script setup lang="ts">
+/**
+ * 关注订阅页（用户中心）：Tab 切换展示我关注的人 / 关注我的人 / 我订阅的专栏。
+ */
 import { onMounted, ref, watch } from 'vue'
 import { articleApi, userApi } from '@sca/api'
 import { useUserStore } from '@/store/user'
@@ -7,20 +10,29 @@ import type { ColumnVO, UserVO } from '@sca/types'
 const userStore = useUserStore()
 
 type Tab = 'following' | 'followers' | 'columns'
+/** 当前 Tab：following=我关注的人 followers=关注我的人 columns=我订阅的专栏 */
 const tab = ref<Tab>('following')
+/** 用户列表（关注/粉丝 Tab 共用） */
 const users = ref<UserVO[]>([])
+/** 专栏列表（订阅 Tab 使用） */
 const columns = ref<ColumnVO[]>([])
+/** 总数（分页用） */
 const total = ref(0)
+/** 加载中标识 */
 const loading = ref(false)
+/** 当前页码 */
 const page = ref(1)
+/** 每页条数 */
 const size = 10
 
+/** Tab 配置 */
 const tabs = [
   { key: 'following' as Tab, label: '我关注的人' },
   { key: 'followers' as Tab, label: '关注我的人' },
   { key: 'columns' as Tab, label: '我订阅的专栏' }
 ]
 
+/** 加载当前 Tab 数据：订阅 Tab 查专栏，其余查用户 */
 async function load() {
   loading.value = true
   try {
@@ -42,6 +54,7 @@ async function load() {
   }
 }
 
+/** Tab 切换：重置页码并重新加载 */
 watch(tab, () => {
   page.value = 1
   load()

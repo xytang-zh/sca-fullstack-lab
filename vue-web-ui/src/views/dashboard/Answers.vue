@@ -1,22 +1,32 @@
 <script setup lang="ts">
+/**
+ * 我的回答页（用户中心）：分页展示当前用户发表/回复的评论及审核状态。
+ */
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { commentApi } from '@sca/api'
 import type { CommentMyVO } from '@sca/types'
 
 const router = useRouter()
+/** 我的评论列表 */
 const comments = ref<CommentMyVO[]>([])
+/** 总数（分页用） */
 const total = ref(0)
+/** 加载中标识 */
 const loading = ref(false)
+/** 当前页码 */
 const page = ref(1)
+/** 每页条数 */
 const size = 10
 
+/** 评论审核状态 → 展示标签映射（1=待审核 2=已通过 3=已驳回） */
 const statusText: Record<number, { label: string; type: 'default' | 'success' | 'warning' }> = {
   1: { label: '待审核', type: 'warning' },
   2: { label: '已通过', type: 'success' },
   3: { label: '已驳回', type: 'default' }
 }
 
+/** 分页加载我的评论 */
 async function load() {
   loading.value = true
   try {
@@ -28,6 +38,7 @@ async function load() {
   }
 }
 
+/** 跳转评论所属文章 */
 function goArticle(articleId: string) {
   router.push(`/articles/${articleId}`)
 }

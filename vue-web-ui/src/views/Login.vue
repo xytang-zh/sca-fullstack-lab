@@ -1,4 +1,10 @@
 <script setup lang="ts">
+/**
+ * 登录/注册二合一卡片页（渐变背景 + 居中卡片）。
+ * - 登录态：账号 + 密码 + 图形验证码，可记住登录
+ * - 注册态：账号 + 密码 + 确认密码，注册成功自动登录
+ * 通过 URL 参数 ?mode=register 可直接切换到注册态。
+ */
 import { onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { createDiscreteApi } from 'naive-ui'
@@ -14,15 +20,22 @@ const router = useRouter()
 const userStore = useUserStore()
 
 type Mode = 'login' | 'register'
+/** 当前模式：login=登录  register=注册 */
 const mode = ref<Mode>('login')
+/** 图形验证码数据（登录模式加载） */
 const captcha = ref<CaptchaVO | null>(null)
+/** 提交中标识（防重复提交） */
 const submitting = ref(false)
 
+/** 登录表单 */
 const loginForm = reactive({ account: '', password: '', captchaCode: '', rememberMe: false })
+/** 注册表单 */
 const registerForm = reactive({ account: '', password: '', confirmPassword: '' })
 
+/** 注册账号规则：字母开头，后接 5-17 位字母/数字，共 6-18 位 */
 const ACCOUNT_PATTERN = /^[a-zA-Z][a-zA-Z0-9]{5,17}$/
 
+/** 加载图形验证码：失败时置空（登录页校验会提示刷新） */
 async function loadCaptcha() {
   try {
     captcha.value = await authApi.getCaptcha()
@@ -32,6 +45,7 @@ async function loadCaptcha() {
   }
 }
 
+/** 切换登录/注册模式：切回登录时重新加载验证码（旧验证码可能已过期） */
 function switchMode(next: Mode) {
   mode.value = next
   if (next === 'login') {
@@ -39,6 +53,7 @@ function switchMode(next: Mode) {
   }
 }
 
+/** 提交登录：逐项前端校验后调用登录接口，成功按 redirect 回跳，失败刷新验证码 */
 async function submitLogin() {
   if (!loginForm.account) {
     message.error('请输入账号')
@@ -68,12 +83,14 @@ async function submitLogin() {
     const redirect = (route.query.redirect as string) || '/'
     router.replace(redirect)
   } catch {
+    // 登录失败（密码错误/验证码错误）时刷新验证码，避免用户重复输入已失效的验证码
     await loadCaptcha()
   } finally {
     submitting.value = false
   }
 }
 
+/** 提交注册：前端完整校验（账号格式/密码长度/两次一致）后调用注册接口，成功后进入首页 */
 async function submitRegister() {
   if (!registerForm.account) {
     message.error('请输入账号')
@@ -108,6 +125,7 @@ async function submitRegister() {
   }
 }
 
+/** 支持 ?mode=register 直链进入注册态（分享注册链接场景） */
 watch(
   () => route.query.mode,
   (val) => {

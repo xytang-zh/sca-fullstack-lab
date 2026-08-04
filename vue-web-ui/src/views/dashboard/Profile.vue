@@ -1,15 +1,22 @@
 <script setup lang="ts">
+/**
+ * 个人主页（用户中心）：展示个人资料（含关注/粉丝/文章/专栏统计）与最近文章。
+ */
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { articleApi, userApi } from '@sca/api'
 import type { ArticleVO, UserVO } from '@sca/types'
 
 const router = useRouter()
+/** 个人资料（含关注数/粉丝数） */
 const profile = ref<UserVO | null>(null)
+/** 最近文章列表 */
 const articles = ref<ArticleVO[]>([])
+/** 我的专栏总数（仅展示数量） */
 const myColumns = ref<{ total: number }>({ total: 0 })
 
 onMounted(async () => {
+  // 并行加载资料 + 最近文章 + 专栏数，避免串行等待
   profile.value = await userApi.getMyProfile()
   const [articlePage, columnPage] = await Promise.all([
     articleApi.myArticles(1, 5),
@@ -19,6 +26,7 @@ onMounted(async () => {
   myColumns.value = { total: columnPage.total }
 })
 
+/** 跳转文章详情 */
 function goDetail(id: string) {
   router.push(`/articles/${id}`)
 }

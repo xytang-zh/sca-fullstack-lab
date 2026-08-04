@@ -1,4 +1,7 @@
 <script setup lang="ts">
+/**
+ * 我的专栏页（用户中心）：分页展示当前用户的专栏，支持新建/编辑/删除（弹窗表单）。
+ */
 import { onMounted, reactive, ref } from 'vue'
 import { createDiscreteApi } from 'naive-ui'
 import { articleApi } from '@sca/api'
@@ -6,17 +9,27 @@ import type { ColumnVO } from '@sca/types'
 
 const { message } = createDiscreteApi(['message'])
 
+/** 我的专栏列表 */
 const columns = ref<ColumnVO[]>([])
+/** 总数（分页用） */
 const total = ref(0)
+/** 加载中标识 */
 const loading = ref(false)
+/** 当前页码 */
 const page = ref(1)
+/** 每页条数 */
 const size = 10
+/** 新建/编辑弹窗是否显示 */
 const showModal = ref(false)
+/** 正在编辑的专栏（null 表示新建） */
 const editing = ref<ColumnVO | null>(null)
+/** 提交中标识（防重复提交） */
 const submitting = ref(false)
 
+/** 专栏表单（新建/编辑共用） */
 const form = reactive({ name: '', description: '', coverImage: '' })
 
+/** 分页加载我的专栏 */
 async function load() {
   loading.value = true
   try {
@@ -28,6 +41,7 @@ async function load() {
   }
 }
 
+/** 打开新建弹窗：清空编辑态与表单 */
 function openCreate() {
   editing.value = null
   form.name = ''
@@ -36,6 +50,7 @@ function openCreate() {
   showModal.value = true
 }
 
+/** 打开编辑弹窗：填充当前专栏数据到表单 */
 function openEdit(column: ColumnVO) {
   editing.value = column
   form.name = column.name
@@ -44,6 +59,7 @@ function openEdit(column: ColumnVO) {
   showModal.value = true
 }
 
+/** 提交表单：编辑态走更新，否则走创建，成功后关闭弹窗并刷新列表 */
 async function submit() {
   if (!form.name.trim()) {
     message.warning('请输入专栏名称')
@@ -70,6 +86,7 @@ async function submit() {
   }
 }
 
+/** 删除专栏并刷新列表 */
 async function handleDelete(column: ColumnVO) {
   await articleApi.deleteColumn(column.id)
   message.success('专栏已删除')

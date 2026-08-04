@@ -1,16 +1,25 @@
 <script setup lang="ts">
+/**
+ * 文章审核页（管理员）：分页展示待审核文章，支持通过/驳回操作。
+ */
 import { onMounted, ref } from 'vue'
 import { createDiscreteApi } from 'naive-ui'
 import { articleApi } from '@sca/api'
 import type { ArticleVO } from '@sca/types'
 
 const { message } = createDiscreteApi(['message'])
+/** 待审核文章列表 */
 const articles = ref<ArticleVO[]>([])
+/** 总数（分页用） */
 const total = ref(0)
+/** 加载中标识 */
 const loading = ref(false)
+/** 当前页码 */
 const page = ref(1)
+/** 每页条数 */
 const size = 10
 
+/** 分页加载待审核文章 */
 async function load() {
   loading.value = true
   try {
@@ -22,6 +31,7 @@ async function load() {
   }
 }
 
+/** 审核文章（3=通过 4=驳回），成功后提示并刷新列表 */
 async function audit(article: ArticleVO, status: 3 | 4) {
   await articleApi.auditArticle(article.id, status)
   message.success(status === 3 ? '已通过' : '已驳回')

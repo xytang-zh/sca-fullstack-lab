@@ -1,4 +1,7 @@
 <script setup lang="ts">
+/**
+ * 知乎风格顶部导航栏：品牌 logo、内容 Tab（关注/最新/热门/专栏）、搜索框与用户区。
+ */
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
@@ -7,8 +10,13 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
+/** 是否已登录（token 非空即视为登录态） */
 const isLoggedIn = computed(() => userStore.token !== '')
+
+/** 搜索关键字（回车触发搜索） */
 const keyword = ref('')
+
+/** 当前激活 Tab：从 URL query 读取，非法值回退到"最新" */
 const activeTab = computed(() => {
   const tab = route.query.tab
   if (tab === 'hot' || tab === 'follow' || tab === 'columns') {
@@ -17,14 +25,17 @@ const activeTab = computed(() => {
   return 'time'
 })
 
+/** 跳转博客首页 */
 function goHome() {
   router.push('/')
 }
 
+/** 切换内容 Tab：以 query 参数驱动首页列表过滤 */
 function switchTab(tab: string) {
   router.push({ path: '/', query: { tab } })
 }
 
+/** 触发搜索：关键字非空才跳转搜索页 */
 function goSearch() {
   const q = keyword.value.trim()
   if (!q) {
@@ -33,6 +44,7 @@ function goSearch() {
   router.push({ path: '/search', query: { q } })
 }
 
+/** 跳转写文章：未登录先跳登录页并携带 redirect，登录成功回跳 */
 function goWrite() {
   if (!isLoggedIn.value) {
     router.push({ path: '/login', query: { redirect: '/dashboard/write' } })
@@ -41,25 +53,30 @@ function goWrite() {
   router.push('/dashboard/write')
 }
 
+/** 跳转个人主页 */
 function goProfile() {
   router.push('/dashboard/profile')
 }
 
+/** 跳转设置（修改密码） */
 function goSettings() {
   router.push('/dashboard/password')
 }
 
+/** 退出登录并返回首页 */
 async function handleLogout() {
   await userStore.logout()
   router.push('/')
 }
 
+/** 用户下拉菜单项 */
 const dropdownOptions = [
   { label: '我的主页', key: 'profile' },
   { label: '设置', key: 'settings' },
   { label: '退出', key: 'logout' }
 ]
 
+/** 处理用户下拉选择：按 key 分发到主页/设置/登出 */
 function handleDropdown(key: string) {
   if (key === 'profile') {
     goProfile()
@@ -70,6 +87,7 @@ function handleDropdown(key: string) {
   }
 }
 
+/** 首页内容 Tab 配置 */
 const navItems = [
   { key: 'follow', label: '关注' },
   { key: 'time', label: '最新' },

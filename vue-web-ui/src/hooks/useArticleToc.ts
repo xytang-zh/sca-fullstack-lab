@@ -3,7 +3,9 @@ import { onBeforeUnmount, ref, watch, type Ref } from 'vue'
 export interface TocItem {
   /** 标题层级：2=h2, 3=h3 */
   level: number
+  /** 标题文本 */
   text: string
+  /** 标题 DOM 元素 id（用于定位与高亮） */
   id: string
 }
 
@@ -14,12 +16,16 @@ const ROOT_MARGIN = '-20% 0px -70% 0px'
  * 监听文章标题元素，计算当前阅读章节。
  * 通过 IntersectionObserver 观察标题元素，离开窗口时兜底重算，
  * 保证向上滚动时高亮能正确回退到上一章节。
+ *
+ * @param toc 文章目录项列表（含标题 id 与层级）
+ * @returns 当前激活的标题 id（响应式 ref）
  */
 export function useArticleToc(toc: Ref<TocItem[]>) {
   const activeId = ref('')
   let observer: IntersectionObserver | null = null
   const elements = new Map<string, Element>()
 
+  /** 兜底重算：遍历所有标题，找出最接近视口 20%~30% 区域的当前章节 */
   function recompute() {
     const winH = window.innerHeight
     const topBound = winH * 0.2
@@ -37,6 +43,7 @@ export function useArticleToc(toc: Ref<TocItem[]>) {
     activeId.value = bestId
   }
 
+  /** 观察回调：有标题离开窄窗口则兜底重算；有标题进入则取最靠下的作为当前章节 */
   function onObserve(entries: IntersectionObserverEntry[]) {
     const leaving = entries.some((e) => !e.isIntersecting)
     if (leaving) {
@@ -52,6 +59,7 @@ export function useArticleToc(toc: Ref<TocItem[]>) {
     }
   }
 
+  /** 建立观察：先断开旧观察，再对新目录项对应的标题元素注册 IntersectionObserver */
   function observe() {
     disconnect()
     const items = toc.value
@@ -68,6 +76,7 @@ export function useArticleToc(toc: Ref<TocItem[]>) {
     })
   }
 
+  /** 断开观察并清空元素缓存（组件卸载时调用，防止内存泄漏） */
   function disconnect() {
     observer?.disconnect()
     observer = null

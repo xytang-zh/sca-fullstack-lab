@@ -1,8 +1,12 @@
 <script setup lang="ts">
+/**
+ * 搜索结果页：从 URL query 读取关键字并展示（全文搜索功能开发中，当前为占位）。
+ */
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
+/** 搜索关键字（来自 URL ?q=） */
 const keyword = computed(() => (route.query.q as string) ?? '')
 </script>
 

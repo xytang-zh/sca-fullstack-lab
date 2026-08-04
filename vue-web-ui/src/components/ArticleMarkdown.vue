@@ -1,4 +1,10 @@
 <script setup lang="ts">
+/**
+ * Markdown 渲染组件：将 Markdown 源码渲染为安全 HTML。
+ * - 语法高亮用 highlight.js（按需注册常见语言，控制包体积）
+ * - 输出经 DOMPurify 白名单过滤，防 XSS
+ * - 渲染时提取标题生成目录（toc-updated 事件），供 TocNav 使用
+ */
 import { ref, watch } from 'vue'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js/lib/core'
@@ -21,10 +27,12 @@ import type { LanguageFn } from 'highlight.js'
 import type { TocItem } from '@/hooks/useArticleToc'
 
 const props = defineProps<{
+  /** Markdown 源文本 */
   contentMd: string
 }>()
 
 const emit = defineEmits<{
+  /** 渲染完成后向上抛出目录项列表（供文章详情页联动目录导航） */
   (e: 'toc-updated', toc: TocItem[]): void
 }>()
 
@@ -97,6 +105,7 @@ markdownIt.renderer.rules.heading_open = (tokens, idx): string => {
   return `<${tag} id="${id}">`
 }
 
+/** 渲染 Markdown 并做 XSS 白名单过滤：先清空目录缓存，再渲染 + 净化 */
 function render(md: string): string {
   toc.length = 0
   headingIds.clear()

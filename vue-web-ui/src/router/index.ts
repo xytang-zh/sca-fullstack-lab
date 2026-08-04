@@ -1,7 +1,12 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { getToken } from '@sca/utils'
 
+/**
+ * 路由表：公开路由（博客/文章详情/搜索）+ 登录页 + 需鉴权的 dashboard（用户中心与管理页）。
+ * 页面组件一律懒加载（() => import），保证首屏只加载所需 chunk。
+ */
 const routes: RouteRecordRaw[] = [
+  // ============ 公开路由：博客前台，游客可访问 ============
   {
     path: '/',
     component: () => import('@/layouts/PublicLayout.vue'),
@@ -26,12 +31,14 @@ const routes: RouteRecordRaw[] = [
       }
     ]
   },
+  // ============ 登录/注册页 ============
   {
     path: '/login',
     name: 'Login',
     component: () => import('@/views/Login.vue'),
     meta: { title: '登录' }
   },
+  // ============ 用户中心 + 管理页（requiresAuth，未登录跳登录页） ============
   {
     path: '/dashboard',
     component: () => import('@/layouts/DashboardLayout.vue'),
@@ -124,6 +131,7 @@ const routes: RouteRecordRaw[] = [
       }
     ]
   },
+  // ============ 兜底路由：未匹配路径重定向首页 ============
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
@@ -131,23 +139,32 @@ const routes: RouteRecordRaw[] = [
   }
 ]
 
+/** 路由实例：HTML5 History 模式，路由切换时滚动回顶部 */
 const router = createRouter({
   history: createWebHistory(),
   routes,
   scrollBehavior: () => ({ top: 0 })
 })
 
+/**
+ * 全局前置守卫：按"登录态 → 角色"两级拦截。
+ * - 进受保护页（requiresAuth）但无 Token → 跳登录页并携带 redirect 便于登录后回跳
+ * - 带 meta.roles 的页面（管理页）→ 懒加载用户信息校验角色，防止非管理员直接改 URL 越权访问
+ */
 router.beforeEach(async (to) => {
   document.title = to.meta.title ? `${to.meta.title} - Sca 博客` : 'Sca 博客'
 
+  // 1. 登录态拦截：未登录访问受保护页一律重定向登录页
   if (to.meta.requiresAuth && !getToken()) {
     return { path: '/login', query: { redirect: to.fullPath } }
   }
 
+  // 2. 角色拦截：管理页需 ADMIN/super_admin 角色，无角色信息时先拉取再判断
   if (to.meta.roles) {
     const roles = to.meta.roles as string[]
     const { useUserStore } = await import('@/store/user')
     const userStore = useUserStore()
+    // 用户信息未加载过则拉取；拉取失败视为登录态失效，清空并回登录页
     if (!userStore.userInfo) {
       try {
         await userStore.fetchUserInfo()
@@ -158,6 +175,7 @@ router.beforeEach(async (to) => {
     }
     const hasRole = userStore.roles.some((r) => roles.includes(r))
     if (!hasRole) {
+      // 无权限：回退到个人主页，避免停留在无权限页面
       return { path: '/dashboard/profile' }
     }
   }

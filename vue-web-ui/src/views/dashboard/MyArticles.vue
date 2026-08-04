@@ -1,4 +1,7 @@
 <script setup lang="ts">
+/**
+ * 我的文章页（用户中心）：分页展示当前用户已发布的文章，支持编辑/删除。
+ */
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { createDiscreteApi } from 'naive-ui'
@@ -8,12 +11,18 @@ import type { ArticleVO } from '@sca/types'
 const { message } = createDiscreteApi(['message'])
 const router = useRouter()
 
+/** 我的文章列表 */
 const articles = ref<ArticleVO[]>([])
+/** 总数（分页用） */
 const total = ref(0)
+/** 加载中标识 */
 const loading = ref(false)
+/** 当前页码 */
 const page = ref(1)
+/** 每页条数 */
 const size = 10
 
+/** 分页加载我发布的文章 */
 async function load() {
   loading.value = true
   try {
@@ -25,16 +34,19 @@ async function load() {
   }
 }
 
+/** 删除文章并刷新列表 */
 async function handleDelete(article: ArticleVO) {
   await articleApi.deleteArticle(article.id)
   message.success('已删除')
   load()
 }
 
+/** 跳转文章详情 */
 function goDetail(id: string) {
   router.push(`/articles/${id}`)
 }
 
+/** 跳转编辑器并携带文章 ID 编辑 */
 function goEdit(article: ArticleVO) {
   router.push({ path: '/dashboard/write', query: { id: article.id } })
 }

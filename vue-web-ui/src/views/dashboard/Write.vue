@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 撰写/编辑文章页（用户中心）：Markdown 编辑器，支持保存草稿或直接发布。
+ * - 通过 ?id= 参数进入编辑态，加载已有文章内容
+ */
 import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { createDiscreteApi } from 'naive-ui'
@@ -9,9 +13,13 @@ const { message } = createDiscreteApi(['message'])
 const route = useRoute()
 const router = useRouter()
 
+/** 编辑态文章 ID（来自 ?id=，存在即编辑否则新建） */
 const editId = route.query.id as string | undefined
+/** 我的专栏下拉选项（文章可归属某专栏） */
 const columns = ref<ColumnVO[]>([])
+/** 提交中标识（防重复提交） */
 const submitting = ref(false)
+/** 文章表单 */
 const form = reactive({
   title: '',
   summary: '',
@@ -20,6 +28,7 @@ const form = reactive({
 })
 
 onMounted(async () => {
+  // 加载我的专栏供下拉选择；编辑态则回填文章内容
   const columnPage = await articleApi.myColumns(1, 100)
   columns.value = columnPage.records
   if (editId) {
@@ -31,6 +40,7 @@ onMounted(async () => {
   }
 })
 
+/** 保存（1=草稿 3=发布）：校验标题/正文非空后提交，成功后跳转对应列表页 */
 async function save(status: 1 | 3) {
   if (!form.title.trim()) {
     message.warning('请输入标题')

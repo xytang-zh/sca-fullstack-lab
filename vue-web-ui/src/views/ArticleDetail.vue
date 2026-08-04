@@ -1,4 +1,9 @@
 <script setup lang="ts">
+/**
+ * 文章详情页：标题/元信息 + Markdown 正文渲染 + 右侧目录导航 + 底部评论区。
+ * - 目录由 ArticleMarkdown 渲染时提取，经 useArticleToc 联动高亮
+ * - 窄屏（<1024px）自动收起目录侧栏
+ */
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { MenuOutline } from '@vicons/ionicons5'
@@ -14,22 +19,31 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
+/** 文章详情数据 */
 const article = ref<ArticleDetailVO | null>(null)
+/** 加载中标识 */
 const loading = ref(false)
+/** 目录项列表（ArticleMarkdown 渲染时回传） */
 const toc = ref<TocItem[]>([])
+/** 目录侧栏是否收起（窄屏默认收起） */
 const tocCollapsed = ref(false)
+/** 视口是否宽屏（≥1024px） */
 const isWide = ref(true)
 
+/** 当前激活章节 id（由 useArticleToc 计算，驱动 TocNav 高亮） */
 const { activeId } = useArticleToc(toc)
 
+/** 视口尺寸监听：宽屏阈值 1024px（对应 tailwind lg 断点） */
 function onResize() {
   isWide.value = window.innerWidth >= 1024
 }
 
+/** 接收 ArticleMarkdown 渲染出的目录项 */
 function onTocUpdated(items: TocItem[]) {
   toc.value = items
 }
 
+/** 加载文章详情（按路由参数 id） */
 async function load() {
   loading.value = true
   try {
@@ -39,6 +53,7 @@ async function load() {
   }
 }
 
+/** 时间格式化：ISO 时间裁剪为 "YYYY-MM-DD HH:mm" */
 function formatTime(value?: string): string {
   if (!value) {
     return ''
@@ -46,6 +61,7 @@ function formatTime(value?: string): string {
   return value.replace('T', ' ').slice(0, 16)
 }
 
+/** 登录守卫：未登录携带 redirect 跳登录页 */
 function requireLogin(): boolean {
   if (userStore.token) {
     return true
@@ -54,6 +70,7 @@ function requireLogin(): boolean {
   return false
 }
 
+/** 点赞/取消点赞：成功后按结果 ±1 更新显示 */
 async function toggleLike() {
   if (!article.value || !requireLogin()) {
     return
@@ -62,6 +79,7 @@ async function toggleLike() {
   article.value.likes += liked ? 1 : -1
 }
 
+/** 收藏/取消收藏：成功后按结果 ±1 更新显示 */
 async function toggleFavorite() {
   if (!article.value || !requireLogin()) {
     return

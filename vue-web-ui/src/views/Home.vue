@@ -1,4 +1,9 @@
 <script setup lang="ts">
+/**
+ * 博客首页：按 Tab 展示文章列表（关注/最新/热门）或专栏列表。
+ * - Tab 由 URL query 驱动（NavBar 切换），支持直链进入对应 Tab
+ * - 关注 Tab 需登录，未登录展示引导登录
+ */
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { articleApi, userApi } from '@sca/api'
@@ -16,6 +21,7 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
+/** 当前 Tab：从 URL query 读取，非法值回退到"最新" */
 const tab = computed(() => {
   const t = route.query.tab
   if (t === 'hot' || t === 'follow' || t === 'columns') {
@@ -24,16 +30,25 @@ const tab = computed(() => {
   return 'time'
 })
 
+/** 文章排序方式：time=最新 hot=最热 */
 const sort = ref<'time' | 'hot'>('time')
+/** 文章列表（时间/热度/关注 Tab 共用） */
 const articles = ref<ArticleVO[]>([])
+/** 专栏列表（仅专栏 Tab 使用） */
 const columns = ref<ColumnVO[]>([])
+/** 数据总数（分页用） */
 const total = ref(0)
+/** 加载中标识 */
 const loading = ref(false)
+/** 当前页码 */
 const page = ref(1)
+/** 每页条数 */
 const size = 10
 
+/** 是否已登录 */
 const isLoggedIn = computed(() => userStore.token !== '')
 
+/** 加载当前 Tab 数据：专栏→专栏列表；关注→关注作者的 Feed；其余→文章列表 */
 async function load() {
   loading.value = true
   try {
@@ -47,6 +62,7 @@ async function load() {
       return
     }
     if (tab.value === 'follow') {
+      // 关注 Feed：先取我关注的用户，再按关注作者过滤文章
       if (!isLoggedIn.value) {
         articles.value = []
         total.value = 0
@@ -80,6 +96,7 @@ async function load() {
   }
 }
 
+/** 切换排序方式：排序变化时重置页码并重新加载（短点击同值忽略） */
 function changeSort(s: 'time' | 'hot') {
   if (sort.value === s) {
     return
@@ -89,18 +106,22 @@ function changeSort(s: 'time' | 'hot') {
   load()
 }
 
+/** 跳转文章详情 */
 function goDetail(id: string) {
   router.push(`/articles/${id}`)
 }
 
+/** 跳转专栏文章列表 */
 function goColumn(id: string) {
   router.push(`/articles?column=${id}`)
 }
 
+/** 跳转登录页（携带 redirect 回跳） */
 function goLogin() {
   router.push({ path: '/login', query: { redirect: route.fullPath } })
 }
 
+/** 时间格式化：ISO 时间裁剪为 "YYYY-MM-DD" */
 function formatTime(value?: string): string {
   if (!value) {
     return ''
@@ -108,6 +129,7 @@ function formatTime(value?: string): string {
   return value.replace('T', ' ').slice(0, 10)
 }
 
+/** Tab 切换：重置页码并重新加载 */
 watch(tab, () => {
   page.value = 1
   load()

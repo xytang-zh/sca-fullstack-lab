@@ -1,4 +1,7 @@
 <script setup lang="ts">
+/**
+ * 草稿箱（用户中心）：分页展示当前用户的草稿，支持继续编辑与删除。
+ */
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { createDiscreteApi } from 'naive-ui'
@@ -8,12 +11,18 @@ import type { ArticleVO } from '@sca/types'
 const { message } = createDiscreteApi(['message'])
 const router = useRouter()
 
+/** 草稿列表 */
 const drafts = ref<ArticleVO[]>([])
+/** 总数（分页用） */
 const total = ref(0)
+/** 加载中标识 */
 const loading = ref(false)
+/** 当前页码 */
 const page = ref(1)
+/** 每页条数 */
 const size = 10
 
+/** 分页加载我的草稿 */
 async function load() {
   loading.value = true
   try {
@@ -25,12 +34,14 @@ async function load() {
   }
 }
 
+/** 删除草稿并刷新列表 */
 async function handleDelete(draft: ArticleVO) {
   await articleApi.deleteArticle(draft.id)
   message.success('草稿已删除')
   load()
 }
 
+/** 跳转编辑器并携带草稿 ID 继续编辑 */
 function goEdit(draft: ArticleVO) {
   router.push({ path: '/dashboard/write', query: { id: draft.id } })
 }
