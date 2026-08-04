@@ -1,30 +1,35 @@
+# ==================== 文章服务基础配置 ====================
 server:
-  port: 8093
+  port: 8093                    # HTTP 端口（网关 8080 → 转发到本服务）
   servlet:
-    context-path: /
+    context-path: /             # 根路径（网关 StripPrefix 后直接匹配）
   tomcat:
-    max-threads: 200
-    accept-count: 100
+    max-threads: 200            # 最大工作线程数
+    accept-count: 100           # 等待队列长度（超出后拒绝连接）
 
 spring:
   application:
     name: spring-cloud-article
+  # 必须显式激活 profile，否则 spring.config.import 中
+  # ${spring.profiles.active} 占位符无法解析，Nacos 构建 dataId 时抛 illegal URI
+  profiles:
+    active: dev                 # 默认激活 dev（生产经 SPRING_PROFILES_ACTIVE 覆盖）
   config:
     import:
-      - optional:nacos:spring-cloud-shared.yaml
-      - optional:nacos:${spring.application.name}.yaml
-      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yaml
+      - optional:nacos:spring-cloud-shared.yaml                            # 共享配置（Redis/Sa-Token）
+      - optional:nacos:${spring.application.name}.yaml                     # 服务级配置
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yaml  # 环境级配置
   cloud:
     nacos:
-      username: ${NACOS_USERNAME:nacos}
-      password: ${NACOS_PASSWORD:nacos}
+      username: ${NACOS_USERNAME:nacos}       # Nacos 账号（开启认证后必须填）
+      password: ${NACOS_PASSWORD:nacos}       # Nacos 密码（生产务必环境变量注入）
       discovery:
-        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
-        namespace: ${NACOS_NAMESPACE:sca-dev}
-        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}   # 注册中心地址，默认本地
+        namespace: ${NACOS_NAMESPACE:sca-dev}       # 命名空间（隔离环境）
+        group: ${NACOS_GROUP:DEFAULT_GROUP}         # 配置分组
       config:
-        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
-        namespace: ${NACOS_NAMESPACE:sca-dev}
-        group: ${NACOS_GROUP:DEFAULT_GROUP}
-        file-extension: yaml
-        refresh-enabled: true
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}   # 配置中心地址，默认本地
+        namespace: ${NACOS_NAMESPACE:sca-dev}       # 命名空间
+        group: ${NACOS_GROUP:DEFAULT_GROUP}         # 配置分组
+        file-extension: yaml                        # 配置文件扩展名
+        refresh-enabled: true                       # 开启动态刷新（配合 @RefreshScope）

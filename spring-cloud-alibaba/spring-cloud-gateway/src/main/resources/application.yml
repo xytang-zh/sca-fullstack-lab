@@ -1,46 +1,53 @@
+# ==================== 网关基础配置 ====================
 server:
-  port: 8080
+  port: 8080                    # 网关统一入口端口
 
 spring:
   application:
     name: spring-cloud-gateway
+  # 必须显式激活 profile，否则 spring.config.import 中
+  # ${spring.profiles.active} 占位符无法解析，Nacos 构建 dataId 时抛 illegal URI
+  profiles:
+    active: dev                 # 默认激活 dev（生产经 SPRING_PROFILES_ACTIVE 覆盖）
   main:
-    allow-bean-definition-overriding: true
-    web-application-type: reactive
+    allow-bean-definition-overriding: true   # 允许同名 Bean 覆盖（网关与 SCA 适配冲突兜底）
+    web-application-type: reactive           # 强制响应式 WebFlux（网关非 Servlet MVC）
   config:
     import:
-      - optional:nacos:spring-cloud-shared.yaml
-      - optional:nacos:${spring.application.name}.yaml
-      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yaml
+      - optional:nacos:spring-cloud-shared.yaml                            # 共享配置（Redis/Sa-Token）
+      - optional:nacos:${spring.application.name}.yaml                     # 服务级配置
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yaml  # 环境级配置
   cloud:
     nacos:
-      username: ${NACOS_USERNAME:nacos}
-      password: ${NACOS_PASSWORD:nacos}
+      username: ${NACOS_USERNAME:nacos}       # Nacos 账号（开启认证后必须填）
+      password: ${NACOS_PASSWORD:nacos}       # Nacos 密码（生产务必环境变量注入）
       discovery:
-        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
-        namespace: ${NACOS_NAMESPACE:sca-dev}
-        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}   # 注册中心地址，默认本地
+        namespace: ${NACOS_NAMESPACE:sca-dev}       # 命名空间（隔离环境）
+        group: ${NACOS_GROUP:DEFAULT_GROUP}         # 配置分组
       config:
-        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
-        namespace: ${NACOS_NAMESPACE:sca-dev}
-        group: ${NACOS_GROUP:DEFAULT_GROUP}
-        file-extension: yaml
-        refresh-enabled: true
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}   # 配置中心地址，默认本地
+        namespace: ${NACOS_NAMESPACE:sca-dev}       # 命名空间
+        group: ${NACOS_GROUP:DEFAULT_GROUP}         # 配置分组
+        file-extension: yaml                        # 配置文件扩展名
+        refresh-enabled: true                       # 开启动态刷新
     gateway:
       server:
         webflux:
           metrics:
-            enabled: true
+            enabled: true       # 网关指标（路由维度 QPS/P99）
           routes:
+            # 认证中心路由：/api/auth/** → spring-cloud-auth
             - id: auth-service
               uri: lb://spring-cloud-auth
               predicates:
                 - Path=/api/auth/**
               filters:
-                - name: TraceId
-                - name: Path
-                - StripPrefix=2
-                - name: Log
+                - name: TraceId      # 生成/透传 X-Trace-Id
+                - name: Path         # 透传 X-Gateway-Path 供下游定位
+                - StripPrefix=2      # 剥离 /api/auth，转发为 /**
+                - name: Log          # 请求日志 + 慢请求标记
+            # 系统管理路由：/api/system/** → spring-cloud-system
             - id: system-service
               uri: lb://spring-cloud-system
               predicates:
@@ -50,6 +57,7 @@ spring:
                 - name: Path
                 - StripPrefix=2
                 - name: Log
+            # 文章服务路由：/api/article/** → spring-cloud-article
             - id: article-service
               uri: lb://spring-cloud-article
               predicates:
@@ -59,6 +67,7 @@ spring:
                 - name: Path
                 - StripPrefix=2
                 - name: Log
+            # 评论服务路由：/api/comments/** → spring-cloud-comment
             - id: comment-service
               uri: lb://spring-cloud-comment
               predicates:
