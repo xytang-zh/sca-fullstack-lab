@@ -16,6 +16,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class SaTokenConfig implements WebMvcConfigurer {
 
+    /** 免登录白名单：监控端点、Swagger 文档、静态资源与错误页 */
     private static final String[] WHITELIST = new String[] {
         "/actuator/**",
         "/doc.html",
@@ -25,8 +26,15 @@ public class SaTokenConfig implements WebMvcConfigurer {
         "/error"
     };
 
+    /** 评论列表路径前缀：GET 请求匿名放行，供游客浏览已审核评论 */
     private static final String ARTICLES_PREFIX = "/articles";
 
+    /**
+     * 注册 Sa-Token 拦截器：除白名单外全部要求登录，仅"GET /articles/**"对游客放行。
+     *
+     * <p>评论服务侧只做登录态校验，角色/权限校验由接口上的 Sa-Token 注解控制；
+     * 网关负责剥离 /api/comments 前缀，因此此处路径直接以 /articles 开头。</p>
+     */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new SaInterceptor(handler -> SaRouter.match("/**")

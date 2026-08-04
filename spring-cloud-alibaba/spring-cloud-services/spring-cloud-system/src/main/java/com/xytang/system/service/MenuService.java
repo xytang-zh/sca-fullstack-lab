@@ -10,5 +10,10 @@ import java.util.List;
  */
 public interface MenuService extends IService<Menu> {
 
+    /**
+     * 查询菜单列表（当前返回全量平铺数据，树形组装待实现）。
+     *
+     * @return 菜单列表
+     */
     List<Menu> tree();
 }

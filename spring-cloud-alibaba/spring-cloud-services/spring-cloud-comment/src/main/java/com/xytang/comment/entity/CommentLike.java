@@ -18,10 +18,14 @@ public class CommentLike implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
+    /** 点赞记录 ID（雪花 ID） */
     @TableId
     private Long id;
 
+    /** 被点赞的评论 ID */
     private Long commentId;
+    /** 点赞用户 ID（与 comment_id 组成唯一索引，保证一人对一评论最多一条记录，实现点赞幂等） */
     private Long userId;
+    /** 点赞时间 */
     private LocalDateTime createTime;
 }

@@ -18,11 +18,18 @@ public class DictVO implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
+    /** 字典 ID */
     private Long id;
+    /** 字典类型编码 */
     private String dictType;
+    /** 字典标签 */
     private String dictLabel;
+    /** 字典键值 */
     private String dictValue;
+    /** 排序号 */
     private Integer sort;
+    /** 状态 */
     private Integer status;
+    /** 备注 */
     private String remark;
 }

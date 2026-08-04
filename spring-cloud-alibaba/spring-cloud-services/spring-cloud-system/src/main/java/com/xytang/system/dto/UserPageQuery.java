@@ -11,6 +11,9 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class UserPageQuery extends PageQuery {
 
+    /** 部门 ID 过滤条件 */
     private Long deptId;
+
+    /** 状态过滤条件（2=正常 3=禁用） */
     private Integer status;
 }

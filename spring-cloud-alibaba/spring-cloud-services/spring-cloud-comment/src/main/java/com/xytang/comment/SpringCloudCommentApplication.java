@@ -15,6 +15,11 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 @MapperScan("com.xytang.comment.mapper")
 public class SpringCloudCommentApplication {
 
+    /**
+     * 启动博客评论服务（HTTP 8094 / Dubbo 20894）。
+     *
+     * @param args 命令行启动参数（如 --server.port 覆盖端口）
+     */
     public static void main(String[] args) {
         SpringApplication.run(SpringCloudCommentApplication.class, args);
     }

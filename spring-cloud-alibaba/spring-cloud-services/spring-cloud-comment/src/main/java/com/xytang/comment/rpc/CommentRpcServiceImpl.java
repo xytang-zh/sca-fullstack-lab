@@ -20,6 +20,12 @@ public class CommentRpcServiceImpl implements CommentRpcService {
 
     private final CommentMapper commentMapper;
 
+    /**
+     * 统计文章已审核评论数（供 article 服务展示评论数，口径与对外展示一致）。
+     *
+     * @param articleId 文章 ID
+     * @return 已审核评论数；文章 ID 为空返回 0
+     */
     @Override
     public long countByArticleId(Long articleId) {
         if (articleId == null) {

@@ -28,18 +28,36 @@ public class MenuController {
 
     private final MenuService menuService;
 
+    /**
+     * 查询菜单树（按父子层级组装，供前端渲染导航/权限配置）。
+     *
+     * @return 菜单实体树
+     */
     @Operation(summary = "菜单树")
     @GetMapping("/tree")
     public R<List<Menu>> tree() {
         return R.ok(menuService.tree());
     }
 
+    /**
+     * 新增菜单。
+     *
+     * @param menu 菜单实体（父级/路由/权限标识）
+     * @return 是否保存成功
+     */
     @Operation(summary = "新增菜单")
     @PostMapping
     public R<Boolean> create(@RequestBody Menu menu) {
         return R.ok(menuService.save(menu));
     }
 
+    /**
+     * 修改菜单。
+     *
+     * @param id   菜单 ID
+     * @param menu 待更新的菜单字段
+     * @return 是否更新成功
+     */
     @Operation(summary = "修改菜单")
     @PutMapping("/{id}")
     public R<Boolean> update(@PathVariable Long id, @RequestBody Menu menu) {
@@ -47,6 +65,12 @@ public class MenuController {
         return R.ok(menuService.updateById(menu));
     }
 
+    /**
+     * 删除菜单。
+     *
+     * @param id 菜单 ID
+     * @return 是否删除成功
+     */
     @Operation(summary = "删除菜单")
     @DeleteMapping("/{id}")
     public R<Boolean> delete(@PathVariable Long id) {

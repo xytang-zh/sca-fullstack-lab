@@ -30,6 +30,14 @@ public class FollowController {
 
     private final FollowService followService;
 
+    /**
+     * 关注/取消关注目标用户（幂等：已关注则取关，未关注则关注）。
+     *
+     * <p>需登录。登录用户 ID 从会话中获取，禁止前端传入，防止越权替他人操作。</p>
+     *
+     * @param id 目标用户 ID
+     * @return true=关注成功 false=取消关注成功
+     */
     @Operation(summary = "关注/取消关注（需登录，幂等）")
     @PostMapping("/{id}/follow")
     @SaCheckLogin
@@ -37,6 +45,14 @@ public class FollowController {
         return R.ok(followService.toggleFollow(id, StpUtil.getLoginIdAsLong()));
     }
 
+    /**
+     * 分页查询粉丝列表（关注了该用户的人）。
+     *
+     * @param id   目标用户 ID
+     * @param page 页码，从 1 开始
+     * @param size 每页条数
+     * @return 粉丝用户分页结果
+     */
     @Operation(summary = "粉丝列表（关注该用户的人）")
     @GetMapping("/{id}/followers")
     @SaCheckLogin
@@ -46,6 +62,14 @@ public class FollowController {
         return R.ok(followService.pageFollowers(id, page, size));
     }
 
+    /**
+     * 分页查询关注列表（该用户关注的人）。
+     *
+     * @param id   目标用户 ID
+     * @param page 页码，从 1 开始
+     * @param size 每页条数
+     * @return 关注用户分页结果
+     */
     @Operation(summary = "关注列表（该用户关注的人）")
     @GetMapping("/{id}/following")
     @SaCheckLogin
@@ -55,6 +79,11 @@ public class FollowController {
         return R.ok(followService.pageFollowing(id, page, size));
     }
 
+    /**
+     * 查询当前登录用户的完整资料（含 bio、关注数、粉丝数）。
+     *
+     * @return 当前登录用户资料 VO
+     */
     @Operation(summary = "我的完整资料（需登录，含 bio/关注数/粉丝数）")
     @GetMapping("/me/mine")
     @SaCheckLogin

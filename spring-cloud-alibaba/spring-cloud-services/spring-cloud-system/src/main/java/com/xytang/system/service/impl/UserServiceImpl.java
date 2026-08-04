@@ -28,7 +28,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 用户服务实现。
+ * 用户服务实现：用户 CRUD、密码重置、状态变更与按用户名查询。
+ *
+ * <p>安全约束：密码一律通过 {@code PasswordEncoder}（Argon2id）加密后落库；
+ * 手机号/邮箱在出参前脱敏，避免敏感信息泄露；禁删最后一个超管。</p>
  */
 @Service
 @RequiredArgsConstructor
@@ -41,6 +44,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     private final PasswordEncoder passwordEncoder;
 
+    /**
+     * 分页查询用户，支持关键字（用户名/昵称模糊）、状态、部门过滤，按创建时间倒序。
+     *
+     * @param query 分页与过滤条件
+     * @return 用户分页结果（手机号/邮箱已脱敏）
+     */
     @Override
     public PageResult<UserVO> page(UserPageQuery query) {
         Page<User> page = new Page<>(query.getPage(), query.getSize());
@@ -61,6 +70,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return PageResult.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
     }
 
+    /**
+     * 查询用户详情并转 VO（手机号/邮箱脱敏）。
+     *
+     * @param id 用户 ID
+     * @return 用户详情 VO
+     * @throws UserNotFoundException 用户不存在时抛出
+     */
     @Override
     public UserVO getDetail(Long id) {
         User user = baseMapper.selectById(id);
@@ -70,12 +86,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return toVO(user);
     }
 
+    /**
+     * 新增用户：先查重再插入，密码经 Argon2id 加密，默认正常状态。
+     *
+     * @param dto 新增用户入参
+     * @return 新用户 ID
+     * @throws BusinessException 用户名已存在时抛出
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long create(UserCreateDTO dto) {
+        // 1. 用户名查重（唯一索引兜底并发）
         if (loadUserByUsername(dto.getUsername()) != null) {
             throw new BusinessException(BizCode.SYS_USER_EXISTED);
         }
+        // 2. 组装用户：密码 Argon2id 加密、默认正常状态、失败计数清零
         User user = new User();
         user.setUsername(dto.getUsername());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
@@ -90,6 +115,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return user.getId();
     }
 
+    /**
+     * 更新用户：仅更新传入的非空字段；状态改为禁用时需先校验非最后一个超管。
+     *
+     * @param dto 用户更新入参（含 id 与待更新字段）
+     * @throws UserNotFoundException       用户不存在时抛出
+     * @throws LastSuperAdminException     禁用最后一个超管时抛出
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void update(UserUpdateDTO dto) {
@@ -124,6 +156,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         baseMapper.updateById(user);
     }
 
+    /**
+     * 软删除用户：置 status 为已删除，不物理删除；禁止删除最后一个超管。
+     *
+     * @param id 用户 ID
+     * @throws LastSuperAdminException 删除最后一个超管时抛出
+     * @throws UserNotFoundException   用户不存在时抛出
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
@@ -136,6 +175,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         baseMapper.updateById(user);
     }
 
+    /**
+     * 重置用户密码：新密码 Argon2id 加密，同时清零登录失败计数与锁定到期时间。
+     *
+     * @param id     用户 ID
+     * @param newPwd 新明文密码
+     * @throws UserNotFoundException 用户不存在时抛出
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void resetPassword(Long id, String newPwd) {
@@ -149,6 +195,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         baseMapper.updateById(user);
     }
 
+    /**
+     * 启用/禁用用户：禁用（软删除语义）前校验非最后一个超管。
+     *
+     * @param id     用户 ID
+     * @param status 目标状态：1=正常 0=禁用
+     * @throws LastSuperAdminException 禁用最后一个超管时抛出
+     * @throws UserNotFoundException   用户不存在时抛出
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void changeStatus(Long id, Integer status) {
@@ -163,6 +217,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         baseMapper.updateById(user);
     }
 
+    /**
+     * 按用户名精确查询用户（登录/认证场景复用，LIMIT 1 兜底同名异常数据）。
+     *
+     * @param username 登录账号
+     * @return 用户实体；不存在返回 null
+     */
     @Override
     public User loadUserByUsername(String username) {
         return baseMapper.selectOne(new LambdaQueryWrapper<User>()
@@ -170,14 +230,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             .last("LIMIT 1"));
     }
 
+    // 保护最后一个超管：禁止禁用/删除 id=1 的初始超管（MVP 简化实现）
     private void guardLastSuperAdmin(Long userId) {
-        // MVP 阶段：检查 username='admin' 或 role_code='super_admin' 的用户是否被禁用/删除
-        // 简化实现：禁止禁用/删除 id=1 的初始超管
         if (userId != null && userId == 1L) {
             throw new LastSuperAdminException();
         }
     }
 
+    // 实体转 VO：手机号/邮箱脱敏，角色列表待后续填充
     private UserVO toVO(User user) {
         return UserVO.builder()
             .id(user.getId())
@@ -196,6 +256,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             .build();
     }
 
+    // 邮箱脱敏：保留首字符与域名，中间打码（如 a***@x.com）
     private String maskEmail(String email) {
         if (email == null || email.isBlank() || !email.contains("@")) {
             return email;
@@ -207,6 +268,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return maskedPrefix + email.substring(at);
     }
 
+    // 手机号脱敏：保留前 3 位与后 4 位，中间打码（如 138****1234）
     private String maskPhone(String phone) {
         if (phone == null || phone.length() < PHONE_MIN_LEN) {
             return phone;

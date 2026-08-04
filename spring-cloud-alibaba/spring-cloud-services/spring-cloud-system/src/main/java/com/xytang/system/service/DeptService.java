@@ -10,5 +10,10 @@ import java.util.List;
  */
 public interface DeptService extends IService<Dept> {
 
+    /**
+     * 查询部门列表（当前返回全量平铺数据，树形组装待实现）。
+     *
+     * @return 部门列表
+     */
     List<Dept> tree();
 }

@@ -15,9 +15,17 @@ import java.time.Duration;
 @Configuration
 public class CaffeineConfig {
 
+    /** 缓存过期时间：5 分钟（列表数据时效敏感度低，可接受短暂滞后） */
     private static final Duration CACHE_TTL = Duration.ofMinutes(5);
+
+    /** 缓存最大条目数：100，防止内存无限增长 */
     private static final long CACHE_MAX_SIZE = 100L;
 
+    /**
+     * 文章列表本地缓存（Key 为排序+分页+作者过滤组合串）。
+     *
+     * @return Caffeine 缓存实例
+     */
     @Bean
     public Cache<String, PageResult<ArticleVO>> articleListCache() {
         return Caffeine.newBuilder()

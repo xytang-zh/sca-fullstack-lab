@@ -18,10 +18,14 @@ public class Follow implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
+    /** 关注关系 ID */
     @TableId
     private Long id;
 
+    /** 关注者（粉丝）用户 ID */
     private Long followerId;
+    /** 被关注者用户 ID */
     private Long followeeId;
+    /** 关注时间 */
     private LocalDateTime createTime;
 }

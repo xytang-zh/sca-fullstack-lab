@@ -29,6 +29,13 @@ public class NoticeController {
 
     private final NoticeService noticeService;
 
+    /**
+     * 分页查询通知公告。
+     *
+     * @param page 页码，从 1 开始
+     * @param size 每页条数
+     * @return 通知分页结果
+     */
     @Operation(summary = "通知分页")
     @GetMapping
     public R<PageResult<Notice>> page(@RequestParam(defaultValue = "1") int page,
@@ -38,12 +45,25 @@ public class NoticeController {
                 (int) noticePage.getCurrent(), (int) noticePage.getSize()));
     }
 
+    /**
+     * 新增通知（草稿状态，需发布后可见）。
+     *
+     * @param notice 通知实体（标题/内容/类型）
+     * @return 是否保存成功
+     */
     @Operation(summary = "新增通知")
     @PostMapping
     public R<Boolean> create(@RequestBody Notice notice) {
         return R.ok(noticeService.save(notice));
     }
 
+    /**
+     * 修改通知。
+     *
+     * @param id     通知 ID
+     * @param notice 待更新的通知字段
+     * @return 是否更新成功
+     */
     @Operation(summary = "修改通知")
     @PutMapping("/{id}")
     public R<Boolean> update(@PathVariable Long id, @RequestBody Notice notice) {
@@ -51,6 +71,12 @@ public class NoticeController {
         return R.ok(noticeService.updateById(notice));
     }
 
+    /**
+     * 发布通知（状态置为已发布，用户可见）。
+     *
+     * @param id 通知 ID
+     * @return 统一成功响应（无数据）
+     */
     @Operation(summary = "发布通知")
     @PostMapping("/{id}/publish")
     public R<Void> publish(@PathVariable Long id) {
@@ -58,6 +84,12 @@ public class NoticeController {
         return R.ok();
     }
 
+    /**
+     * 撤回通知（已发布的恢复为草稿）。
+     *
+     * @param id 通知 ID
+     * @return 统一成功响应（无数据）
+     */
     @Operation(summary = "撤回通知")
     @PostMapping("/{id}/revoke")
     public R<Void> revoke(@PathVariable Long id) {
@@ -65,6 +97,12 @@ public class NoticeController {
         return R.ok();
     }
 
+    /**
+     * 删除通知。
+     *
+     * @param id 通知 ID
+     * @return 是否删除成功
+     */
     @Operation(summary = "删除通知")
     @DeleteMapping("/{id}")
     public R<Boolean> delete(@PathVariable Long id) {
