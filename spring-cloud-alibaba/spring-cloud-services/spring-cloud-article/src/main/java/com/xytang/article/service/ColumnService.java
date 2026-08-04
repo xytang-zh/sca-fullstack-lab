@@ -2,7 +2,7 @@ package com.xytang.article.service;
 
 import com.xytang.article.dto.ColumnCreateDTO;
 import com.xytang.article.vo.ColumnVO;
-import com.xytang.common.core.response.PageVO;
+import com.xytang.common.core.response.PageResult;
 
 /**
  * 博客专栏服务：列表（游客可读）/我的专栏/订阅/创建/编辑/删除。
@@ -14,31 +14,31 @@ public interface ColumnService {
      *
      * @param userId        作者 ID（可空）
      * @param currentUserId 当前登录用户 ID（可空，用于标注是否已订阅）
-     * @param pageNum       页码
-     * @param pageSize      每页条数
+     * @param page          页码
+     * @param size          每页条数
      * @return 分页结果
      */
-    PageVO<ColumnVO> page(Long userId, Long currentUserId, int pageNum, int pageSize);
+    PageResult<ColumnVO> page(Long userId, Long currentUserId, int page, int size);
 
     /**
      * 我的专栏列表（登录用户）。
      *
-     * @param userId   当前登录用户
-     * @param pageNum  页码
-     * @param pageSize 每页条数
-     * @return 专栏列表
+     * @param userId 当前登录用户
+     * @param page   页码
+     * @param size   每页条数
+     * @return 分页结果
      */
-    PageVO<ColumnVO> listMyColumns(Long userId, int pageNum, int pageSize);
+    PageResult<ColumnVO> listMyColumns(Long userId, int page, int size);
 
     /**
      * 我订阅的专栏列表（登录用户）。
      *
-     * @param userId   当前登录用户
-     * @param pageNum  页码
-     * @param pageSize 每页条数
-     * @return 专栏列表
+     * @param userId 当前登录用户
+     * @param page   页码
+     * @param size   每页条数
+     * @return 分页结果
      */
-    PageVO<ColumnVO> listMySubscriptions(Long userId, int pageNum, int pageSize);
+    PageResult<ColumnVO> listMySubscriptions(Long userId, int page, int size);
 
     /**
      * 创建专栏（登录用户）。

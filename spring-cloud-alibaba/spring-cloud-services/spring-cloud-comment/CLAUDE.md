@@ -55,7 +55,6 @@ PENDING ───────────────▶ APPROVED（通过，对
 | Jsoup | 1.17.2（父 POM） | HTML XSS 过滤 |
 | Dubbo | 3.3+（Spring Cloud Alibaba 管理） | 暴露 `CommentRpcService`；调用 article 校验文章存在 |
 | Sa-Token | 1.44.0（父 POM） | `@SaCheckLogin`、ADMIN 角色校验 |
-| RabbitMQ | Spring Boot AMQP（父 POM） | 评论创建事件 → message 服务 |
 | sensitive-word | 0.x（**父 POM 未声明**，落地时补充） | 评论敏感词过滤 |
 
 > 所有依赖版本**必须**在父 POM 声明，禁止在本服务 POM 覆盖。
@@ -106,7 +105,6 @@ t_comment   评论表
 | 方向 | 方式 | 说明 |
 |------|------|------|
 | comment → article | Dubbo | 发表评论前校验文章存在 |
-| comment → message | RabbitMQ（`comment.created`） | 评论创建事件 → 站内信/评论通知 |
 
 ---
 
@@ -121,7 +119,6 @@ t_comment   评论表
 
 - 发表评论（过滤 + 入库 + 评论数变更）**必须**在同一事务
 - 评论数变更**必须**考虑审核流程：PENDING → APPROVED 时才 +1，REJECTED/DELETED 时 -1
-- MQ 通知事件**禁止**阻塞主流程（失败仅记日志，可后续补偿）
 
 ### 7.3 防刷规范
 

@@ -1,7 +1,7 @@
 package com.xytang.system.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xytang.common.core.response.PageVO;
+import com.xytang.common.core.response.PageResult;
 import com.xytang.system.dto.UserCreateDTO;
 import com.xytang.system.dto.UserPageQuery;
 import com.xytang.system.dto.UserUpdateDTO;
@@ -13,7 +13,7 @@ import com.xytang.system.vo.UserVO;
  */
 public interface UserService extends IService<User> {
 
-    PageVO<UserVO> page(UserPageQuery query);
+    PageResult<UserVO> page(UserPageQuery query);
 
     UserVO getDetail(Long id);
 

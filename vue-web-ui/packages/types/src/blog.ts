@@ -1,6 +1,6 @@
 export interface ArticlePageQuery {
-  pageNum: number
-  pageSize: number
+  page: number
+  size: number
   /** time=按发布时间倒序，hot=按热度降序 */
   sort?: 'time' | 'hot'
   /** 作者 ID 过滤（逗号分隔，用于关注 Feed） */
@@ -68,8 +68,8 @@ export interface ColumnCreateDTO {
 }
 
 export interface CommentPageQuery {
-  pageNum: number
-  pageSize: number
+  page: number
+  size: number
 }
 
 export interface CommentVO {

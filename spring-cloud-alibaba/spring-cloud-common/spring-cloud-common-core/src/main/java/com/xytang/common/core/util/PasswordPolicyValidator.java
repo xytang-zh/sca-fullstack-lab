@@ -15,8 +15,8 @@ import java.util.regex.Pattern;
  *   <li>禁止空白字符（空格、Tab、换行）</li>
  * </ul>
  *
- * <p>校验失败抛 {@link BusinessException}，bizCode 为 {@link BizCode#PASSWORD_WEAK}，
- * HTTP 码 400。开发者可通过 {@link DevMessageHolder} 注入具体失败原因供 dev 环境诊断。
+ * <p>校验失败抛 {@link BusinessException}，错误码为 {@link BizCode#PASSWORD_WEAK}，
+ * HTTP 码 400。具体失败原因作为异常 devMessage 记录，仅用于日志诊断。
  *
  * <p>使用示例：
  * <pre>{@code
@@ -48,11 +48,10 @@ public final class PasswordPolicyValidator {
     }
 
     /**
-     * 校验密码强度，失败抛 BusinessException(PASSWORD_WEAK)，
-     * 同时通过 DevMessageHolder 注入具体原因（dev 环境填充到 R&lt;T&gt;.devMessage）。
+     * 校验密码强度，失败抛 BusinessException(PASSWORD_WEAK)。
      *
      * @param password   待校验密码明文
-     * @param devMessage 具体失败原因（可空），dev 环境回填到响应体
+     * @param devMessage 具体失败原因（可空），作为异常诊断信息记录
      * @throws BusinessException 密码不符合策略
      */
     public static void validate(String password, String devMessage) {

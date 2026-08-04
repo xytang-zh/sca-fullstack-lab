@@ -7,7 +7,19 @@ import axios, {
 import { getToken, setToken, clearToken } from '@sca/utils'
 import type { R } from '@sca/types'
 
-const SUCCESS_BIZ_CODE = '00000'
+const SUCCESS_CODE = 200
+
+/** 登录态失效类业务码：触发清理登录态并跳转登录页 */
+const LOGIN_REQUIRED_CODES = [
+  21005, // 用户被禁用
+  21006, // 用户被锁定
+  21007, // Token 过期
+  21008, // 被踢下线
+  21009, // 未登录
+  21010, // Refresh Token 无效
+  29001, // 网关 Token 缺失
+  29002 // 网关 Token 无效
+]
 
 export interface RequestConfig extends AxiosRequestConfig {
   skipErrorHandler?: boolean
@@ -34,10 +46,10 @@ instance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 instance.interceptors.response.use(
   (response: AxiosResponse<R<unknown>>) => {
     const r = response.data
-    if (!r || typeof r.code !== 'number' || typeof r.bizCode !== 'string') {
+    if (!r || typeof r.code !== 'number') {
       return response
     }
-    if (response.status >= 200 && response.status < 300 && r.bizCode === SUCCESS_BIZ_CODE) {
+    if (response.status >= 200 && response.status < 300 && r.code === SUCCESS_CODE) {
       return response
     }
     if (!(response.config as RequestConfig).skipErrorHandler) {
@@ -51,9 +63,9 @@ instance.interceptors.response.use(
     const skip = (error.config as RequestConfig)?.skipErrorHandler
 
     if (!skip) {
-      if (r && typeof r.bizCode === 'string') {
+      if (r && typeof r.code === 'number') {
         handleBizError(r)
-        if (status === 401 && shouldClearToken(r.bizCode)) {
+        if (LOGIN_REQUIRED_CODES.includes(r.code)) {
           clearToken()
           redirectToLogin()
         }
@@ -87,25 +99,7 @@ function handleMessage(content: string, type: 'info' | 'error' | 'warning' = 'er
 }
 
 function handleBizError(r: R<unknown>) {
-  const moduleCode = r.bizCode?.substring(0, 2) ?? ''
-  switch (moduleCode) {
-    case '00':
-    case '01':
-    case '02':
-    case '99':
-    default:
-      handleMessage(r.message || '操作失败')
-  }
-}
-
-function shouldClearToken(bizCode: string): boolean {
-  // 01306=未登录（游客写操作）、01301=禁用、99301/99302=网关 Token 问题
-  return (
-    bizCode === '01306' ||
-    bizCode === '01301' ||
-    bizCode === '99301' ||
-    bizCode === '99302'
-  )
+  handleMessage(r.message || '操作失败')
 }
 
 function redirectToLogin() {

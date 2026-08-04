@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xytang.common.core.exception.BizException;
 import com.xytang.common.core.exception.UserNotFoundException;
 import com.xytang.common.core.response.BizCode;
-import com.xytang.common.core.response.PageVO;
+import com.xytang.common.core.response.PageResult;
 import com.xytang.system.entity.Follow;
 import com.xytang.system.entity.User;
 import com.xytang.system.mapper.FollowMapper;
@@ -59,31 +59,31 @@ public class FollowServiceImpl implements FollowService {
     }
 
     @Override
-    public PageVO<UserVO> pageFollowers(Long userId, int pageNum, int pageSize) {
+    public PageResult<UserVO> pageFollowers(Long userId, int page, int size) {
         requireUser(userId);
-        Page<Follow> page = new Page<>(pageNum, pageSize);
-        IPage<Follow> result = followMapper.selectPage(page, new LambdaQueryWrapper<Follow>()
+        Page<Follow> followPage = new Page<>(page, size);
+        IPage<Follow> result = followMapper.selectPage(followPage, new LambdaQueryWrapper<Follow>()
                 .eq(Follow::getFolloweeId, userId)
                 .orderByDesc(Follow::getCreateTime));
         List<Long> ids = result.getRecords().stream()
                 .map(Follow::getFollowerId)
                 .collect(Collectors.toList());
         List<UserVO> list = resolveUsers(ids);
-        return PageVO.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
+        return PageResult.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
     }
 
     @Override
-    public PageVO<UserVO> pageFollowing(Long userId, int pageNum, int pageSize) {
+    public PageResult<UserVO> pageFollowing(Long userId, int page, int size) {
         requireUser(userId);
-        Page<Follow> page = new Page<>(pageNum, pageSize);
-        IPage<Follow> result = followMapper.selectPage(page, new LambdaQueryWrapper<Follow>()
+        Page<Follow> followPage = new Page<>(page, size);
+        IPage<Follow> result = followMapper.selectPage(followPage, new LambdaQueryWrapper<Follow>()
                 .eq(Follow::getFollowerId, userId)
                 .orderByDesc(Follow::getCreateTime));
         List<Long> ids = result.getRecords().stream()
                 .map(Follow::getFolloweeId)
                 .collect(Collectors.toList());
         List<UserVO> list = resolveUsers(ids);
-        return PageVO.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
+        return PageResult.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
     }
 
     @Override

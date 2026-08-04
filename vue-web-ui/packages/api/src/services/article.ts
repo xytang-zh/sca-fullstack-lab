@@ -7,11 +7,11 @@ import type {
   ColumnCreateDTO,
   ColumnVO
 } from '@sca/types'
-import type { PageVO } from '@sca/types'
+import type { PageResult } from '@sca/types'
 
 /** 文章分页列表（游客可访问，sort=time|hot） */
 export function pageArticles(query: ArticlePageQuery) {
-  return request.get<PageVO<ArticleVO>>('/api/article/articles', { params: query })
+  return request.get<PageResult<ArticleVO>>('/api/article/articles', { params: query })
 }
 
 /** 文章详情（游客可访问） */
@@ -50,45 +50,45 @@ export function toggleFavorite(id: string) {
 }
 
 /** 我的已发布文章（需登录） */
-export function myArticles(pageNum = 1, pageSize = 10) {
-  return request.get<PageVO<ArticleVO>>('/api/article/articles/my', { params: { pageNum, pageSize } })
+export function myArticles(page = 1, size = 10) {
+  return request.get<PageResult<ArticleVO>>('/api/article/articles/my', { params: { page, size } })
 }
 
 /** 我的草稿（需登录） */
-export function myDrafts(pageNum = 1, pageSize = 10) {
-  return request.get<PageVO<ArticleVO>>('/api/article/articles/my/drafts', {
-    params: { pageNum, pageSize }
+export function myDrafts(page = 1, size = 10) {
+  return request.get<PageResult<ArticleVO>>('/api/article/articles/my/drafts', {
+    params: { page, size }
   })
 }
 
 /** 我点赞的文章（需登录） */
-export function myLikes(pageNum = 1, pageSize = 10) {
-  return request.get<PageVO<ArticleVO>>('/api/article/articles/my/likes', {
-    params: { pageNum, pageSize }
+export function myLikes(page = 1, size = 10) {
+  return request.get<PageResult<ArticleVO>>('/api/article/articles/my/likes', {
+    params: { page, size }
   })
 }
 
 /** 我收藏的文章（需登录） */
-export function myFavorites(pageNum = 1, pageSize = 10) {
-  return request.get<PageVO<ArticleVO>>('/api/article/articles/my/favorites', {
-    params: { pageNum, pageSize }
+export function myFavorites(page = 1, size = 10) {
+  return request.get<PageResult<ArticleVO>>('/api/article/articles/my/favorites', {
+    params: { page, size }
   })
 }
 
 /** 专栏分页列表（游客可访问，?userId= 按作者过滤） */
-export function pageColumns(params: { userId?: string; pageNum?: number; pageSize?: number }) {
-  return request.get<PageVO<ColumnVO>>('/api/article/columns', { params })
+export function pageColumns(params: { userId?: string; page?: number; size?: number }) {
+  return request.get<PageResult<ColumnVO>>('/api/article/columns', { params })
 }
 
 /** 我的专栏（需登录） */
-export function myColumns(pageNum = 1, pageSize = 10) {
-  return request.get<PageVO<ColumnVO>>('/api/article/columns/my', { params: { pageNum, pageSize } })
+export function myColumns(page = 1, size = 10) {
+  return request.get<PageResult<ColumnVO>>('/api/article/columns/my', { params: { page, size } })
 }
 
 /** 我订阅的专栏（需登录） */
-export function myColumnSubscriptions(pageNum = 1, pageSize = 10) {
-  return request.get<PageVO<ColumnVO>>('/api/article/columns/my/subscriptions', {
-    params: { pageNum, pageSize }
+export function myColumnSubscriptions(page = 1, size = 10) {
+  return request.get<PageResult<ColumnVO>>('/api/article/columns/my/subscriptions', {
+    params: { page, size }
   })
 }
 
@@ -125,9 +125,9 @@ export function articleStats() {
 }
 
 /** 待审核文章列表（管理员） */
-export function pendingArticles(pageNum = 1, pageSize = 10) {
-  return request.get<PageVO<ArticleVO>>('/api/article/articles/pending', {
-    params: { pageNum, pageSize }
+export function pendingArticles(page = 1, size = 10) {
+  return request.get<PageResult<ArticleVO>>('/api/article/articles/pending', {
+    params: { page, size }
   })
 }
 

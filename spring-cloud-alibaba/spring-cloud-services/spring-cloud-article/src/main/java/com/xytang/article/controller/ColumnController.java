@@ -5,7 +5,7 @@ import cn.dev33.satoken.stp.StpUtil;
 import com.xytang.article.dto.ColumnCreateDTO;
 import com.xytang.article.service.ColumnService;
 import com.xytang.article.vo.ColumnVO;
-import com.xytang.common.core.response.PageVO;
+import com.xytang.common.core.response.PageResult;
 import com.xytang.common.core.response.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -37,27 +37,27 @@ public class ColumnController {
 
     @Operation(summary = "专栏分页列表（游客可访问，?userId= 按作者过滤）")
     @GetMapping
-    public R<PageVO<ColumnVO>> page(@RequestParam(required = false) Long userId,
-                                    @RequestParam(defaultValue = "1") @Min(1) Integer pageNum,
-                                    @RequestParam(defaultValue = "10") @Min(1) Integer pageSize) {
+    public R<PageResult<ColumnVO>> page(@RequestParam(required = false) Long userId,
+                                    @RequestParam(defaultValue = "1") @Min(1) Integer page,
+                                    @RequestParam(defaultValue = "10") @Min(1) Integer size) {
         Long currentUserId = StpUtil.isLogin() ? StpUtil.getLoginIdAsLong() : null;
-        return R.ok(columnService.page(userId, currentUserId, pageNum, pageSize));
+        return R.ok(columnService.page(userId, currentUserId, page, size));
     }
 
     @Operation(summary = "我的专栏（需登录）")
     @GetMapping("/my")
     @SaCheckLogin
-    public R<PageVO<ColumnVO>> my(@RequestParam(defaultValue = "1") @Min(1) Integer pageNum,
-                                  @RequestParam(defaultValue = "10") @Min(1) Integer pageSize) {
-        return R.ok(columnService.listMyColumns(StpUtil.getLoginIdAsLong(), pageNum, pageSize));
+    public R<PageResult<ColumnVO>> my(@RequestParam(defaultValue = "1") @Min(1) Integer page,
+                                  @RequestParam(defaultValue = "10") @Min(1) Integer size) {
+        return R.ok(columnService.listMyColumns(StpUtil.getLoginIdAsLong(), page, size));
     }
 
     @Operation(summary = "我订阅的专栏（需登录）")
     @GetMapping("/my/subscriptions")
     @SaCheckLogin
-    public R<PageVO<ColumnVO>> mySubscriptions(@RequestParam(defaultValue = "1") @Min(1) Integer pageNum,
-                                               @RequestParam(defaultValue = "10") @Min(1) Integer pageSize) {
-        return R.ok(columnService.listMySubscriptions(StpUtil.getLoginIdAsLong(), pageNum, pageSize));
+    public R<PageResult<ColumnVO>> mySubscriptions(@RequestParam(defaultValue = "1") @Min(1) Integer page,
+                                               @RequestParam(defaultValue = "10") @Min(1) Integer size) {
+        return R.ok(columnService.listMySubscriptions(StpUtil.getLoginIdAsLong(), page, size));
     }
 
     @Operation(summary = "创建专栏（需登录）")

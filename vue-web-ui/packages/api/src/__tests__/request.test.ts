@@ -32,15 +32,13 @@ describe('request.ts axios 拦截器', () => {
     mock.restore()
   })
 
-  it('HTTP 200 + bizCode 00000 应成功返回 data', async () => {
+  it('HTTP 200 + code 200 应成功返回 data', async () => {
     const response: R<string> = {
       code: 200,
-      bizCode: '00000',
       message: '操作成功',
       data: 'payload',
-      timestamp: new Date().toISOString(),
-      traceId: 'trace-1',
-      path: '/api/test'
+      timestamp: Date.now(),
+      traceId: 'trace-1'
     }
     mock.onGet('/api/test').reply(200, response)
 
@@ -48,15 +46,13 @@ describe('request.ts axios 拦截器', () => {
     expect(data).toBe('payload')
   })
 
-  it('HTTP 200 + bizCode 非 00000 应业务失败并 reject', async () => {
+  it('HTTP 200 + code 非 200 应业务失败并 reject', async () => {
     const response: R<null> = {
-      code: 200,
-      bizCode: '01105',
+      code: 21003,
       message: '用户名或密码错误',
       data: null,
-      timestamp: new Date().toISOString(),
-      traceId: 'trace-2',
-      path: '/api/auth/login'
+      timestamp: Date.now(),
+      traceId: 'trace-2'
     }
     mock.onPost('/api/auth/login').reply(200, response)
 
@@ -64,20 +60,18 @@ describe('request.ts axios 拦截器', () => {
     registerMessageHandler((content) => messages.push(content))
 
     await expect(request.post('/api/auth/login', {})).rejects.toMatchObject({
-      bizCode: '01105'
+      code: 21003
     })
     expect(messages).toContain('用户名或密码错误')
   })
 
-  it('HTTP 401 应清空 Token 并跳转登录', async () => {
+  it('HTTP 401 + 登录态失效码应清空 Token 并跳转登录', async () => {
     const response: R<null> = {
-      code: 401,
-      bizCode: '01301',
+      code: 21005,
       message: '用户已被禁用',
       data: null,
-      timestamp: new Date().toISOString(),
-      traceId: 'trace-3',
-      path: '/api/auth/login'
+      timestamp: Date.now(),
+      traceId: 'trace-3'
     }
     mock.onPost('/api/auth/login').reply(401, response)
 
@@ -89,13 +83,11 @@ describe('request.ts axios 拦截器', () => {
 
   it('HTTP 403 应显示错误消息并 reject', async () => {
     const response: R<null> = {
-      code: 403,
-      bizCode: '00302',
+      code: 20002,
       message: '无权访问该数据范围',
       data: null,
-      timestamp: new Date().toISOString(),
-      traceId: 'trace-4',
-      path: '/api/system/users'
+      timestamp: Date.now(),
+      traceId: 'trace-4'
     }
     mock.onGet('/api/system/users').reply(403, response)
 
@@ -108,13 +100,11 @@ describe('request.ts axios 拦截器', () => {
 
   it('HTTP 429 应显示错误消息并 reject', async () => {
     const response: R<null> = {
-      code: 429,
-      bizCode: '00201',
+      code: 30001,
       message: '请求过于频繁，请稍后重试',
       data: null,
-      timestamp: new Date().toISOString(),
-      traceId: 'trace-5',
-      path: '/api/system/users'
+      timestamp: Date.now(),
+      traceId: 'trace-5'
     }
     mock.onGet('/api/system/users').reply(429, response)
 
@@ -127,13 +117,11 @@ describe('request.ts axios 拦截器', () => {
 
   it('HTTP 500 应显示错误消息并 reject', async () => {
     const response: R<null> = {
-      code: 500,
-      bizCode: '00401',
-      message: '系统繁忙，请稍后重试',
+      code: 50000,
+      message: '系统繁忙，请稍后再试',
       data: null,
-      timestamp: new Date().toISOString(),
-      traceId: 'trace-6',
-      path: '/api/system/users'
+      timestamp: Date.now(),
+      traceId: 'trace-6'
     }
     mock.onGet('/api/system/users').reply(500, response)
 
@@ -141,7 +129,7 @@ describe('request.ts axios 拦截器', () => {
     registerMessageHandler((content) => messages.push(content))
 
     await expect(request.get('/api/system/users')).rejects.toBeDefined()
-    expect(messages).toContain('系统繁忙，请稍后重试')
+    expect(messages).toContain('系统繁忙，请稍后再试')
   })
 
   it('请求拦截器应自动携带 X-Trace-Id', async () => {
@@ -149,10 +137,9 @@ describe('request.ts axios 拦截器', () => {
       expect(config.headers?.['X-Trace-Id']).toBe('test-trace-id')
       return [200, {
         code: 200,
-        bizCode: '00000',
         message: '操作成功',
         data: null,
-        timestamp: new Date().toISOString()
+        timestamp: Date.now()
       } as R<null>]
     })
 

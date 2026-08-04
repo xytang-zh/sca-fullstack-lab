@@ -20,11 +20,11 @@ public class ArticlePageQuery implements Serializable {
 
     @Schema(description = "页码（从 1 开始）", defaultValue = "1")
     @Min(value = 1, message = "页码不能小于 1")
-    private Integer pageNum = 1;
+    private Integer page = 1;
 
     @Schema(description = "每页条数", defaultValue = "10")
     @Min(value = 1, message = "每页条数不能小于 1")
-    private Integer pageSize = 10;
+    private Integer size = 10;
 
     @Schema(description = "排序方式：time=按发布时间倒序，hot=按热度降序", defaultValue = "time")
     @Pattern(regexp = "^(time|hot)$", message = "sort 仅支持 time 或 hot")

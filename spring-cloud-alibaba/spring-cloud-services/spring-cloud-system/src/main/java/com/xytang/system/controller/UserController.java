@@ -1,6 +1,6 @@
 package com.xytang.system.controller;
 
-import com.xytang.common.core.response.PageVO;
+import com.xytang.common.core.response.PageResult;
 import com.xytang.common.core.response.R;
 import com.xytang.system.dto.UserCreateDTO;
 import com.xytang.system.dto.UserPageQuery;
@@ -37,7 +37,7 @@ public class UserController {
 
     @Operation(summary = "用户分页查询")
     @GetMapping
-    public R<PageVO<UserVO>> page(@Validated UserPageQuery query) {
+    public R<PageResult<UserVO>> page(@Validated UserPageQuery query) {
         return R.ok(userService.page(query));
     }
 

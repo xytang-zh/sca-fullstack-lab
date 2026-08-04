@@ -6,19 +6,19 @@ import type { UserVO } from '@sca/types'
 const users = ref<UserVO[]>([])
 const total = ref(0)
 const loading = ref(false)
-const pageNum = ref(1)
-const pageSize = 10
+const page = ref(1)
+const size = 10
 const keyword = ref('')
 
 async function load() {
   loading.value = true
   try {
     const data = await userApi.pageUsers({
-      pageNum: pageNum.value,
-      pageSize,
+      page: page.value,
+      size,
       keyword: keyword.value || undefined
     })
-    users.value = data.list
+    users.value = data.records
     total.value = data.total
   } finally {
     loading.value = false
@@ -26,7 +26,7 @@ async function load() {
 }
 
 function search() {
-  pageNum.value = 1
+  page.value = 1
   load()
 }
 
@@ -70,8 +70,8 @@ onMounted(load)
       </div>
       <n-empty v-else description="暂无用户" class="py-16" />
     </n-spin>
-    <div v-if="total > pageSize" class="mt-4 flex justify-center">
-      <n-pagination v-model:page="pageNum" :page-size="pageSize" :item-count="total" @update:page="load" />
+    <div v-if="total > size" class="mt-4 flex justify-center">
+      <n-pagination v-model:page="page" :page-size="size" :item-count="total" @update:page="load" />
     </div>
   </div>
 </template>

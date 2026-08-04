@@ -11,14 +11,14 @@ const router = useRouter()
 const articles = ref<ArticleVO[]>([])
 const total = ref(0)
 const loading = ref(false)
-const pageNum = ref(1)
-const pageSize = 10
+const page = ref(1)
+const size = 10
 
 async function load() {
   loading.value = true
   try {
-    const data = await articleApi.myArticles(pageNum.value, pageSize)
-    articles.value = data.list
+    const data = await articleApi.myArticles(page.value, size)
+    articles.value = data.records
     total.value = data.total
   } finally {
     loading.value = false
@@ -72,8 +72,8 @@ onMounted(load)
       <n-empty v-else description="还没有发布文章" class="py-16" />
     </n-spin>
 
-    <div v-if="total > pageSize" class="mt-4 flex justify-center">
-      <n-pagination v-model:page="pageNum" :page-size="pageSize" :item-count="total" @update:page="load" />
+    <div v-if="total > size" class="mt-4 flex justify-center">
+      <n-pagination v-model:page="page" :page-size="size" :item-count="total" @update:page="load" />
     </div>
   </div>
 </template>

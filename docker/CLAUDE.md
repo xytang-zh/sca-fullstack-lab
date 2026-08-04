@@ -26,7 +26,6 @@ docker/
 | Redis | 6379 | 分布式缓存 / Sa-Token 存储 |
 | MongoDB | 27017 | 日志存储（log 服务） |
 | ElasticSearch | 9200 / 9300 | 全文检索（search 服务，ik 分词插件计划） |
-| RabbitMQ | 5672（AMQP）/ 15672（管理） | 消息队列 |
 | Nacos | 8848 / 9848（gRPC） | 注册配置中心 |
 | Sentinel Dashboard | 8858 | 限流熔断 |
 | MinIO | 9000（API）/ 9001（控制台） | 对象存储（文章图片） |

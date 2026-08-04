@@ -1,6 +1,6 @@
 import { request } from '../index'
 import type { UserVO } from '@sca/types'
-import type { PageVO } from '@sca/types'
+import type { PageResult } from '@sca/types'
 
 /** 我的完整资料（需登录，含 bio/关注数/粉丝数） */
 export function getMyProfile() {
@@ -13,20 +13,20 @@ export function toggleFollow(id: string) {
 }
 
 /** 粉丝列表（关注该用户的人） */
-export function followers(userId: string, pageNum = 1, pageSize = 10) {
-  return request.get<PageVO<UserVO>>(`/api/system/users/${userId}/followers`, {
-    params: { pageNum, pageSize }
+export function followers(userId: string, page = 1, size = 10) {
+  return request.get<PageResult<UserVO>>(`/api/system/users/${userId}/followers`, {
+    params: { page, size }
   })
 }
 
 /** 关注列表（该用户关注的人） */
-export function following(userId: string, pageNum = 1, pageSize = 10) {
-  return request.get<PageVO<UserVO>>(`/api/system/users/${userId}/following`, {
-    params: { pageNum, pageSize }
+export function following(userId: string, page = 1, size = 10) {
+  return request.get<PageResult<UserVO>>(`/api/system/users/${userId}/following`, {
+    params: { page, size }
   })
 }
 
 /** 用户分页（管理员） */
-export function pageUsers(query: { pageNum?: number; pageSize?: number; keyword?: string }) {
-  return request.get<PageVO<UserVO>>('/api/system/users', { params: query })
+export function pageUsers(query: { page?: number; size?: number; keyword?: string }) {
+  return request.get<PageResult<UserVO>>('/api/system/users', { params: query })
 }

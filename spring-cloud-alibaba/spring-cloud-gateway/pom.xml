@@ -8,7 +8,6 @@
         <groupId>com.xytang</groupId>
         <artifactId>spring-cloud-alibaba</artifactId>
         <version>1.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>spring-cloud-gateway</artifactId>
@@ -58,26 +57,10 @@
             <artifactId>sa-token-redis-jackson</artifactId>
         </dependency>
 
-        <!-- 内部 common 模块 -->
+        <!-- 内部 common 模块（gateway 为 WebFlux 环境，仅依赖纯 POJO 的 core，禁止依赖 web/satoken 等 Servlet 模块） -->
         <dependency>
             <groupId>com.xytang</groupId>
             <artifactId>spring-cloud-common-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.xytang</groupId>
-            <artifactId>spring-cloud-common-security</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.xytang</groupId>
-            <artifactId>spring-cloud-common-redis</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.xytang</groupId>
-            <artifactId>spring-cloud-common-redisson</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.xytang</groupId>
-            <artifactId>spring-cloud-common-swagger</artifactId>
         </dependency>
 
         <!-- API 文档聚合 -->

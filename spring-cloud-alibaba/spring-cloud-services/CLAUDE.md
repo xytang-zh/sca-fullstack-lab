@@ -7,34 +7,27 @@
 
 ## 1. 聚合模块定位
 
-`spring-cloud-services` 是 10 个业务/基础设施微服务的 **Maven 聚合 POM**，本身不含代码，只通过 `<modules>` 声明子服务。其中 `spring-cloud-article`、`spring-cloud-comment` 为按个人博客需求文档新增的博客域服务，其余 8 个为保留服务。
+`spring-cloud-services` 是 **3 个业务微服务** 的 **Maven 聚合 POM**，本身不含代码，只通过 `<modules>` 声明子服务。其中 `spring-cloud-article`、`spring-cloud-comment` 为按个人博客需求文档新增的博客域服务，`spring-cloud-system` 为保留的 RBAC 核心服务。
 
 | 维度 | 值 |
 |------|-----|
 | 父 POM | `com.xytang:spring-cloud-alibaba:1.0-SNAPSHOT` |
 | 当前 artifactId | `spring-cloud-services` |
 | packaging | `pom` |
-| 子服务数量 | 10 |
+| 子服务数量 | 3 |
 | 顶级包前缀 | `com.xytang.{服务名}` |
 
 ---
 
-## 2. 子服务清单（10 个）
+## 2. 子服务清单（3 个）
 
 | # | 服务 | 端口 | 类型 | 顶级包 | 启动类                              |
 |---|------|------|------|--------|----------------------------------|
 | 1 | `spring-cloud-system` | 8082 | 业务 | `com.xytang.system` | `SpringCloudSystemApplication`   |
-| 2 | `spring-cloud-monitor` | 8083 | 业务 | `com.xytang.monitor` | `SpringCloudMonitorApplication`  |
-| 3 | `spring-cloud-message` | 8086 | 基础设施 | `com.xytang.message` | `SpringCloudMessageApplication`  |
-| 4 | `spring-cloud-search` | 8087 | 基础设施 | `com.xytang.search` | `SpringCloudSearchApplication`   |
-| 5 | `spring-cloud-file` | 8088 | 基础设施 | `com.xytang.file` | `SpringCloudFileApplication`     |
-| 6 | `spring-cloud-log` | 8089 | 基础设施 | `com.xytang.log` | `SpringCloudLogApplication`      |
-| 7 | `spring-cloud-portal` | 8090 | 业务 | `com.xytang.portal` | `SpringCloudPortalApplication`   |
-| 8 | `spring-cloud-job` | 8091 | 基础设施 | `com.xytang.job` | `SpringCloudJobApplication`      |
-| 9 | `spring-cloud-article` | 8093 | 业务 ★新增 | `com.xytang.article` | `SpringCloudArticleApplication`  |
-| 10 | `spring-cloud-comment` | 8094 | 业务 ★新增 | `com.xytang.comment` | `SpringCloudCommentApplication`  |
+| 2 | `spring-cloud-article` | 8093 | 业务 | `com.xytang.article` | `SpringCloudArticleApplication`  |
+| 3 | `spring-cloud-comment` | 8094 | 业务 | `com.xytang.comment` | `SpringCloudCommentApplication`  |
 
-> Dubbo 端口：system 20882 起每服务 +1；article 20893、comment 20894。XXL-JOB 执行器端口 10000 起，article 10011、comment 10012。
+> Dubbo 端口：system 20882、article 20893、comment 20894。XXL-JOB 执行器端口：system 10000、article 10011、comment 10012。
 
 ---
 
@@ -64,12 +57,8 @@ spring-cloud-{服务名}/
     │   │   │   └── {Biz}DetailVO.java
     │   │   ├── enums/                                枚举
     │   │   ├── exception/                           业务异常
-    │   │   ├── listener/                            MQ 消费者
     │   │   ├── rpc/                                  Dubbo Provider（如有）
     │   │   │   └── {Biz}RpcProvider.java
-    │   │   ├── job/                                  XXL-JOB 任务（如有）
-    │   │   │   └── {Biz}SyncJob.java
-    │   │   ├── ws/                                   WebSocket 处理（如有）
     │   │   └── constant/                            常量
     │   └── resources/
     │       ├── application.yml
@@ -145,56 +134,13 @@ sys_dict_type, sys_dict_data, sys_config, sys_notice, sys_notice_read
 
 ---
 
-### 4.2 spring-cloud-monitor（服务器监控服务）
+### 4.2 spring-cloud-article（博客文章服务）
 
 #### 4.2.1 服务定位
 
-采集服务器/JVM 指标，存时序库，通过 WebSocket 推送到前端大盘。
-
-#### 4.2.2 核心功能
-
-| 模块 | 功能 |
-|------|------|
-| 采集模块 | OSHI 采集本机指标；接收 monitor-agent 上报 |
-| 存储模块 | TDengine 超级表 `aurora_metrics` |
-| 推送模块 | Netty WebSocket Server（端口 9090），按 `userId → Channel` 推送 |
-| 历史查询 | 按 service_name + 时间范围查询 |
-| 告警模块 | 阈值规则（Nacos 配置）→ 命中发 MQ → message-service 推送 |
-| Prometheus 整合 | 暴露 `/actuator/prometheus` |
-
-#### 4.2.3 技术栈
-
-- OSHI 6.6（系统信息采集）
-- TDengine 3.3.2.0 + taos-jdbcdriver
-- Netty 4.1（WebSocket Server，端口 9090）
-- Spring Boot Actuator + micrometer-registry-prometheus
-- RabbitMQ（发告警事件）
-
-#### 4.2.4 关键接口
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/monitor/realtime` | 当前所有服务最新指标 |
-| GET | `/monitor/history` | 按 service_name + 时间范围查历史 |
-| GET | `/monitor/services` | 列出所有被监控服务 |
-| GET | `/monitor/alerts` | 当前活跃告警 |
-| WS | `/ws/monitor/{userId}` | WebSocket 订阅实时指标 |
-
-#### 4.2.5 数据模型
-
-- TDengine 超级表 `aurora_metrics`
-- MySQL `biz_alert_rule` 告警规则表
-- Redis `monitor:alert:{service}:{metric}` 告警状态去抖
-
----
-
-### 4.3 spring-cloud-article（博客文章服务）★新增
-
-#### 4.3.1 服务定位
-
 博客内容域核心服务：文章 CRUD、分类/标签、Markdown 渲染、点赞/收藏、阅读量。
 
-#### 4.3.2 核心功能
+#### 4.2.2 核心功能
 
 | 模块 | 功能 |
 |------|------|
@@ -203,18 +149,17 @@ sys_dict_type, sys_dict_data, sys_config, sys_notice, sys_notice_read
 | 标签模块 | 标签 CRUD、URL 别名、文章-标签关联 |
 | Markdown 模块 | Markdown→HTML 渲染（commonmark-java）、XSS 过滤（Jsoup） |
 | 互动模块 | 点赞/取消（幂等）、收藏/取消、阅读量计数 |
-| 同步模块 | 发布后经 Dubbo 同步 ES 索引（search 服务），失败记本地消息表由 job 补偿 |
 
-#### 4.3.3 技术栈
+#### 4.2.3 技术栈
 
 - MyBatis-Plus 3.5.9（文章/分类/标签/点赞收藏表）
 - commonmark-java（计划，**父 POM 未声明**，落地时补充）
 - Jsoup 1.17.2（XSS 过滤）
 - Redis / Redisson 4.0.0（点赞去重 Set、阅读量计数、多级缓存）
-- Dubbo 3.3（暴露 `ArticleService`、调用 search 同步索引）
+- Dubbo 3.3（暴露 `ArticleService`、调用 comment 聚合评论数）
 - Sa-Token 1.44.0（`@SaCheckLogin` / 角色校验）
 
-#### 4.3.4 关键接口（RESTful 草案）
+#### 4.2.4 关键接口（RESTful 草案）
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
@@ -229,22 +174,22 @@ sys_dict_type, sys_dict_data, sys_config, sys_notice, sys_notice_read
 | GET | `/categories` | 分类列表 |
 | GET | `/tags` | 标签列表 |
 
-#### 4.3.5 数据模型
+#### 4.2.5 数据模型
 
 ```
 t_article, t_category, t_tag, t_article_tag,
-t_like_record, t_favorite, t_sync_failed_log（最终一致性补偿）
+t_like_record, t_favorite
 ```
 
 ---
 
-### 4.4 spring-cloud-comment（博客评论服务）★新增
+### 4.3 spring-cloud-comment（博客评论服务）
 
-#### 4.4.1 服务定位
+#### 4.3.1 服务定位
 
 博客内容域评论服务：评论发表、二级嵌套回复、评论审核、敏感词过滤。
 
-#### 4.4.2 核心功能
+#### 4.3.2 核心功能
 
 | 模块 | 功能 |
 |------|------|
@@ -254,16 +199,15 @@ t_like_record, t_favorite, t_sync_failed_log（最终一致性补偿）
 | 安全模块 | XSS 过滤（Jsoup）、IP/UA 记录（反垃圾） |
 | 互动模块 | 评论点赞（幂等） |
 
-#### 4.4.3 技术栈
+#### 4.3.3 技术栈
 
 - MyBatis-Plus 3.5.9（评论表）
 - sensitive-word（计划，**父 POM 未声明**，落地时补充）
 - Jsoup 1.17.2（XSS 过滤）
 - Dubbo 3.3（暴露 `CommentService`、调用 article 校验文章存在）
 - Sa-Token 1.44.0（`@SaCheckLogin`）
-- RabbitMQ（可选：评论创建事件 → message 服务站内通知）
 
-#### 4.4.4 关键接口（RESTful 草案）
+#### 4.3.4 关键接口（RESTful 草案）
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
@@ -274,276 +218,13 @@ t_like_record, t_favorite, t_sync_failed_log（最终一致性补偿）
 | GET | `/comments/pending` | 待审核评论（管理员） |
 | POST | `/comments/{id}/audit` | 审核（APPROVED/REJECTED） |
 
-#### 4.4.5 数据模型
+#### 4.3.5 数据模型
 
 ```
 t_comment（parent_id 一级评论、reply_to_id 被回复评论、status PENDING/APPROVED/REJECTED/DELETED）
 ```
 
 ---
-
-### 4.4 spring-cloud-comment（博客评论服务）★新增
-
-#### 4.4.1 服务定位
-
-博客内容域评论服务：评论发表、二级嵌套回复、评论审核、敏感词过滤。
-
-#### 4.4.2 核心功能
-
-| 模块 | 功能 |
-|------|------|
-| 评论模块 | 发表评论、二级嵌套回复、被回复者记录（@ 通知） |
-| 审核模块 | 状态机 PENDING→APPROVED/REJECTED/DELETED，管理员审核 |
-| 敏感词模块 | 发表时敏感词过滤（sensitive-word），过滤后存储 |
-| 安全模块 | XSS 过滤（Jsoup）、IP/UA 记录（反垃圾） |
-| 互动模块 | 评论点赞（幂等） |
-
-#### 4.4.3 技术栈
-
-- MyBatis-Plus 3.5.9（评论表）
-- sensitive-word（计划，**父 POM 未声明**，落地时补充）
-- Jsoup 1.17.2（XSS 过滤）
-- Dubbo 3.3（暴露 `CommentService`、调用 article 校验文章存在）
-- Sa-Token 1.44.0（`@SaCheckLogin`）
-- RabbitMQ（可选：评论创建事件 → message 服务站内通知）
-
-#### 4.4.4 关键接口（RESTful 草案）
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/articles/{articleId}/comments` | 评论列表（按 parent_id 分组） |
-| POST | `/articles/{articleId}/comments` | 发表评论/回复 |
-| DELETE | `/comments/{id}` | 删除（本人或管理员） |
-| POST | `/comments/{id}/like` | 评论点赞/取消（幂等） |
-| GET | `/comments/pending` | 待审核评论（管理员） |
-| POST | `/comments/{id}/audit` | 审核（APPROVED/REJECTED） |
-
-#### 4.4.5 数据模型
-
-```
-t_comment（parent_id 一级评论、reply_to_id 被回复评论、status PENDING/APPROVED/REJECTED/DELETED）
-```
-
----
-
-### 4.5 spring-cloud-message（消息中心服务）
-
-#### 4.5.1 服务定位
-
-统一的消息出口：MQ 消费 → WebSocket 推送 → 站内信/邮件/短信。
-
-#### 4.5.2 核心功能
-
-| 模块 | 功能 |
-|------|------|
-| MQ 消费模块 | 监听 `task.todo`、`alert.trigger`、`user.kickout` 等事件 |
-| WebSocket 模块 | Netty Server（端口 9091），`userId → Channel` 路由 |
-| 站内信模块 | 通知 CRUD、已读未读、批量删除 |
-| 邮件模块 | Thymeleaf 模板 + spring-boot-starter-mail |
-| 短信模块 | 阿里云/腾讯云 SDK，限流 |
-| 客服模块 | 访客排队、客服分配、消息路由 |
-
-#### 4.5.3 技术栈
-
-- Spring Boot AMQP（RabbitMQ 消费）
-- Netty 4.1（WebSocket Server，端口 9091）
-- spring-boot-starter-mail
-- Aliyun/Tencent SMS SDK
-- Thymeleaf（邮件模板）
-- Redisson（客服分配分布式锁）
-
-#### 4.5.4 关键接口
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/messages` | 站内信分页 |
-| PATCH | `/messages/{id}/read` | 标记已读 |
-| POST | `/messages/read-all` | 全部已读 |
-| DELETE | `/messages/{id}` | 删除 |
-| GET | `/messages/unread-count` | 未读数 |
-| WS | `/ws/messages/{userId}` | WebSocket 订阅消息推送 |
-| POST | `/messages/customer-service/connect` | 访客接入客服 |
-| POST | `/messages/customer-service/send` | 发送客服消息 |
-
----
-
-### 4.6 spring-cloud-search（全文检索服务）
-
-#### 4.6.1 服务定位
-
-基于 ElasticSearch 提供文章、知识库、日志等多维度搜索。
-
-#### 4.6.2 核心功能
-
-| 模块 | 功能 |
-|------|------|
-| 索引模块 | 创建、删除、更新 Mapping |
-| 同步模块 | 监听 MySQL 变更 → MQ → ES 写入；定时全量重建 |
-| 搜索模块 | 多字段搜索、高亮、分页 |
-| 聚合模块 | 按分类、标签聚合统计 |
-
-#### 4.6.3 技术栈
-
-- Spring Boot Data Elasticsearch（或 ES Java Client 8.x）
-- ElasticSearch 8.15 + ik_max_word 分词器
-- RabbitMQ（增量同步事件）
-
-#### 4.6.4 关键接口
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/search/indices` | 创建索引 |
-| POST | `/search/indices/sync` | 全量重建 |
-| GET | `/search/articles` | 搜索文章 |
-| GET | `/search/knowledge` | 搜索知识库 |
-| GET | `/search/logs` | 搜索操作日志 |
-| GET | `/search/suggest` | 搜索建议（自动补全） |
-
----
-
-### 4.7 spring-cloud-file（文件服务）
-
-#### 4.7.1 服务定位
-
-基于 MinIO 的对象存储服务，支持大文件分片上传、断点续传、预签名 URL。
-
-#### 4.7.2 核心功能
-
-| 模块 | 功能 |
-|------|------|
-| 上传模块 | 单文件、批量、分片（init/upload/complete 三步） |
-| 下载模块 | 普通下载、断点续传、临时链接 |
-| 预览模块 | 图片/PDF 直预览，Office 走 KKFileView |
-| 管理模块 | 文件 CRUD、回收站、配额 |
-| 预签名模块 | 前端直传 MinIO 的签名接口 |
-| 秒传模块 | 上传前查 MD5，已存在复用 |
-
-#### 4.7.3 技术栈
-
-- MinIO Java SDK
-- Spring Boot Web
-- Redisson（分片上传状态管理）
-- KKFileView（独立容器，文件预览代理）
-
-#### 4.7.4 关键接口
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/files/upload/init` | 初始化分片上传，返回 uploadId |
-| POST | `/files/upload/chunks` | 上传一片 |
-| POST | `/files/upload/complete` | 完成上传，合并文件 |
-| POST | `/files` | 单文件上传 |
-| GET | `/files/{id}` | 文件元数据 |
-| GET | `/files/{id}/download` | 下载 |
-| GET | `/files/{id}/preview` | 预览（返回 KKFileView URL） |
-| GET | `/files/presign` | 预签名上传 URL |
-| POST | `/files/check-md5` | 秒传检查 |
-| DELETE | `/files/{id}` | 删除（进回收站） |
-| POST | `/files/{id}/restore` | 从回收站恢复 |
-
----
-
-### 4.8 spring-cloud-log（日志服务）
-
-#### 4.8.1 服务定位
-
-统一记录操作日志、登录日志、审计日志，存 MongoDB（按月分表）。
-
-#### 4.8.2 核心功能
-
-| 模块 | 功能 |
-|------|------|
-| 操作日志模块 | `@OperationLog` 注解 + AOP，自动记录接口调用 |
-| 登录日志模块 | 监听 auth 服务的 `user.login` 事件 |
-| 审计日志模块 | 监听敏感操作（delete、update permission） |
-| 查询模块 | 按用户、时间、类型查询 |
-
-#### 4.8.3 技术栈
-
-- Spring AOP（切面）
-- MongoDB（存储）
-- RabbitMQ（异步写入）
-- ShardingSphere 5.5.2（按月分表，可选）
-
-#### 4.8.4 关键接口
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/logs/operations` | 操作日志分页 |
-| GET | `/logs/logins` | 登录日志分页 |
-| GET | `/logs/audits` | 审计日志分页 |
-| POST | `/logs/operations` | 内部接口：接收日志事件 |
-
----
-
-### 4.9 spring-cloud-portal（公开门户服务）
-
-#### 4.9.1 服务定位
-
-对外公开的内容门户（博客、新闻、产品），SEO/GEO 友好。
-
-#### 4.9.2 核心功能
-
-| 模块 | 功能 |
-|------|------|
-| 博客模块 | 文章 CRUD、标签、分类、置顶、阅读量 |
-| 新闻模块 | 新闻发布、栏目管理 |
-| 产品模块 | 产品 CRUD、规格 |
-| SEO 模块 | Sitemap、Meta 自动生成、robots.txt |
-| GEO 模块 | 地理位置内容（基于用户 IP 定位） |
-
-#### 4.9.3 技术栈
-
-- Spring Boot
-- MyBatis-Plus（文章、新闻表）
-- ElasticSearch（全文搜索调 aurora-search）
-- Redis（文章缓存、阅读量计数）
-
-#### 4.9.4 关键接口
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/portal/articles` | 文章分页 |
-| GET | `/portal/articles/{id}` | 文章详情 |
-| GET | `/portal/articles/hot` | 热门文章 |
-| GET | `/portal/news` | 新闻分页 |
-| GET | `/portal/products` | 产品分页 |
-| GET | `/portal/sitemap.xml` | Sitemap |
-| GET | `/portal/robots.txt` | Robots |
-
-> portal 服务**不需要登录**，但写操作（POST/PUT/DELETE）必须 @SaCheckRole(ADMIN)。
-
----
-
-### 4.10 spring-cloud-job（定时任务服务）
-
-#### 4.10.1 服务定位
-
-XXL-JOB 执行器，所有定时任务集中管理。
-
-#### 4.10.2 核心功能
-
-| 任务 | 触发时机 |
-|------|----------|
-| `metricsAggregateJob` | 每分钟 |
-| `aiMessageArchiveJob` | 每天凌晨 |
-| `articleSyncToEsJob` | 每天 2 点 |
-| `workflowRemindJob` | 每 10 分钟 |
-| `logCleanupJob` | 每天凌晨清理 30 天前 |
-| `createNextMonthTablesJob` | 每月 25 号 |
-
-#### 4.10.3 技术栈
-
-- XXL-JOB Core 3.5.0（**父 POM 未声明**，落地时补充）
-- Spring Boot
-- Dubbo（调用其他服务执行任务）
-
-#### 4.10.4 关键接口
-
-无对外 HTTP 接口，任务由 XXL-JOB Admin 调度触发。
-
----
-
 
 ## 5. 服务间通信规范
 
@@ -551,33 +232,10 @@ XXL-JOB 执行器，所有定时任务集中管理。
 
 | 场景 | 调用方 | 被调方 | 方法 |
 |------|--------|--------|------|
-| 文件元数据 | portal | file | `FileRpcService.getMeta` |
-| 用户角色 | monitor | system | `UserRpcService.getRoles` |
-| 文章索引同步 | article | search | `SearchRpcService.syncArticleIndex` |
 | 文章存在校验 | comment | article | `ArticleRpcService.existsById` |
+| 评论数聚合 | article | comment | `CommentRpcService.countByArticleId` |
 
-> Dubbo 接口定义在 `spring-cloud-common-core` 的 `rpc` 包（计划，未实现），由被调方实现 `*RpcProvider`。
-
-### 5.2 异步事件（RabbitMQ）
-
-| 事件 | Exchange | 生产者 | 消费者 |
-|------|----------|--------|--------|
-| 用户注册 | `user.register` | auth | message, log |
-| 用户更新 | `user.update` | system | message, log, search |
-| 告警 | `alert.trigger` | monitor | message |
-| 评论通知 | `comment.created` | comment | message |
-| 操作日志 | `log.operation` | 所有 | log |
-| 文件上传 | `file.uploaded` | file | log |
-| 文章发布 | `article.published` | article | search |
-
-> 所有事件**必须**继承 `BaseEvent`，**必须**用 `AbstractEventListener<T>` 消费（自动幂等）。
-
-### 5.3 实时推送（WebSocket）
-
-| 端点 | 服务 | 用途 |
-|------|------|------|
-| `/ws/monitor/{userId}` | monitor | 实时指标推送 |
-| `/ws/message/{userId}` | message | 站内信/任务提醒 |
+> Dubbo 接口定义在 `spring-cloud-common-dubbo` 模块（`com.xytang.common.dubbo`），由被调方实现 `*RpcProvider` 并用 `@DubboService` 暴露，调用方用 `@DubboReference` 注入。
 
 ---
 
@@ -606,40 +264,34 @@ XXL-JOB 执行器，所有定时任务集中管理。
 ```json
 {
   "code": 200,
-  "msg": "success",
+  "message": "success",
   "data": { ... },
-  "timestamp": 1722470400000
+  "timestamp": 1722470400000,
+  "traceId": "a1b2c3d4e5f6g7h8"
 }
 ```
 
-| code | 含义 |
-|------|------|
-| 200 | 成功 |
-| 400 | 参数错误 |
-| 401 | 未登录 |
-| 403 | 无权限 |
-| 404 | 资源不存在 |
-| 409 | 资源冲突 |
-| 429 | 限流 |
-| 500 | 服务器内部错误 |
+`code` 为业务状态码：200 成功 / 1xxxx 参数 / 2xxxx 用户权限 / 3xxxx 业务 / 4xxxx 第三方 / 5xxxx 系统。
 
 ### 6.4 分页规范
 
 入参：
 ```
-GET /system/users?pageNum=1&pageSize=10&orderBy=createTime DESC&keyword=admin
+GET /system/users?page=1&size=10&orderBy=createTime DESC&keyword=admin
 ```
 
-出参（`PageVO<T>`）：
+出参（`PageResult<T>`）：
 ```json
 {
   "code": 200,
   "data": {
-    "list": [...],
+    "records": [...],
     "total": 100,
-    "pageNum": 1,
-    "pageSize": 10,
-    "pages": 10
+    "page": 1,
+    "size": 10,
+    "pages": 10,
+    "hasPrevious": false,
+    "hasNext": true
   }
 }
 ```
@@ -851,12 +503,23 @@ management:
 | # | 服务 | 文档 |
 |---|------|------|
 | 1 | spring-cloud-system | [CLAUDE.md](./spring-cloud-system/CLAUDE.md) |
-| 2 | spring-cloud-monitor | [CLAUDE.md](./spring-cloud-monitor/CLAUDE.md) |
-| 3 | spring-cloud-message | [CLAUDE.md](./spring-cloud-message/CLAUDE.md) |
-| 4 | spring-cloud-search | [CLAUDE.md](./spring-cloud-search/CLAUDE.md) |
-| 5 | spring-cloud-file | [CLAUDE.md](./spring-cloud-file/CLAUDE.md) |
-| 6 | spring-cloud-log | [CLAUDE.md](./spring-cloud-log/CLAUDE.md) |
-| 7 | spring-cloud-portal | [CLAUDE.md](./spring-cloud-portal/CLAUDE.md) |
-| 8 | spring-cloud-job | [CLAUDE.md](./spring-cloud-job/CLAUDE.md) |
-| 9 | spring-cloud-article ★ | [CLAUDE.md](./spring-cloud-article/CLAUDE.md) |
-| 10 | spring-cloud-comment ★ | [CLAUDE.md](./spring-cloud-comment/CLAUDE.md) |
+| 2 | spring-cloud-article | [CLAUDE.md](./spring-cloud-article/CLAUDE.md) |
+| 3 | spring-cloud-comment | [CLAUDE.md](./spring-cloud-comment/CLAUDE.md) |
+
+---
+
+## 12. 技术栈 → 模块映射表
+
+| 技术栈 | 归属模块 |
+|--------|---------|
+| 统一响应 R<T> / BusinessException / 事件基类 | spring-cloud-common-core |
+| 全局异常 / TraceId / R 包装 / Argon2id / 操作日志 / springdoc+Knife4j | spring-cloud-common-web |
+| MyBatis-Plus / 分页 / 数据权限 / dynamic-datasource | spring-cloud-common-mybatis |
+| Redis / RedisTemplate / Redisson 分布式锁 / Caffeine 多级缓存 | spring-cloud-common-redis |
+| Sa-Token 登录鉴权 / StpInterface | spring-cloud-common-satoken |
+| Dubbo RPC 契约（article↔comment） | spring-cloud-common-dubbo |
+| Spring Cloud Gateway / 路由 / CORS / Sentinel 限流 | spring-cloud-gateway |
+| Sa-Token 登录 / 注册 / 验证码 | spring-cloud-auth |
+| MyBatis-Plus / RBAC 用户角色菜单 | spring-cloud-system |
+| 文章 / 分类 / 标签 / Markdown / 点赞收藏 | spring-cloud-article |
+| 评论 / 审核 / 敏感词 | spring-cloud-comment |

@@ -37,8 +37,8 @@ export interface UserUpdateDTO {
 }
 
 export interface UserPageQuery {
-  pageNum: number
-  pageSize: number
+  page: number
+  size: number
   keyword?: string
   status?: number
   deptId?: number

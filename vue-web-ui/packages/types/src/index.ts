@@ -4,26 +4,25 @@ export * from './system'
 
 export interface R<T = unknown> {
   code: number
-  bizCode: string
   message: string
   data: T | null
-  timestamp: string
+  timestamp: number
   traceId?: string
-  path?: string
-  devMessage?: string
 }
 
-export interface PageVO<T = unknown> {
-  list: T[]
+export interface PageResult<T = unknown> {
+  records: T[]
   total: number
-  pageNum: number
-  pageSize: number
+  page: number
+  size: number
   pages: number
+  hasPrevious: boolean
+  hasNext: boolean
 }
 
 export interface PageQuery {
-  pageNum: number
-  pageSize: number
+  page: number
+  size: number
   orderBy?: string
   keyword?: string
 }

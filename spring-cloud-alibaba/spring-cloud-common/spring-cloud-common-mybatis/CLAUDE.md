@@ -189,8 +189,8 @@ spring-cloud-common-mybatis/
 | 关系 | 模块 |
 |------|------|
 | 依赖 | `spring-cloud-common-core` |
-| 被依赖 | `spring-cloud-auth`、`spring-cloud-system`、`spring-cloud-log` 等需要持久化的服务 |
-| 不依赖 | `spring-cloud-common-datasource`（datasource 仅做多数据源切换，本模块只用默认数据源） |
+| 被依赖 | `spring-cloud-auth`、`spring-cloud-system`、`spring-cloud-article`、`spring-cloud-comment` 等需要持久化的服务 |
+| 集成 | dynamic-datasource（自 `spring-cloud-common-datasource` 并入，多数据源切换用 `@DS`） |
 
 ---
 

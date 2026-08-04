@@ -1,5 +1,6 @@
 # CLAUDE.md — sca-fullstack-lab Monorepo 根
 
+> 本项目是一个学习向的项目，主要是为了在实战中学习并了解各个技术和框架，所以代码必须要有详细且清楚易懂的注释。
 > 本文档面向 AI 编码助手（Claude Code / Codex / Cursor），用于在仓库根目录下工作时提供统一的工程约束、技术栈基线、跨项目契约与子项目索引。
 > 任何 AI 在本仓库（或任意子项目）下生成代码、配置、SQL、文档时，**必须**先读取本文件并严格遵守其中的规范。
 > 进入任意子项目（`spring-cloud-alibaba/` 或 `vue-web-ui/`）工作时，**必须**再读取该子项目根目录的 CLAUDE.md。
@@ -10,7 +11,7 @@
 
 `sca-fullstack-lab`（企业级一体化智能管理平台）是一个 **前后端分离的 Monorepo**：
 
-- 后端：Spring Cloud Alibaba 微服务体系（1 个网关 + 1 个认证中心 + 10 个业务服务 + 15 个公共子模块 + 1 个自定义 Starter）
+- 后端：Spring Cloud Alibaba 微服务体系（1 个网关 + 1 个认证中心 + 3 个业务服务 + 6 个公共子模块）
 - 前端：Vue 3 + Vite + pnpm Monorepo（2 个独立部署应用 + 5 个共享包）
 
 | 维度 | 值 |
@@ -37,18 +38,17 @@ sca-fullstack-lab/
 │   ├── src/                        仓库级共享资源
 │   │   ├── checkstyle.xml          Checkstyle 规则（阿里规范 + 项目红线）
 │   │   └── checkstyle-suppressions.xml
-│   ├── spring-cloud-common/        公共能力下沉层（15 个子模块，packaging=pom）
+│   ├── spring-cloud-common/        公共能力下沉层（6 个子模块，packaging=pom）
 │   ├── spring-cloud-gateway/       网关服务（端口 8080）
 │   ├── spring-cloud-auth/          认证中心（端口 8081）
-│   ├── spring-cloud-services/      业务服务聚合（10 个微服务，packaging=pom）
-│   └── spring-cloud-starters/      自定义 Starter 聚合（1 个 Starter，packaging=pom）
+│   └── spring-cloud-services/      业务服务聚合（3 个微服务，packaging=pom）
 ├── vue-web-ui/                     前端 Monorepo（详见该目录下 CLAUDE.md）
 │   ├── package.json                monorepo 根 package
 │   ├── pnpm-workspace.yaml         workspace 声明
 │   ├── apps/                       2 个独立部署应用（admin / portal）
 │   └── packages/                   5 个共享包（ui / api / utils / types / uno-preset）
 ├── docker/                         基础设施 Compose
-│   └── compose/                    docker-compose 文件（MySQL/Redis/Nacos/RabbitMQ/MinIO 等）
+│   └── compose/                    docker-compose 文件（MySQL/Redis/Nacos/MinIO 等）
 ├── docs/                           设计文档（按编号组织）
 │   ├── 01-项目概述.md
 │   ├── 02-技术栈选型.md
@@ -107,24 +107,27 @@ sca-fullstack-lab/
 ```json
 {
   "code": 200,
-  "msg": "success",
+  "message": "success",
   "data": { ... },
-  "timestamp": 1722470400000
+  "timestamp": 1722470400000,
+  "traceId": "a1b2c3d4e5f6g7h8"
 }
 ```
 
-| code | HTTP 状态 | 含义 |
-|------|----------|------|
-| 200 | 200 | 成功 |
-| 400 | 400 | 参数错误 |
-| 401 | 401 | 未登录 / Token 过期 |
-| 403 | 403 | 无权限 |
-| 404 | 404 | 资源不存在 |
-| 409 | 409 | 资源冲突 |
-| 429 | 429 | 限流 |
-| 500 | 500 | 服务器内部错误 |
+`code` 为**业务状态码**（与 HTTP 状态码各司其职），按区段划分：
 
-前端 axios 响应拦截器**必须**据此处理：`code !== 200` 时显示 `msg` 错误提示。
+| code 区段 | 含义 | 典型 HTTP 状态 |
+|-----------|------|---------------|
+| 200 | 成功 | 200 |
+| 1xxxx | 参数校验 / 请求格式错误 | 400 |
+| 2xxxx | 用户认证 / 权限相关 | 401 / 403 / 404 |
+| 3xxxx | 业务规则拦截（可恢复） | 409 / 422 / 429 |
+| 4xxxx | 第三方服务错误 | 502 |
+| 5xxxx | 系统内部错误（不可恢复） | 500 / 503 / 504 |
+
+分页响应 `data` 统一为 `PageResult<T>`：`{records, total, page, size, pages, hasPrevious, hasNext}`；分页入参统一 `page`/`size`。
+
+前端 axios 响应拦截器**必须**据此处理：`code === 200` 时返回 `data`；`code` 为登录态失效码（未登录/Token 过期/被禁用/被踢下线）时清理登录态并跳转登录页；其余失败显示 `message` 错误提示。
 
 ### 4.2 雪花 ID Long → String 序列化
 
@@ -170,13 +173,6 @@ sca-fullstack-lab/
 | spring-cloud-gateway | 8080 | - | - | - |
 | spring-cloud-auth | 8081 | 20881 | - | 9999 |
 | spring-cloud-system | 8082 | 20882 | - | 10000 |
-| spring-cloud-monitor | 8083 | 20883 | 9090 | 10001 |
-| spring-cloud-message | 8086 | 20886 | 9091 | 10004 |
-| spring-cloud-search | 8087 | 20887 | - | 10005 |
-| spring-cloud-file | 8088 | 20888 | - | 10006 |
-| spring-cloud-log | 8089 | 20889 | - | 10007 |
-| spring-cloud-portal | 8090 | 20890 | - | 10008 |
-| spring-cloud-job | 8091 | 20891 | - | 10009 |
 | spring-cloud-article | 8093 | 20893 | - | 10011 |
 | spring-cloud-comment | 8094 | 20894 | - | 10012 |
 
@@ -195,7 +191,6 @@ sca-fullstack-lab/
 | Redis | 6379 | 分布式缓存 |
 | MongoDB | 27017 | 文档库（对话/日志） |
 | ElasticSearch | 9200 / 9300 | 全文检索 |
-| RabbitMQ | 5672（AMQP）/ 15672（管理） | 消息队列 |
 | Nacos | 8848 / 9848（gRPC） | 注册配置中心 |
 | Sentinel Dashboard | 8858 | 限流熔断 |
 | MinIO | 9000（API）/ 9001（控制台） | 对象存储 |
@@ -213,11 +208,10 @@ sca-fullstack-lab/
 详见 [`spring-cloud-alibaba/CLAUDE.md`](./spring-cloud-alibaba/CLAUDE.md)。
 
 包含 4 个一级子模块：
-- `spring-cloud-common/` — 公共能力下沉层（15 个子模块），详见 [`spring-cloud-common/CLAUDE.md`](./spring-cloud-alibaba/spring-cloud-common/CLAUDE.md)
+- `spring-cloud-common/` — 公共能力下沉层（6 个子模块），详见 [`spring-cloud-common/CLAUDE.md`](./spring-cloud-alibaba/spring-cloud-common/CLAUDE.md)
 - `spring-cloud-gateway/` — 网关服务，详见 [`spring-cloud-gateway/CLAUDE.md`](./spring-cloud-alibaba/spring-cloud-gateway/CLAUDE.md)
 - `spring-cloud-auth/` — 认证中心，详见 [`spring-cloud-auth/CLAUDE.md`](./spring-cloud-alibaba/spring-cloud-auth/CLAUDE.md)
-- `spring-cloud-services/` — 业务服务聚合（10 个微服务），详见 [`spring-cloud-services/CLAUDE.md`](./spring-cloud-alibaba/spring-cloud-services/CLAUDE.md)
-- `spring-cloud-starters/` — 自定义 Starter 聚合（2 个 Starter），详见 [`spring-cloud-starters/CLAUDE.md`](./spring-cloud-alibaba/spring-cloud-starters/CLAUDE.md)
+- `spring-cloud-services/` — 业务服务聚合（3 个微服务：system/article/comment），详见 [`spring-cloud-services/CLAUDE.md`](./spring-cloud-alibaba/spring-cloud-services/CLAUDE.md)
 
 ### 6.2 前端 Monorepo
 

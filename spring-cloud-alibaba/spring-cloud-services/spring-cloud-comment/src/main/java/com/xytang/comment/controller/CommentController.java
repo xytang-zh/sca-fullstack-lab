@@ -8,7 +8,7 @@ import com.xytang.comment.dto.CommentReplyDTO;
 import com.xytang.comment.service.CommentService;
 import com.xytang.comment.vo.CommentMyVO;
 import com.xytang.comment.vo.CommentVO;
-import com.xytang.common.core.response.PageVO;
+import com.xytang.common.core.response.PageResult;
 import com.xytang.common.core.response.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -37,11 +37,11 @@ public class CommentController {
 
     @Operation(summary = "文章评论分页（游客可访问，仅已审核）")
     @GetMapping("/articles/{articleId}")
-    public R<PageVO<CommentVO>> page(@PathVariable Long articleId,
-                                     @RequestParam(defaultValue = "1") @Min(1) Integer pageNum,
-                                     @RequestParam(defaultValue = "10") @Min(1) Integer pageSize) {
+    public R<PageResult<CommentVO>> page(@PathVariable Long articleId,
+                                     @RequestParam(defaultValue = "1") @Min(1) Integer page,
+                                     @RequestParam(defaultValue = "10") @Min(1) Integer size) {
         Long currentUserId = StpUtil.isLogin() ? StpUtil.getLoginIdAsLong() : null;
-        return R.ok(commentService.pageByArticle(articleId, pageNum, pageSize, currentUserId));
+        return R.ok(commentService.pageByArticle(articleId, page, size, currentUserId));
     }
 
     @Operation(summary = "发表评论（需登录）")
@@ -71,17 +71,17 @@ public class CommentController {
     @Operation(summary = "我的评论（需登录，按用户隔离）")
     @GetMapping("/my")
     @SaCheckLogin
-    public R<PageVO<CommentMyVO>> my(@RequestParam(defaultValue = "1") @Min(1) Integer pageNum,
-                                     @RequestParam(defaultValue = "10") @Min(1) Integer pageSize) {
-        return R.ok(commentService.pageMyComments(StpUtil.getLoginIdAsLong(), pageNum, pageSize));
+    public R<PageResult<CommentMyVO>> my(@RequestParam(defaultValue = "1") @Min(1) Integer page,
+                                     @RequestParam(defaultValue = "10") @Min(1) Integer size) {
+        return R.ok(commentService.pageMyComments(StpUtil.getLoginIdAsLong(), page, size));
     }
 
     @Operation(summary = "待审核评论列表（管理员）")
     @GetMapping("/pending")
     @SaCheckLogin
-    public R<PageVO<CommentVO>> pending(@RequestParam(defaultValue = "1") @Min(1) Integer pageNum,
-                                        @RequestParam(defaultValue = "10") @Min(1) Integer pageSize) {
-        return R.ok(commentService.pagePending(pageNum, pageSize));
+    public R<PageResult<CommentVO>> pending(@RequestParam(defaultValue = "1") @Min(1) Integer page,
+                                        @RequestParam(defaultValue = "10") @Min(1) Integer size) {
+        return R.ok(commentService.pagePending(page, size));
     }
 
     @Operation(summary = "审核评论（管理员，2=通过 3=驳回）")

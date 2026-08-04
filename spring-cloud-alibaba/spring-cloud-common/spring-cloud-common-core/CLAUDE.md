@@ -48,7 +48,7 @@ spring-cloud-common-core/
 
 | 包 | 职责 |
 |----|------|
-| `com.xytang.common.core.response` | 统一响应 `R<T>`、分页 `PageVO`/`PageQuery`、业务码 `BizCode`、开发消息 `DevMessageHolder`、路径 `PathHolder` |
+| `com.xytang.common.core.response` | 统一响应 `R<T>`、错误码 `ErrorCode`/`BizCode`、分页 `PageResult`/`PageQuery` |
 | `com.xytang.common.core.constant` | 缓存 Key `CacheKeyConstants`、通用常量 `CommonConstants`、HTTP 头 `HeaderConstants` |
 | `com.xytang.common.core.event` | 事件基类 `BaseEvent`（所有 MQ 事件的父类） |
 | `com.xytang.common.core.exception` | 业务异常体系（`BusinessException` 等 12 个异常类） |
@@ -95,26 +95,21 @@ spring-cloud-common-core/
 ### 6.1 统一响应 `R<T>`
 
 - **职责**：所有 HTTP 接口的统一返回包装类
-- **字段**：`code`（业务码）、`msg`（消息）、`data`（数据）、`timestamp`（时间戳）
-- **静态工厂**：`R.ok()`、`R.ok(data)`、`R.fail(code, msg)`、`R.fail(BizCode)`
+- **字段**：`code`（业务状态码）、`message`（友好文案）、`data`（数据）、`timestamp`（毫秒时间戳）、`traceId`（链路追踪 ID）
+- **静态工厂**：`R.ok()`、`R.ok(data)`、`R.ok(message, data)`、`R.fail(ErrorCode)`、`R.fail(ErrorCode, message)`、`R.fail(code, message)`
 - **实现技术**：纯 POJO + Lombok `@Data` + 静态工厂方法
 
-### 6.2 分页 `PageVO` 与 `PageQuery`
+### 6.2 分页 `PageResult` 与 `PageQuery`
 
-- **`PageVO<T>`**：分页响应，字段 `list`、`total`、`pageNum`、`pageSize`、`pages`
-- **`PageQuery`**：分页入参基类，字段 `pageNum`（从 1 开始）、`pageSize`（默认 10，最大 100）、`orderBy`
+- **`PageResult<T>`**：分页响应，字段 `records`、`total`、`page`、`size`、`pages`、`hasPrevious`、`hasNext`
+- **`PageQuery`**：分页入参基类，字段 `page`（从 1 开始）、`size`（默认 10，最大 100）、`orderBy`
 - **实现技术**：纯 POJO + Lombok
 
-### 6.3 业务码 `BizCode`
+### 6.3 错误码 `ErrorCode` 与 `BizCode`
 
-- **职责**：枚举所有业务码（200/400/401/403/404/409/429/500 等）+ 消息模板
-- **实现技术**：Java 枚举 + `DevMessageHolder`（开发环境消息兜底）
-
-### 6.4 开发辅助 `DevMessageHolder` / `PathHolder`
-
-- **`DevMessageHolder`**：开发环境消息兜底（生产环境不显示）
-- **`PathHolder`**：请求路径上下文（用于异常消息路径填充）
-- **实现技术**：ThreadLocal
+- **`ErrorCode`**：错误码接口，`getCode()/getUserMessage()/getDevMessage()/getHttpStatus()`，支持自定义实现
+- **`BizCode`**：枚举实现错误码，5 位数字 = 区段(1) + 模块(1) + 序号(3)；区段 1 参数 / 2 用户权限 / 3 业务 / 4 第三方 / 5 系统；成功码固定 200
+- **实现技术**：Java 枚举 + `formatDevMessage(Object...)` 占位符填充
 
 ### 6.5 常量
 
@@ -157,11 +152,10 @@ spring-cloud-common-core/
 | 类名 | 包 | 职责 |
 |------|----|------|
 | `R<T>` | `response` | 统一响应包装 |
-| `PageVO<T>` | `response` | 分页响应 |
+| `ErrorCode` | `response` | 错误码接口 |
+| `BizCode` | `response` | 业务码枚举（实现 `ErrorCode`） |
+| `PageResult<T>` | `response` | 分页响应 |
 | `PageQuery` | `response` | 分页入参基类 |
-| `BizCode` | `response` | 业务码枚举 |
-| `DevMessageHolder` | `response` | 开发环境消息 |
-| `PathHolder` | `response` | 请求路径上下文 |
 | `CacheKeyConstants` | `constant` | 缓存 Key 前缀 |
 | `CommonConstants` | `constant` | 通用常量 |
 | `HeaderConstants` | `constant` | HTTP 头名 |

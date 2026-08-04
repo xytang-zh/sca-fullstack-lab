@@ -8,7 +8,6 @@
         <groupId>com.xytang</groupId>
         <artifactId>spring-cloud-common</artifactId>
         <version>1.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>spring-cloud-common-core</artifactId>

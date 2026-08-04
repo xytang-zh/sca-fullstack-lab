@@ -1,6 +1,6 @@
 package com.xytang.system.service;
 
-import com.xytang.common.core.response.PageVO;
+import com.xytang.common.core.response.PageResult;
 import com.xytang.system.vo.UserVO;
 
 /**
@@ -20,22 +20,22 @@ public interface FollowService {
     /**
      * 粉丝列表（关注该用户的人）。
      *
-     * @param userId   目标用户 ID
-     * @param pageNum  页码
-     * @param pageSize 每页条数
-     * @return 用户列表
+     * @param userId 目标用户 ID
+     * @param page   页码
+     * @param size   每页条数
+     * @return 分页结果
      */
-    PageVO<UserVO> pageFollowers(Long userId, int pageNum, int pageSize);
+    PageResult<UserVO> pageFollowers(Long userId, int page, int size);
 
     /**
      * 关注列表（该用户关注的人）。
      *
-     * @param userId   目标用户 ID
-     * @param pageNum  页码
-     * @param pageSize 每页条数
-     * @return 用户列表
+     * @param userId 目标用户 ID
+     * @param page   页码
+     * @param size   每页条数
+     * @return 分页结果
      */
-    PageVO<UserVO> pageFollowing(Long userId, int pageNum, int pageSize);
+    PageResult<UserVO> pageFollowing(Long userId, int page, int size);
 
     /**
      * 我的完整资料（含 bio、关注数、粉丝数）。

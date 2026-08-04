@@ -10,7 +10,6 @@ import com.xytang.auth.dto.RegisterDTO;
 import com.xytang.auth.entity.AuthUser;
 import com.xytang.auth.enums.DeviceTypeEnum;
 import com.xytang.auth.enums.LoginTypeEnum;
-import com.xytang.auth.event.UserLoginEvent;
 import com.xytang.auth.mapper.AuthUserMapper;
 import com.xytang.auth.service.AuthService;
 import com.xytang.auth.service.CaptchaService;
@@ -21,14 +20,11 @@ import com.xytang.common.core.constant.CommonConstants;
 import com.xytang.common.core.exception.AuthException;
 import com.xytang.common.core.exception.UserNotFoundException;
 import com.xytang.common.core.response.BizCode;
-import com.xytang.common.core.response.DevMessageHolder;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.AmqpException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,7 +32,6 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import cn.hutool.core.util.RandomUtil;
@@ -49,7 +44,6 @@ import cn.hutool.core.util.RandomUtil;
 @Slf4j
 public class AuthServiceImpl implements AuthService {
 
-    private static final int HASH_PREVIEW_LEN = 40;
     private static final int PHONE_MIN_LEN = 7;
     private static final int PHONE_HEAD_LEN = 3;
     private static final int PHONE_TAIL_LEN = 4;
@@ -58,7 +52,6 @@ public class AuthServiceImpl implements AuthService {
     private final AuthUserMapper authUserMapper;
     private final CaptchaService captchaService;
     private final LoginRiskService loginRiskService;
-    private final RabbitTemplate rabbitTemplate;
     private final PasswordEncoder passwordEncoder;
     private final StringRedisTemplate stringRedisTemplate;
 
@@ -66,9 +59,7 @@ public class AuthServiceImpl implements AuthService {
     public LoginVO login(LoginDTO dto, String ip, String userAgent) {
         // 1. 校验文字验证码（忽略大小写、一次性消费；失败不查账号，防枚举）
         if (!captchaService.verify(dto.getCaptchaKey(), dto.getCaptchaCode())) {
-            publishLoginEvent(null, dto.getAccount(), LoginTypeEnum.LOGIN, ip, userAgent,
-                    Boolean.FALSE, "captcha invalid");
-            DevMessageHolder.set("文字验证码无效或已过期，captchaKey=" + dto.getCaptchaKey());
+            log.warn("文字验证码无效或已过期，captchaKey={}", dto.getCaptchaKey());
             throw new AuthException(BizCode.AUTH_CAPTCHA_ERROR);
         }
 
@@ -81,30 +72,21 @@ public class AuthServiceImpl implements AuthService {
                 .last("LIMIT 1"));
         if (user == null) {
             loginRiskService.recordFailure(dto.getAccount());
-            publishLoginEvent(null, dto.getAccount(), LoginTypeEnum.LOGIN, ip, userAgent,
-                    Boolean.FALSE, "user not found");
-            DevMessageHolder.set("用户不存在，account=" + dto.getAccount());
+            log.warn("用户不存在，account={}", dto.getAccount());
             throw new AuthException(BizCode.AUTH_PASSWORD_ERROR, "账号或密码错误");
         }
 
         // 4. 校验密码（统一返回"账号或密码错误"，不区分账号与密码错误）
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
             loginRiskService.recordFailure(dto.getAccount());
-            publishLoginEvent(user.getId(), dto.getAccount(), LoginTypeEnum.LOGIN, ip, userAgent,
-                    Boolean.FALSE, "password mismatch");
-            DevMessageHolder.set("Argon2id matches 返回 false，输入密码 '"
-                    + dto.getPassword() + "' 与数据库哈希 '"
-                    + user.getPassword().substring(0, Math.min(HASH_PREVIEW_LEN,
-                        user.getPassword().length())) + "' 不匹配");
+            log.warn("Argon2id 密码校验不匹配，username={}", dto.getAccount());
             throw new AuthException(BizCode.AUTH_PASSWORD_ERROR, "账号或密码错误");
         }
 
         // 5. 校验状态（被禁用/删除）
         if (user.getStatus() == null
                 || CommonConstants.STATUS_NORMAL != user.getStatus()) {
-            publishLoginEvent(user.getId(), dto.getAccount(), LoginTypeEnum.LOGIN, ip, userAgent,
-                    Boolean.FALSE, "account disabled");
-            DevMessageHolder.set("用户已被禁用，status=" + user.getStatus());
+            log.warn("用户已被禁用，username={}, status={}", dto.getAccount(), user.getStatus());
             throw new AuthException(BizCode.AUTH_USER_DISABLED);
         }
 
@@ -129,8 +111,6 @@ public class AuthServiceImpl implements AuthService {
                 .eq(AuthUser::getUsername, dto.getAccount())
                 .last("LIMIT 1"));
         if (exists != null) {
-            publishLoginEvent(null, dto.getAccount(), LoginTypeEnum.LOGIN, ip, userAgent,
-                    Boolean.FALSE, "account existed");
             throw new AuthException(BizCode.AUTH_USER_EXISTED, "账号已存在");
         }
 
@@ -144,8 +124,6 @@ public class AuthServiceImpl implements AuthService {
             authUserMapper.insert(user);
         } catch (DuplicateKeyException e) {
             // 并发注册唯一索引兜底：同样视为账号已存在
-            publishLoginEvent(null, dto.getAccount(), LoginTypeEnum.LOGIN, ip, userAgent,
-                    Boolean.FALSE, "account existed");
             throw new AuthException(BizCode.AUTH_USER_EXISTED, "账号已存在");
         }
         Long roleId = authUserMapper.selectUserRoleId();
@@ -194,10 +172,6 @@ public class AuthServiceImpl implements AuthService {
                 AuthConstants.REMEMBER_ME_TIMEOUT_SECONDS,
                 TimeUnit.SECONDS);
 
-        // 异步发送登录日志事件
-        publishLoginEvent(user.getId(), user.getUsername(), loginType, ip, userAgent,
-                Boolean.TRUE, null);
-
         return LoginVO.builder()
                 .tokenName(StpUtil.getTokenName())
                 .tokenValue(StpUtil.getTokenValue())
@@ -218,12 +192,7 @@ public class AuthServiceImpl implements AuthService {
             return;
         }
         Long userId = StpUtil.getLoginIdAsLong();
-        AuthUser user = authUserMapper.selectById(userId);
         StpUtil.logout();
-        publishLoginEvent(userId,
-                user == null ? null : user.getUsername(),
-                LoginTypeEnum.LOGOUT, null, null,
-                Boolean.TRUE, null);
     }
 
     @Override
@@ -231,7 +200,7 @@ public class AuthServiceImpl implements AuthService {
         Long userId = StpUtil.getLoginIdAsLong();
         AuthUser user = authUserMapper.selectById(userId);
         if (user == null) {
-            DevMessageHolder.set("当前登录用户在 sys_user 表不存在，userId=" + userId);
+            log.warn("当前登录用户在 sys_user 表不存在，userId={}", userId);
             throw new UserNotFoundException();
         }
         List<String> roleCodes = authUserMapper.selectRoleCodesByUserId(userId);
@@ -269,7 +238,7 @@ public class AuthServiceImpl implements AuthService {
             throw new UserNotFoundException();
         }
         if (!passwordEncoder.matches(dto.getOldPassword(), user.getPassword())) {
-            DevMessageHolder.set("原密码不匹配");
+            log.warn("原密码不匹配，userId={}", userId);
             throw new AuthException(BizCode.AUTH_PASSWORD_ERROR, "原密码错误");
         }
         if (passwordEncoder.matches(dto.getNewPassword(), user.getPassword())) {
@@ -290,45 +259,7 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(BizCode.PARAM_ERROR, "禁止踢自己下线");
         }
         StpUtil.kickout(userId);
-        AuthUser user = authUserMapper.selectById(userId);
-        publishLoginEvent(userId,
-                user == null ? null : user.getUsername(),
-                LoginTypeEnum.KICKOUT, null, null,
-                Boolean.TRUE, null);
         log.info("[Auth] kickout: targetUserId={} operator={}", userId, currentUserId);
-    }
-
-    /**
-     * 异步发送登录日志事件到 log.login.create Exchange（由 log 服务消费写表）
-     *
-     * @param userId     登录用户 ID（未认证为 null）
-     * @param username   用户名
-     * @param type       事件类型
-     * @param ip         客户端 IP
-     * @param userAgent  客户端 UA
-     * @param success    是否成功
-     * @param failReason 失败原因（成功为 null）
-     */
-    private void publishLoginEvent(Long userId, String username, LoginTypeEnum type,
-                                   String ip, String userAgent,
-                                   Boolean success, String failReason) {
-        try {
-            UserLoginEvent event = new UserLoginEvent();
-            event.setEventId(UUID.randomUUID().toString());
-            event.setEventType(type.msg());
-            event.setUserId(userId);
-            event.setUsername(username);
-            event.setLoginType(type.code());
-            event.setDeviceType(DeviceTypeEnum.PC.name());
-            event.setIp(ip);
-            event.setUserAgent(userAgent);
-            event.setSuccess(success);
-            event.setFailReason(failReason);
-            event.setLoginTime(LocalDateTime.now());
-            rabbitTemplate.convertAndSend(AuthConstants.EXCHANGE_LOG_LOGIN, "", event);
-        } catch (AmqpException e) {
-            log.error("[Auth] publish login event failed: userId={} type={}", userId, type, e);
-        }
     }
 
     private String maskEmail(String email) {

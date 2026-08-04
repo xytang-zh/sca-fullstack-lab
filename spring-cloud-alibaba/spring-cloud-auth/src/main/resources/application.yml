@@ -13,89 +13,21 @@ spring:
     import:
       - optional:nacos:spring-cloud-shared.yaml
       - optional:nacos:${spring.application.name}.yaml
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yaml
   cloud:
     nacos:
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
       discovery:
         server-addr: ${NACOS_ADDR:127.0.0.1:8848}
-        namespace: ${NACOS_NAMESPACE:public}
+        namespace: ${NACOS_NAMESPACE:sca-dev}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
       config:
         server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:sca-dev}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
         file-extension: yaml
+        refresh-enabled: true
   mvc:
     async:
       request-timeout: 30s
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:sca_system}?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: ${MYSQL_USERNAME:root}
-    password: ${MYSQL_PASSWORD:root}
-  data:
-    redis:
-      host: ${REDIS_HOST:127.0.0.1}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
-      database: ${REDIS_DATABASE:0}
-      timeout: 5s
-  rabbitmq:
-    host: ${RABBITMQ_HOST:127.0.0.1}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME:guest}
-    password: ${RABBITMQ_PASSWORD:guest}
-    virtual-host: ${RABBITMQ_VHOST:/}
-    publisher-confirm-type: correlated
-    publisher-returns: true
-
-mybatis-plus:
-  mapper-locations: classpath*:mapper/**/*.xml
-  type-aliases-package: com.xytang.auth.entity
-  global-config:
-    db-config:
-      id-type: ASSIGN_ID
-      logic-delete-field: deleted
-      logic-not-delete-value: 0
-      logic-delete-value: 1
-  configuration:
-    map-underscore-to-camel-case: true
-
-sa-token:
-  token-name: Authorization
-  token-prefix: Bearer
-  timeout: 1800
-  active-timeout: -1
-  is-concurrent: false
-  is-share: false
-  is-kickout: true
-  token-style: random-128
-  is-log: false
-  is-read-cookie: false
-  is-read-header: true
-  jwt-secret-key: ${SA_TOKEN_JWT_SECRET:change-me-in-prod-sca-fullstack}
-  sso:
-    # SSO 模式二：Server 端
-    mode: 2
-    title: Aurora 认证中心
-    auth-server-url: http://localhost:8081/sso
-    is-slo: true
-    slo-url: http://localhost:8081/sso/logout
-    client-timeout: 60
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,prometheus,metrics,env,refresh,loggers
-  endpoint:
-    env:
-      post-enabled: true
-  metrics:
-    tags:
-      application: ${spring.application.name}
-
-springdoc:
-  api-docs:
-    enabled: true
-  swagger-ui:
-    enabled: true
-knife4j:
-  enable: true
-  production: false

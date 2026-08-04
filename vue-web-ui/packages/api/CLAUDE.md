@@ -13,19 +13,19 @@
 - baseURL：`import.meta.env.VITE_API_BASE_URL`
 - 请求拦截器：自动携带 `Authorization: Bearer {token}`、`X-Trace-Id`
 - 响应拦截器：
-  - HTTP 401 → 尝试 Refresh，失败跳登录
-  - HTTP 403 → 提示"无权限"
-  - HTTP 429 → 提示"操作过于频繁"
-  - 业务 `code !== 200` → 显示 `msg` 错误提示
+  - 业务 `code === 200` → 返回 `data`
+  - 业务 `code` 为登录态失效码（`LOGIN_REQUIRED_CODES`：未登录/Token 过期/被禁用/被踢下线）→ 清理登录态并跳转登录页
+  - 其余失败 → 显示 `message` 错误提示
 - 拦截器**必须**在此包实现，应用层**禁止**重复写拦截逻辑
 
 ### R<T> 契约（与后端对齐）
 
 ```json
-{ "code": 200, "msg": "success", "data": { ... }, "timestamp": 1722470400000 }
+{ "code": 200, "message": "success", "data": { ... }, "timestamp": 1722470400000, "traceId": "..." }
 ```
 
-- code 语义：200 成功 / 400 参数 / 401 未登录 / 403 无权限 / 404 不存在 / 409 冲突 / 429 限流 / 500 错误
+- code 语义：200 成功 / 1xxxx 参数 / 2xxxx 用户权限 / 3xxxx 业务 / 4xxxx 第三方 / 5xxxx 系统
+- 分页出参：`PageResult<T>`（records/total/page/size/pages/hasPrevious/hasNext），分页入参 `page`/`size`
 - 雪花 ID：后端序列化为 String，前端**必须**用 `string` 类型
 
 ## 服务模块（`src/services/`）
@@ -35,7 +35,7 @@
 ## 规范
 
 1. 每个 API 函数**必须**有 TS 入参/出参类型（引用 `@sca/types`）
-2. 分页出参**必须**用 `PageVO<T>`
+2. 分页出参**必须**用 `PageResult<T>`
 3. API 路径**必须** RESTful：GET 查询 / POST 新增 / PUT 全量 / PATCH 部分 / DELETE 删除
 
 ## 红线

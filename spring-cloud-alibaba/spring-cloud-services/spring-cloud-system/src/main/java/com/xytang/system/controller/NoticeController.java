@@ -1,7 +1,7 @@
 package com.xytang.system.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xytang.common.core.response.PageVO;
+import com.xytang.common.core.response.PageResult;
 import com.xytang.common.core.response.R;
 import com.xytang.system.entity.Notice;
 import com.xytang.system.service.NoticeService;
@@ -31,10 +31,11 @@ public class NoticeController {
 
     @Operation(summary = "通知分页")
     @GetMapping
-    public R<PageVO<Notice>> page(@RequestParam(defaultValue = "1") int pageNum,
-                                  @RequestParam(defaultValue = "10") int pageSize) {
-        Page<Notice> page = noticeService.page(new Page<>(pageNum, pageSize));
-        return R.ok(PageVO.of(page.getRecords(), page.getTotal(), (int) page.getCurrent(), (int) page.getSize()));
+    public R<PageResult<Notice>> page(@RequestParam(defaultValue = "1") int page,
+                                  @RequestParam(defaultValue = "10") int size) {
+        Page<Notice> noticePage = noticeService.page(new Page<>(page, size));
+        return R.ok(PageResult.of(noticePage.getRecords(), noticePage.getTotal(),
+                (int) noticePage.getCurrent(), (int) noticePage.getSize()));
     }
 
     @Operation(summary = "新增通知")

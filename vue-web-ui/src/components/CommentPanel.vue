@@ -62,10 +62,10 @@ async function load(append = false) {
   try {
     const page = append ? Math.ceil(comments.value.length / PAGE_SIZE) + 1 : 1
     const data = await commentApi.pageComments(props.articleId, {
-      pageNum: page,
-      pageSize: PAGE_SIZE
+      page,
+      size: PAGE_SIZE
     })
-    comments.value = append ? [...comments.value, ...data.list] : data.list
+    comments.value = append ? [...comments.value, ...data.records] : data.records
     total.value = data.total
   } finally {
     loading.value = false

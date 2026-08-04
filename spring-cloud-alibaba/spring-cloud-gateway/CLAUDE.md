@@ -9,7 +9,7 @@
 
 `spring-cloud-gateway` 是整个 `sca-fullstack-lab` 项目的 **统一 API 入口**，所有 `/api/**` 请求先经过网关，由网关统一完成：
 
-1. **路由转发**：`/api/system/**` → `spring-cloud-system`，`/api/ai/**` → `spring-cloud-ai`...
+1. **路由转发**：`/api/system/**` → `spring-cloud-system`，`/api/article/**` → `spring-cloud-article`，`/api/comment/**` → `spring-cloud-comment`...
 2. **统一鉴权**：基于 Sa-Token 校验 Token，把 `loginId` 透传到下游
 3. **限流熔断**：集成 Sentinel，按路由/IP/用户三维度限流
 4. **跨域处理**：CORS 全局白名单
@@ -154,18 +154,6 @@ spring-cloud-gateway/
         <groupId>com.xytang</groupId>
         <artifactId>spring-cloud-common-core</artifactId>
     </dependency>
-    <dependency>
-        <groupId>com.xytang</groupId>
-        <artifactId>spring-cloud-common-security</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>com.xytang</groupId>
-        <artifactId>spring-cloud-common-swagger</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>com.xytang</groupId>
-        <artifactId>spring-cloud-common-redis</artifactId>
-    </dependency>
 
     <!-- 文档聚合 -->
     <dependency>
@@ -217,51 +205,14 @@ spring:
           uri: lb://spring-cloud-auth
           predicates: [Path=/api/auth/**, Method=GET,POST]
           filters: [StripPrefix=2, name: SaToken, name: Log]
-        - id: monitor-service
-          uri: lb://spring-cloud-monitor
-          predicates: [Path=/api/monitor/**]
+        - id: article-service
+          uri: lb://spring-cloud-article
+          predicates: [Path=/api/article/**]
           filters: [StripPrefix=2, name: SaToken, name: Log]
-        - id: workflow-service
-          uri: lb://spring-cloud-workflow
-          predicates: [Path=/api/workflow/**]
+        - id: comment-service
+          uri: lb://spring-cloud-comment
+          predicates: [Path=/api/comment/**]
           filters: [StripPrefix=2, name: SaToken, name: Log]
-        - id: ai-service
-          uri: lb://spring-cloud-ai
-          predicates: [Path=/api/ai/**]
-          filters: [StripPrefix=2, name: SaToken, name: Log]
-        - id: message-service
-          uri: lb://spring-cloud-message
-          predicates: [Path=/api/message/**]
-          filters: [StripPrefix=2, name: SaToken, name: Log]
-        - id: search-service
-          uri: lb://spring-cloud-search
-          predicates: [Path=/api/search/**]
-          filters: [StripPrefix=2, name: SaToken, name: Log]
-        - id: file-service
-          uri: lb://spring-cloud-file
-          predicates: [Path=/api/file/**]
-          filters: [StripPrefix=2, name: SaToken, name: Log]
-        - id: log-service
-          uri: lb://spring-cloud-log
-          predicates: [Path=/api/log/**]
-          filters: [StripPrefix=2, name: SaToken, name: Log]
-        - id: portal-service
-          uri: lb://spring-cloud-portal
-          predicates: [Path=/api/portal/**]
-          filters: [StripPrefix=2]    # 公开门户不需要鉴权
-        - id: report-service
-          uri: lb://spring-cloud-report
-          predicates: [Path=/api/report/**]
-          filters: [StripPrefix=2, name: SaToken, name: Log]
-        # === WebSocket ===
-        - id: monitor-ws
-          uri: lb:ws://spring-cloud-monitor
-          predicates: [Path=/ws/monitor/**]
-          filters: [StripPrefix=2]
-        - id: message-ws
-          uri: lb:ws://spring-cloud-message
-          predicates: [Path=/ws/message/**]
-          filters: [StripPrefix=2]
         # === XXL-JOB Admin ===
         - id: xxl-job-admin
           uri: lb://xxl-job-admin
@@ -302,7 +253,6 @@ gateway:
       - /api/auth/sso/auth            # SSO 登录入口
       - /api/auth/oauth2/**           # OAuth2 公开端点
       - /api/system/public/**          # 公开 API
-      - /api/portal/**                 # 公开门户
       - /actuator/health
       - /actuator/prometheus
 ```
@@ -348,7 +298,7 @@ spring:
         fallback:
           mode: response
           response-status: 429
-          response-body: '{"code":42901,"msg":"操作过于频繁，请稍后重试"}'
+          response-body: '{"code":30001,"message":"请求过于频繁，请稍后重试","data":null}'
       datasource:
         ds1:
           nacos:
@@ -374,10 +324,11 @@ spring:
 限流命中后返回：
 ```json
 {
-  "code": 42901,
-  "msg": "操作过于频繁，请稍后重试",
+  "code": 30001,
+  "message": "请求过于频繁，请稍后重试",
   "data": null,
-  "timestamp": 1722470400000
+  "timestamp": 1722470400000,
+  "traceId": "a1b2c3d4e5f6g7h8"
 }
 ```
 
@@ -416,7 +367,7 @@ gateway:
         header: X-Gray-Version
         value: v2
         target-version: v2
-      - service: spring-cloud-ai
+      - service: spring-cloud-article
         strategy: WEIGHT       # 基于权重
         weight: 30             # 30% 流量到 v2
         target-version: v2

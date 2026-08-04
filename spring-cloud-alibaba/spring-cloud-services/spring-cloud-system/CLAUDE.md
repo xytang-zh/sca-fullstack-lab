@@ -71,7 +71,7 @@ Dubbo 接口（RPC 契约）：
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
-| `UserRpcService` | `getById` / `getRoles` | 用户信息与角色（供 monitor/article/comment 等调用） |
+| `UserRpcService` | `getById` / `getRoles` | 用户信息与角色（供 article/comment 等调用） |
 | `RoleRpcService` | `listPermissionsByUserId` | 权限标识列表（Sa-Token StpInterface 数据源） |
 
 ---
@@ -91,7 +91,7 @@ sys_user, sys_role, sys_menu, sys_user_role, sys_role_menu
 | 方向 | 方式 | 说明 |
 |------|------|------|
 | 所有服务 → system | Dubbo | 用户/角色/权限查询 |
-| auth → system | Dubbo / MQ | 注册创建用户、`user.register` 事件 |
+| auth → system | Dubbo | 注册创建用户 |
 
 ---
 

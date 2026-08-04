@@ -8,7 +8,7 @@
 
 ## 1. 项目定位
 
-本项目是 `sca-fullstack-lab`（企业级一体化智能管理平台）的 **后端聚合工程**，基于 **Spring Cloud Alibaba** 微服务体系，包含 1 个网关 + 1 个认证中心 + 10 个业务服务 + 15 个公共模块 + 1 个自定义 Starter。
+本项目是 `sca-fullstack-lab`（企业级一体化智能管理平台）的 **后端聚合工程**，基于 **Spring Cloud Alibaba** 微服务体系，包含 1 个网关 + 1 个认证中心 + 3 个业务服务 + 6 个公共模块。
 
 - **顶层 groupId**：`com.xytang`
 - **顶层 artifactId**：`spring-cloud-alibaba`
@@ -27,37 +27,19 @@ spring-cloud-alibaba/
 ├── src/                                 仓库级共享资源
 │   ├── checkstyle.xml                   Checkstyle 规则（阿里规范 + 项目红线）
 │   └── checkstyle-suppressions.xml      规则抑制
-├── spring-cloud-common/                 公共模块（15 个子模块，packaging=pom）
-│   ├── spring-cloud-common-core         核心工具：异常/响应/常量/枚举
-│   ├── spring-cloud-common-web          Web 通用：全局异常/Trace-Id/密码编码器
-│   ├── spring-cloud-common-redis        Redis 工具/序列化
-│   ├── spring-cloud-common-redisson    分布式锁注解
-│   ├── spring-cloud-common-mybatis     MyBatis-Plus 配置/数据权限/雪花 ID
-│   ├── spring-cloud-common-datasource  dynamic-datasource 封装（空壳）
-│   ├── spring-cloud-common-mq           RabbitMQ 配置/事件基类
-│   ├── spring-cloud-common-mongo       MongoDB 配置（空壳）
-│   ├── spring-cloud-common-es          ElasticSearch 配置（空壳）
+├── spring-cloud-common/                 公共模块（6 个子模块，packaging=pom）
+│   ├── spring-cloud-common-core         核心工具：异常/响应/常量/枚举/事件基类
+│   ├── spring-cloud-common-web          Web 通用：全局异常/Trace-Id/密码编码器/操作日志/springdoc+Knife4j
+│   ├── spring-cloud-common-mybatis     MyBatis-Plus 配置/分页/数据权限/dynamic-datasource
+│   ├── spring-cloud-common-redis        Redis 工具/序列化/Redisson 分布式锁/Caffeine 多级缓存
 │   ├── spring-cloud-common-satoken     Sa-Token 配置/StpInterface 实现
-│   ├── spring-cloud-common-security    网关鉴权过滤器
-│   ├── spring-cloud-common-log         日志切面/@OperationLog 注解
-│   ├── spring-cloud-common-swagger     springdoc-openapi 配置（空壳）
-│   ├── spring-cloud-common-cache       Caffeine + Redis 多级缓存（空壳）
-│   └── spring-cloud-common-netty       Netty Server/WebSocket 协议（空壳）
+│   └── spring-cloud-common-dubbo       Dubbo RPC 契约（article↔comment）
 ├── spring-cloud-gateway/                网关服务（端口 8080）
 ├── spring-cloud-auth/                   认证中心（端口 8081）
-├── spring-cloud-services/               业务服务聚合（10 个微服务，packaging=pom）
+├── spring-cloud-services/               业务服务聚合（3 个微服务，packaging=pom）
 │   ├── spring-cloud-system              系统管理/RBAC 核心（8082）
-│   ├── spring-cloud-monitor             服务器监控（8083）
-│   ├── spring-cloud-message             消息中心（8086）
-│   ├── spring-cloud-search              全文检索（8087）
-│   ├── spring-cloud-file                文件服务（8088）
-│   ├── spring-cloud-log                 日志服务（8089）
-│   ├── spring-cloud-portal              公开门户（8090）
-│   ├── spring-cloud-job                 定时任务执行器（8091），可以用来定时保存博客到冷存表中，防止数据丢失
-│   ├── spring-cloud-article             博客文章/互动 ★新增（8093）
-│   └── spring-cloud-comment             博客评论/审核 ★新增（8094）
-└── spring-cloud-starters/               自定义 Starter 聚合（packaging=pom）
-    └── spring-cloud-starter-monitor-agent       监控 Agent
+│   ├── spring-cloud-article             博客文章/互动（8093）
+│   └── spring-cloud-comment             博客评论/审核（8094）
 ```
 
 > ⚠️ `spring-cloud-test/` 与 `spring-cloud-common/spring-cloud-common-test/` 已废弃，从父 POM `<modules>` 中删除。
@@ -100,7 +82,6 @@ spring-cloud-alibaba/
 |------|---------|------|---------|
 | commonmark-java | 0.21.x | Markdown → HTML 渲染 | `spring-cloud-article` 落地时 |
 | sensitive-word | 0.x | 评论敏感词过滤 | `spring-cloud-comment` 落地时 |
-| XXL-JOB | 3.5.0 | 分布式调度 | `spring-cloud-job` 落地时 |
 | Nacos | 2.4+ | 注册配置中心 | 基础设施部署 |
 | Sentinel | 1.8.8+ | 限流/熔断 | Spring Cloud Alibaba 自带 |
 | Seata | 2.2+ | 分布式事务 | 同上 |
@@ -109,8 +90,6 @@ spring-cloud-alibaba/
 | 人大金仓 KingbaseES | V8 R6 | 国产化适配 | 国产化落地 |
 | 达梦 DM8 | DM8 | 国产化适配 | 国产化落地 |
 | MinIO | latest stable | 对象存储 | 基础设施部署 |
-| Netty | 4.1.x | WebSocket | `spring-cloud-common-netty` 落地时 |
-| TDengine | 3.3+ | 服务器监控时序库 | `spring-cloud-monitor` 落地时 |
 | RabbitMQ | 3.13+ | 消息队列 | 基础设施部署 |
 | Redis | 7.4+ | 分布式缓存 | 基础设施部署 |
 | ElasticSearch | 8.15+ | 全文检索 | 基础设施部署 |
@@ -288,33 +267,15 @@ com.xytang
   ├── common          公共模块根包
   │   ├── core        spring-cloud-common-core
   │   ├── web         spring-cloud-common-web
-  │   ├── redis       spring-cloud-common-redis
-  │   ├── redisson    spring-cloud-common-redisson
   │   ├── mybatis     spring-cloud-common-mybatis
-  │   ├── datasource  spring-cloud-common-datasource
-  │   ├── mq          spring-cloud-common-mq
-  │   ├── mongo       spring-cloud-common-mongo
-  │   ├── es          spring-cloud-common-es
+  │   ├── redis       spring-cloud-common-redis
   │   ├── satoken     spring-cloud-common-satoken
-  │   ├── security    spring-cloud-common-security
-  │   ├── log         spring-cloud-common-log
-  │   ├── swagger     spring-cloud-common-swagger
-  │   ├── cache       spring-cloud-common-cache
-  │   └── netty       spring-cloud-common-netty
+  │   └── dubbo       spring-cloud-common-dubbo
   ├── gateway         网关
   ├── auth            认证中心
   ├── system          系统管理
-  ├── monitor         监控
-  ├── message         消息
-  ├── search          搜索
-  ├── file            文件
-  ├── log             日志
-  ├── portal          公开门户
-  ├── job             定时任务
   ├── article         博客文章
-  ├── comment         博客评论
-  └── starter         自定义 Starter 根包
-      └── monitoragent Monitor Agent
+  └── comment         博客评论
 ```
 
 > 命名风格：**全小写、单词之间无分隔符**（不用 `com.xy.tang` 或 `com.xytang.platform`）。
@@ -352,13 +313,6 @@ com.xytang
 | spring-cloud-gateway | 8080 | - | - | - |
 | spring-cloud-auth | 8081 | 20881 | - | 9999 |
 | spring-cloud-system | 8082 | 20882 | - | 10000 |
-| spring-cloud-monitor | 8083 | 20883 | 9090 | 10001 |
-| spring-cloud-message | 8086 | 20886 | 9091 | 10004 |
-| spring-cloud-search | 8087 | 20887 | - | 10005 |
-| spring-cloud-file | 8088 | 20888 | - | 10006 |
-| spring-cloud-log | 8089 | 20889 | - | 10007 |
-| spring-cloud-portal | 8090 | 20890 | - | 10008 |
-| spring-cloud-job | 8091 | 20891 | - | 10009 |
 | spring-cloud-article | 8093 | 20893 | - | 10011 |
 | spring-cloud-comment | 8094 | 20894 | - | 10012 |
 
@@ -394,31 +348,33 @@ com.xytang
 ```json
 {
   "code": 200,
-  "msg": "success",
+  "message": "success",
   "data": { ... },
-  "timestamp": 1722470400000
+  "timestamp": 1722470400000,
+  "traceId": "a1b2c3d4e5f6g7h8"
 }
 ```
 
-| code | 含义 |
-|------|------|
-| 200 | 成功 |
-| 400 | 参数错误 |
-| 401 | 未登录 |
-| 403 | 无权限 |
-| 404 | 资源不存在 |
-| 409 | 资源冲突（如账号已存在） |
-| 429 | 限流 |
-| 500 | 服务器内部错误 |
-| 503 | 服务不可用（熔断） |
+`code` 为**业务状态码**（实现 `ErrorCode` 接口，枚举见 `BizCode`），按区段划分：
+
+| code 区段 | 含义 | 典型 HTTP 状态 |
+|-----------|------|---------------|
+| 200 | 成功 | 200 |
+| 1xxxx | 参数校验 / 请求格式错误 | 400 |
+| 2xxxx | 用户认证 / 权限相关 | 401 / 403 / 404 |
+| 3xxxx | 业务规则拦截（可恢复） | 409 / 422 / 429 |
+| 4xxxx | 第三方服务错误 | 502 |
+| 5xxxx | 系统内部错误（不可恢复） | 500 / 503 / 504 |
+
+`message` 始终为用户友好文案，开发详情仅通过日志输出，不写入响应体。
 
 ### 8.4 分页查询规范
 
-- 入参：`pageNum`（从 1 开始）、`pageSize`（默认 10，最大 100）、`orderBy`（字段名 + ASC/DESC）
-- 出参：`PageVO<T>`，包含 `list`、`total`、`pageNum`、`pageSize`、`pages`
+- 入参：`page`（从 1 开始）、`size`（默认 10，最大 100）、`orderBy`（字段名 + ASC/DESC）
+- 出参：`PageResult<T>`，包含 `records`、`total`、`page`、`size`、`pages`、`hasPrevious`、`hasNext`
 
 ```
-GET /api/system/users?pageNum=1&pageSize=10&orderBy=createTime DESC&keyword=admin
+GET /api/system/users?page=1&size=10&orderBy=createTime DESC&keyword=admin
 ```
 
 ### 8.5 状态码使用
@@ -468,29 +424,16 @@ GET /api/system/users?pageNum=1&pageSize=10&orderBy=createTime DESC&keyword=admi
 
 | 场景 | 调用方 | 被调方 | 方法 |
 |------|--------|--------|------|
-| 文件元数据 | portal | file | `FileService.getMeta` |
-| 文章索引同步 | article | search | `SearchService.syncArticleIndex` |
-| 文章存在校验 | comment | article | `ArticleService.existsById` |
+| 文章存在校验 | comment | article | `ArticleRpcService.existsById` |
+| 评论数聚合 | article | comment | `CommentRpcService.countByArticleId` |
 
-> Dubbo 接口定义在 `spring-cloud-common-core` 的 `rpc` 包（计划），由被调方实现 `*RpcProvider`。
-
-### 10.2 异步事件 — RabbitMQ
-
-| 事件 | Exchange | 生产者 | 消费者 |
-|------|----------|--------|--------|
-| 用户注册 | `user.register` | auth | message、log |
-| 告警 | `alert.trigger` | monitor | message |
-| 评论通知 | `comment.created` | comment | message |
-| 操作日志 | `log.operation` | 所有 | log |
-
-> 事件基类 `BaseEvent` 在 `spring-cloud-common-core`，所有事件**必须**继承它。事件 Listener **必须**继承 `AbstractEventListener<T>`（来自 `spring-cloud-common-mq`）以实现幂等消费。
-
-### 10.3 实时推送 — WebSocket
-
-| 端点 | 服务 | 用途 |
-|------|------|------|
-| `/ws/monitor/{userId}` | monitor | 实时指标推送 |
-| `/ws/message/{userId}` | message | 站内信/任务提醒 |
+> **RPC 接口定义**：跨服务 RPC 契约（接口 + 可序列化 DTO）统一放在 `spring-cloud-common-dubbo` 模块（`com.xytang.common.dubbo`），**禁止**在单个服务内私定义跨服务接口。被调方实现后用 `@DubboService` 暴露，调用方用 `@DubboReference` 注入（Dubbo 3.3.6 不支持构造器参数注入，采用字段注入——Dubbo 官方惯例，非 `@Autowired`）。
+>
+> **协议与端口**：Triple 协议（`tri`），端口见 §7 端口分配表（article 20893 / comment 20894）。注册中心复用 Nacos（`dubbo.registry.address=nacos://${NACOS_ADDR:127.0.0.1:8848}`）。
+>
+> **配置要点**：`dubbo.protocol.name=tri`、`dubbo.protocol.port={端口}`、`dubbo.consumer.check=false`（启动不因被调方未起而失败）、`dubbo.consumer.timeout=3000`。启动类需加 `@EnableDubbo`。
+>
+> **已知限制**：Dubbo 3.3.6 的 QoS 服务器默认端口 22222，`dubbo.qos.*` 配置绑定不生效（非致命 WARN，不影响 RPC）；多服务同机启动时 QoS 端口冲突仅告警。实例发现模式有 `preferredProtocol "dubbo"` 回退 `tri` 的良性 WARN。
 
 ---
 
@@ -500,7 +443,7 @@ GET /api/system/users?pageNum=1&pageSize=10&orderBy=createTime DESC&keyword=admi
 
 ```
 nacos:/
-├── spring-cloud-shared.yaml          所有服务共享（Redis、MQ、Sa-Token）
+├── spring-cloud-shared.yaml          所有服务共享（Redis、Sa-Token）
 ├── spring-cloud-gateway.yaml
 ├── spring-cloud-auth.yaml
 ├── spring-cloud-system.yaml
@@ -571,7 +514,7 @@ spring:
 
 ### 12.3 并发规范
 
-1. 共享可变状态**必须**用 `@DistributedLock` 注解（来自 `spring-cloud-common-redisson`）
+1. 共享可变状态**必须**用 `@DistributedLock` 注解（来自 `spring-cloud-common-redis`）
 2. **禁止**用 `synchronized` 跨 JVM 同步
 3. 线程池**必须**通过 `ThreadPoolTaskExecutor` 显式配置，**禁止**用 `Executors.newXxx`（避免 OOM）
 4. 异步任务**必须**用 `@Async` + 显式线程池
@@ -580,7 +523,7 @@ spring:
 
 1. 缓存 Key**必须**以 `spring-cloud:{service}:{biz}:{id}` 格式，避免冲突
 2. 缓存 TTL**必须**加 ±10% 随机数，防止雪崩
-3. 热点数据**必须**用 `@LayeredCache`（计划在 `spring-cloud-common-cache`）多级缓存
+3. 热点数据**必须**用 `@LayeredCache`（计划在 `spring-cloud-common-redis`）多级缓存
 4. 缓存穿透用空值缓存或布隆过滤器，**禁止**直接打到 DB
 
 ### 12.5 事务规范
@@ -671,29 +614,19 @@ docker compose -f docker/compose/docker-compose.infra.yml up -d
 
 ### 15.1 一级子模块
 
-- [`spring-cloud-common/CLAUDE.md`](./spring-cloud-common/CLAUDE.md) — 公共模块聚合（16 个子模块）
+- [`spring-cloud-common/CLAUDE.md`](./spring-cloud-common/CLAUDE.md) — 公共模块聚合（6 个子模块）
 - [`spring-cloud-gateway/CLAUDE.md`](./spring-cloud-gateway/CLAUDE.md) — 网关
 - [`spring-cloud-auth/CLAUDE.md`](./spring-cloud-auth/CLAUDE.md) — 认证中心
 - [`spring-cloud-services/CLAUDE.md`](./spring-cloud-services/CLAUDE.md) — 业务服务聚合
-- [`spring-cloud-starters/CLAUDE.md`](./spring-cloud-starters/CLAUDE.md) — 自定义 Starter
 
-### 15.2 common 子模块（16 个）
+### 15.2 common 子模块（6 个）
 
 - [`spring-cloud-common-core/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-core/CLAUDE.md) — 核心工具
 - [`spring-cloud-common-web/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-web/CLAUDE.md) — Web 通用
-- [`spring-cloud-common-redis/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-redis/CLAUDE.md) — Redis 工具
-- [`spring-cloud-common-redisson/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-redisson/CLAUDE.md) — 分布式锁
 - [`spring-cloud-common-mybatis/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-mybatis/CLAUDE.md) — MyBatis-Plus
-- [`spring-cloud-common-datasource/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-datasource/CLAUDE.md) — 多数据源（空壳）
-- [`spring-cloud-common-mq/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-mq/CLAUDE.md) — 消息队列
-- [`spring-cloud-common-mongo/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-mongo/CLAUDE.md) — MongoDB（空壳）
-- [`spring-cloud-common-es/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-es/CLAUDE.md) — ElasticSearch（空壳）
+- [`spring-cloud-common-redis/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-redis/CLAUDE.md) — Redis 工具
 - [`spring-cloud-common-satoken/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-satoken/CLAUDE.md) — Sa-Token 集成
-- [`spring-cloud-common-security/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-security/CLAUDE.md) — 网关鉴权
-- [`spring-cloud-common-log/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-log/CLAUDE.md) — 日志切面
-- [`spring-cloud-common-swagger/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-swagger/CLAUDE.md) — OpenAPI 文档（空壳）
-- [`spring-cloud-common-cache/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-cache/CLAUDE.md) — 多级缓存（空壳）
-- [`spring-cloud-common-netty/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-netty/CLAUDE.md) — WebSocket（空壳）
+- [`spring-cloud-common-dubbo/CLAUDE.md`](./spring-cloud-common/spring-cloud-common-dubbo/CLAUDE.md) — Dubbo RPC 契约
 
 > **AI 在任意子模块下工作时，必须先读取仓库根 `sca-fullstack-lab/CLAUDE.md`，再读取本文件，再读取对应子模块的 CLAUDE.md。**
 
@@ -715,3 +648,21 @@ docker compose -f docker/compose/docker-compose.infra.yml up -d
 12. ❌ SQL 字符串拼接（SQL 注入风险）
 13. ❌ 用 BCrypt 存密码（必须 Argon2id）
 14. ❌ 用 MySQL 私有函数（`IFNULL`/`CONCAT`/`DATE_FORMAT`，必须用标准 SQL）
+
+---
+
+## 17. 技术栈 → 模块映射表
+
+| 技术栈 | 归属模块 |
+|--------|---------|
+| 统一响应 R<T> / BusinessException / 事件基类 | spring-cloud-common-core |
+| 全局异常 / TraceId / R 包装 / Argon2id / 操作日志 / springdoc+Knife4j | spring-cloud-common-web |
+| MyBatis-Plus / 分页 / 数据权限 / dynamic-datasource | spring-cloud-common-mybatis |
+| Redis / RedisTemplate / Redisson 分布式锁 / Caffeine 多级缓存 | spring-cloud-common-redis |
+| Sa-Token 登录鉴权 / StpInterface | spring-cloud-common-satoken |
+| Dubbo RPC 契约（article↔comment） | spring-cloud-common-dubbo |
+| Spring Cloud Gateway / 路由 / CORS / Sentinel 限流 | spring-cloud-gateway |
+| Sa-Token 登录 / 注册 / 验证码 | spring-cloud-auth |
+| MyBatis-Plus / RBAC 用户角色菜单 | spring-cloud-system |
+| 文章 / 分类 / 标签 / Markdown / 点赞收藏 | spring-cloud-article |
+| 评论 / 审核 / 敏感词 | spring-cloud-comment |

@@ -15,24 +15,15 @@
     <packaging>pom</packaging>
 
     <name>spring-cloud-common</name>
-    <description>SCA 公共能力下沉层（15 个子模块）</description>
+    <description>SCA 公共能力下沉层</description>
 
     <modules>
         <module>spring-cloud-common-core</module>
         <module>spring-cloud-common-web</module>
-        <module>spring-cloud-common-redis</module>
-        <module>spring-cloud-common-redisson</module>
         <module>spring-cloud-common-mybatis</module>
-        <module>spring-cloud-common-datasource</module>
-        <module>spring-cloud-common-mq</module>
-        <module>spring-cloud-common-mongo</module>
-        <module>spring-cloud-common-es</module>
+        <module>spring-cloud-common-redis</module>
         <module>spring-cloud-common-satoken</module>
-        <module>spring-cloud-common-security</module>
-        <module>spring-cloud-common-log</module>
-        <module>spring-cloud-common-swagger</module>
-        <module>spring-cloud-common-cache</module>
-        <module>spring-cloud-common-netty</module>
+        <module>spring-cloud-common-dubbo</module>
     </modules>
     <dependencies>
         <dependency>

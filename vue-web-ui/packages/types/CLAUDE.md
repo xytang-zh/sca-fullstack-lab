@@ -10,7 +10,7 @@
 
 | 模块 | 内容 |
 |------|------|
-| `api.d.ts` | `R<T>`、`PageVO<T>`、分页查询参数 |
+| `api.d.ts` | `R<T>`、`PageResult<T>`、分页查询参数 |
 | `system.d.ts` | sys_user、sys_role、sys_menu 等 |
 | `blog.d.ts` ★ | ArticleVO、CommentVO、CategoryVO、TagVO、LikeRecord（ID 一律 `string`） |
 

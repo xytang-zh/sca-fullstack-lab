@@ -8,7 +8,6 @@
         <groupId>com.xytang</groupId>
         <artifactId>spring-cloud-alibaba</artifactId>
         <version>1.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>spring-cloud-services</artifactId>
@@ -19,13 +18,6 @@
 
     <modules>
         <module>spring-cloud-system</module>
-        <module>spring-cloud-monitor</module>
-        <module>spring-cloud-message</module>
-        <module>spring-cloud-search</module>
-        <module>spring-cloud-file</module>
-        <module>spring-cloud-log</module>
-        <module>spring-cloud-portal</module>
-        <module>spring-cloud-job</module>
         <module>spring-cloud-article</module>
         <module>spring-cloud-comment</module>
     </modules>

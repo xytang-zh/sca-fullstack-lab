@@ -28,9 +28,4 @@ public final class AuthConstants {
     public static final long CAPTCHA_TTL_MINUTES = 5L;
     public static final long LOGIN_TOKEN_TIMEOUT_SECONDS = 1800L;
     public static final long REMEMBER_ME_TIMEOUT_SECONDS = 7 * 24 * 3600L;
-
-    public static final String EXCHANGE_USER_LOGIN = "user.login";
-    public static final String EXCHANGE_USER_KICKOUT = "user.kickout";
-    public static final String EXCHANGE_USER_LOGOUT = "user.logout";
-    public static final String EXCHANGE_LOG_LOGIN = "log.login.create";
 }

@@ -16,7 +16,7 @@ import com.xytang.article.vo.ColumnVO;
 import com.xytang.common.core.exception.BizException;
 import com.xytang.common.core.exception.PermissionException;
 import com.xytang.common.core.response.BizCode;
-import com.xytang.common.core.response.PageVO;
+import com.xytang.common.core.response.PageResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -40,37 +40,37 @@ public class ColumnServiceImpl implements ColumnService {
     private final ArticleMapper articleMapper;
 
     @Override
-    public PageVO<ColumnVO> page(Long userId, Long currentUserId, int pageNum, int pageSize) {
-        Page<Column> page = new Page<>(pageNum, pageSize);
+    public PageResult<ColumnVO> page(Long userId, Long currentUserId, int page, int size) {
+        Page<Column> columnPage = new Page<>(page, size);
         LambdaQueryWrapper<Column> wrapper = new LambdaQueryWrapper<Column>()
                 .eq(Column::getStatus, STATUS_NORMAL)
                 .orderByDesc(Column::getCreateTime);
         if (userId != null) {
             wrapper.eq(Column::getUserId, userId);
         }
-        IPage<Column> result = columnMapper.selectPage(page, wrapper);
+        IPage<Column> result = columnMapper.selectPage(columnPage, wrapper);
         List<ColumnVO> list = result.getRecords().stream()
                 .map(c -> toVO(c, currentUserId))
                 .collect(Collectors.toList());
-        return PageVO.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
+        return PageResult.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
     }
 
     @Override
-    public PageVO<ColumnVO> listMyColumns(Long userId, int pageNum, int pageSize) {
-        Page<Column> page = new Page<>(pageNum, pageSize);
+    public PageResult<ColumnVO> listMyColumns(Long userId, int page, int size) {
+        Page<Column> columnPage = new Page<>(page, size);
         LambdaQueryWrapper<Column> wrapper = new LambdaQueryWrapper<Column>()
                 .eq(Column::getUserId, userId)
                 .orderByDesc(Column::getUpdateTime);
-        IPage<Column> result = columnMapper.selectPage(page, wrapper);
+        IPage<Column> result = columnMapper.selectPage(columnPage, wrapper);
         List<ColumnVO> list = result.getRecords().stream()
                 .map(c -> toVO(c, userId))
                 .collect(Collectors.toList());
-        return PageVO.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
+        return PageResult.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
     }
 
     @Override
-    public PageVO<ColumnVO> listMySubscriptions(Long userId, int pageNum, int pageSize) {
-        Page<ColumnSubscribe> subPage = new Page<>(pageNum, pageSize);
+    public PageResult<ColumnVO> listMySubscriptions(Long userId, int page, int size) {
+        Page<ColumnSubscribe> subPage = new Page<>(page, size);
         LambdaQueryWrapper<ColumnSubscribe> subWrapper = new LambdaQueryWrapper<ColumnSubscribe>()
                 .eq(ColumnSubscribe::getUserId, userId)
                 .orderByDesc(ColumnSubscribe::getCreateTime);
@@ -89,7 +89,7 @@ public class ColumnServiceImpl implements ColumnService {
                     .map(c -> toVO(c, userId))
                     .collect(Collectors.toList());
         }
-        return PageVO.of(list, subResult.getTotal(), (int) subResult.getCurrent(), (int) subResult.getSize());
+        return PageResult.of(list, subResult.getTotal(), (int) subResult.getCurrent(), (int) subResult.getSize());
     }
 
     @Override

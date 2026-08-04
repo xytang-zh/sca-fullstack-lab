@@ -11,17 +11,7 @@ import org.springframework.util.StringUtils;
  * 网关层路径过滤器（T032）。
  *
  * <p>职责：把网关层实际 URI（如 {@code /api/auth/login}）通过
- * {@code X-Gateway-Path} 请求头透传到下游，下游 {@code TraceIdFilter}
- * 读取后填到 {@code PathHolder}，{@code RResponseAdvice} 取出填到
- * R&lt;T&gt;.path 字段。
- *
- * <p>方案 D（spec.md §path 字段策略）：
- * <ul>
- *   <li>网关层：填实际 URI（如 {@code /api/auth/login}），运维查路由问题</li>
- *   <li>下游层：开发期先用实际 URI 占位（即网关传过来的值），
- *       等监控上线再补 pattern 提取（如 {@code /api/users/{id}}）</li>
- *   <li>prod 输出 pattern，prod 屏蔽实际 URI</li>
- * </ul>
+ * {@code X-Gateway-Path} 请求头透传到下游，供下游日志与排查定位使用。
  *
  * <p>注意：WebFlux 响应式模型禁止 ThreadLocal，path 跨服务传递必须用请求头。
  */

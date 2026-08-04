@@ -24,7 +24,7 @@
 | 顶级包 | `com.xytang.auth`                                              |
 | 启动类 | `com.xytang.auth.SpringCloudAuthApplication`                   |
 | 角色 | SSO Server + OAuth2 Server                                     |
-| 依赖 | Redis、RabbitMQ（事件 `user.login` / `user.kickout`）、Bouncy Castle（Argon2id 密码哈希） |
+| 依赖 | Redis、Bouncy Castle（Argon2id 密码哈希） |
 
 ---
 
@@ -63,9 +63,6 @@ spring-cloud-auth/
     │   │   │   └── impl/                          Service 实现
     │   │   ├── rpc/
     │   │   │   └── UserRpcProvider.java           对外暴露 Dubbo 接口
-    │   │   ├── listener/
-    │   │   │   ├── UserLoginListener.java         登录成功事件 → MQ
-    │   │   │   └── UserKickoutListener.java      踢下线事件 → MQ
     │   │   ├── mapper/
     │   │   │   └── SysUserMapper.java            用户查询（仅认证用，CRUD 在 system）
     │   │   ├── entity/
@@ -87,7 +84,7 @@ spring-cloud-auth/
     │   │   │   ├── CaptchaException.java
     │   │   │   └── LoginLockedException.java
     │   │   └── constant/
-    │   │       ├── AuthConstants.java            Redis Key 前缀、MQ Exchange 名
+    │   │       ├── AuthConstants.java            Redis Key 前缀
     │   │       └── SaTokenConstants.java
     │   └── resources/
     │       ├── application.yml                    基础配置
@@ -119,7 +116,6 @@ spring-cloud-auth/
 | Redisson | 4.0.0 | 分布式锁 + 登录失败计数 |
 | Bouncy Castle | 1.78.1 | Argon2id 密码哈希 |
 | spring-boot-starter-validation | 3.5.0 | 参数校验 |
-| spring-boot-starter-amqp | 3.5.0 | RabbitMQ 事件 |
 | micrometer-registry-prometheus | 3.5.0 | 监控指标 |
 | MyBatis-Plus | 3.5.9 | 用户查询 |
 
@@ -206,27 +202,7 @@ spring-cloud-auth/
     </dependency>
     <dependency>
         <groupId>com.xytang</groupId>
-        <artifactId>spring-cloud-common-redisson</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>com.xytang</groupId>
         <artifactId>spring-cloud-common-satoken</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>com.xytang</groupId>
-        <artifactId>spring-cloud-common-mq</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>com.xytang</groupId>
-        <artifactId>spring-cloud-common-swagger</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>com.xytang</groupId>
-        <artifactId>spring-cloud-common-cache</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>com.xytang</groupId>
-        <artifactId>spring-cloud-common-log</artifactId>
     </dependency>
     <dependency>
         <groupId>com.xytang</groupId>
@@ -313,7 +289,7 @@ spring-cloud-auth/
 |------|------|
 | 登录失败计数 | Redis Key `auth:login:fail:{username}`，TTL 15min，5 次锁定 |
 | IP 黑名单 | Redis Key `auth:ip:blacklist:{ip}`，TTL 24h |
-| 异地登录告警 | 上次登录 IP 与本次对比，跨省则发 MQ `alert.trigger` |
+| 异地登录告警 | 上次登录 IP 与本次对比，跨省则触发异地登录告警 |
 | 滑动验证码 | tianai-captcha，3 次失败后强制验证 |
 
 ---
@@ -420,8 +396,6 @@ public class SaTokenConfig {
 public R<Void> kickout(@RequestParam Long loginId,
                        @RequestParam(defaultValue = "PC") String deviceType) {
     StpUtil.kickout(loginId, deviceType);
-    // 发 MQ 事件，message-service 推送 WebSocket 通知
-    rabbitTemplate.convertAndSend("user.kickout", new KickoutEvent(loginId, deviceType));
     return R.ok();
 }
 ```
@@ -521,9 +495,10 @@ CREATE TABLE sys_user (
 ```json
 {
   "code": 200,
-  "msg": "success",
+  "message": "success",
   "data": { "access_token": "xxx", "refresh_token": "yyy" },
-  "timestamp": 1722470400000
+  "timestamp": 1722470400000,
+  "traceId": "a1b2c3d4e5f6g7h8"
 }
 ```
 
@@ -534,15 +509,15 @@ CREATE TABLE sys_user (
 | code | HTTP | 含义 |
 |------|------|------|
 | 200 | 200 | 成功 |
-| 40010 | 400 | 参数错误（缺用户名/密码） |
-| 40101 | 401 | Token 过期（可 Refresh） |
-| 40102 | 401 | 被踢下线 |
-| 40103 | 401 | 未登录 |
-| 40104 | 401 | Refresh Token 无效 |
-| 40301 | 403 | 无权限 |
-| 40404 | 404 | 用户不存在 |
-| 40901 | 409 | 用户名已存在 |
-| 42901 | 429 | 登录失败次数过多，已锁定 |
+| 10001 | 400 | 参数错误（缺用户名/密码） |
+| 21007 | 401 | Token 过期（可 Refresh） |
+| 21008 | 401 | 被踢下线 |
+| 21009 | 401 | 未登录 |
+| 21010 | 401 | Refresh Token 无效 |
+| 20002 | 403 | 无权限 |
+| 21001 | 404 | 用户不存在 |
+| 21002 | 409 | 用户名已存在 |
+| 21006 | 423 | 登录失败次数过多，已锁定 |
 | 50000 | 500 | 服务器内部错误 |
 
 ### 9.3 编码规范
@@ -556,33 +531,7 @@ CREATE TABLE sys_user (
 7. 异常**必须**继承 `AuthException`，由 `GlobalExceptionHandler` 统一捕获
 8. **禁止**用 `throw new RuntimeException(...)`，必须用具体业务异常
 
-### 9.4 事件规范
-
-登录成功 / 踢下线 / OAuth2 授权**必须**发 MQ 事件：
-
-```java
-@Component
-@RequiredArgsConstructor
-public class UserLoginListener {
-    private final RabbitTemplate rabbitTemplate;
-
-    public void onLoginSuccess(Long loginId, String deviceType, String ip) {
-        UserLoginEvent event = UserLoginEvent.builder()
-            .loginId(loginId).deviceType(deviceType).ip(ip)
-            .loginTime(LocalDateTime.now()).build();
-        rabbitTemplate.convertAndSend("user.login", event);
-    }
-}
-```
-
-| 事件 | Exchange | 消费者 | 用途 |
-|------|----------|--------|------|
-| `user.login` | `user.login` (fanout) | log、message | 记录登录日志、推送欢迎消息 |
-| `user.kickout` | `user.kickout` (fanout) | message | WebSocket 通知被踢用户 |
-| `user.logout` | `user.logout` (fanout) | log | 记录注销日志 |
-| `oauth2.authorize` | `oauth2.authorize` | log | 记录第三方授权 |
-
-### 9.5 测试规范
+### 9.4 测试规范
 
 - **必须**写单元测试：`AuthServiceTest`、`CaptchaServiceTest`、`LoginRiskServiceTest`
 - **必须**写集成测试：`SsoServerControllerTest`、`OAuth2ServerControllerTest`（用 Testcontainers 起 Redis）

@@ -8,7 +8,7 @@ import com.xytang.article.service.ArticleService;
 import com.xytang.article.vo.ArticleDetailVO;
 import com.xytang.article.vo.ArticleStatsVO;
 import com.xytang.article.vo.ArticleVO;
-import com.xytang.common.core.response.PageVO;
+import com.xytang.common.core.response.PageResult;
 import com.xytang.common.core.response.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -40,40 +40,40 @@ public class ArticleController {
 
     @Operation(summary = "文章分页列表（游客可访问，sort=time|hot）")
     @GetMapping
-    public R<PageVO<ArticleVO>> page(@Valid ArticlePageQuery query) {
+    public R<PageResult<ArticleVO>> page(@Valid ArticlePageQuery query) {
         return R.ok(articleService.page(query));
     }
 
     @Operation(summary = "我的已发布文章（需登录，按用户隔离）")
     @GetMapping("/my")
     @SaCheckLogin
-    public R<PageVO<ArticleVO>> my(@RequestParam(defaultValue = "1") @Min(1) Integer pageNum,
-                                   @RequestParam(defaultValue = "10") @Min(1) Integer pageSize) {
-        return R.ok(articleService.pageMyArticles(StpUtil.getLoginIdAsLong(), pageNum, pageSize));
+    public R<PageResult<ArticleVO>> my(@RequestParam(defaultValue = "1") @Min(1) Integer page,
+                                   @RequestParam(defaultValue = "10") @Min(1) Integer size) {
+        return R.ok(articleService.pageMyArticles(StpUtil.getLoginIdAsLong(), page, size));
     }
 
     @Operation(summary = "我的草稿（需登录，按用户隔离）")
     @GetMapping("/my/drafts")
     @SaCheckLogin
-    public R<PageVO<ArticleVO>> myDrafts(@RequestParam(defaultValue = "1") @Min(1) Integer pageNum,
-                                         @RequestParam(defaultValue = "10") @Min(1) Integer pageSize) {
-        return R.ok(articleService.pageMyDrafts(StpUtil.getLoginIdAsLong(), pageNum, pageSize));
+    public R<PageResult<ArticleVO>> myDrafts(@RequestParam(defaultValue = "1") @Min(1) Integer page,
+                                         @RequestParam(defaultValue = "10") @Min(1) Integer size) {
+        return R.ok(articleService.pageMyDrafts(StpUtil.getLoginIdAsLong(), page, size));
     }
 
     @Operation(summary = "我点赞的文章（需登录，按用户隔离）")
     @GetMapping("/my/likes")
     @SaCheckLogin
-    public R<PageVO<ArticleVO>> myLikes(@RequestParam(defaultValue = "1") @Min(1) Integer pageNum,
-                                        @RequestParam(defaultValue = "10") @Min(1) Integer pageSize) {
-        return R.ok(articleService.pageMyLikes(StpUtil.getLoginIdAsLong(), pageNum, pageSize));
+    public R<PageResult<ArticleVO>> myLikes(@RequestParam(defaultValue = "1") @Min(1) Integer page,
+                                        @RequestParam(defaultValue = "10") @Min(1) Integer size) {
+        return R.ok(articleService.pageMyLikes(StpUtil.getLoginIdAsLong(), page, size));
     }
 
     @Operation(summary = "我收藏的文章（需登录，按用户隔离）")
     @GetMapping("/my/favorites")
     @SaCheckLogin
-    public R<PageVO<ArticleVO>> myFavorites(@RequestParam(defaultValue = "1") @Min(1) Integer pageNum,
-                                            @RequestParam(defaultValue = "10") @Min(1) Integer pageSize) {
-        return R.ok(articleService.pageMyFavorites(StpUtil.getLoginIdAsLong(), pageNum, pageSize));
+    public R<PageResult<ArticleVO>> myFavorites(@RequestParam(defaultValue = "1") @Min(1) Integer page,
+                                            @RequestParam(defaultValue = "10") @Min(1) Integer size) {
+        return R.ok(articleService.pageMyFavorites(StpUtil.getLoginIdAsLong(), page, size));
     }
 
     @Operation(summary = "获取文章用于编辑（仅作者，含草稿/待审核）")
@@ -93,9 +93,9 @@ public class ArticleController {
     @Operation(summary = "待审核文章列表（管理员）")
     @GetMapping("/pending")
     @SaCheckLogin
-    public R<PageVO<ArticleVO>> pending(@RequestParam(defaultValue = "1") @Min(1) Integer pageNum,
-                                        @RequestParam(defaultValue = "10") @Min(1) Integer pageSize) {
-        return R.ok(articleService.pagePending(pageNum, pageSize));
+    public R<PageResult<ArticleVO>> pending(@RequestParam(defaultValue = "1") @Min(1) Integer page,
+                                        @RequestParam(defaultValue = "10") @Min(1) Integer size) {
+        return R.ok(articleService.pagePending(page, size));
     }
 
     @Operation(summary = "审核文章（管理员，3=通过 4=驳回）")

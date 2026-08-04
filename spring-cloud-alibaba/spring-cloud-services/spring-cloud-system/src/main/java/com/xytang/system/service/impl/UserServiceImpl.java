@@ -8,7 +8,7 @@ import com.xytang.common.core.exception.BusinessException;
 import com.xytang.common.core.exception.LastSuperAdminException;
 import com.xytang.common.core.exception.UserNotFoundException;
 import com.xytang.common.core.response.BizCode;
-import com.xytang.common.core.response.PageVO;
+import com.xytang.common.core.response.PageResult;
 import com.xytang.system.dto.UserCreateDTO;
 import com.xytang.system.dto.UserPageQuery;
 import com.xytang.system.dto.UserUpdateDTO;
@@ -42,8 +42,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private final PasswordEncoder passwordEncoder;
 
     @Override
-    public PageVO<UserVO> page(UserPageQuery query) {
-        Page<User> page = new Page<>(query.getPageNum(), query.getPageSize());
+    public PageResult<UserVO> page(UserPageQuery query) {
+        Page<User> page = new Page<>(query.getPage(), query.getSize());
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(query.getKeyword())) {
             wrapper.like(User::getUsername, query.getKeyword())
@@ -58,7 +58,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         wrapper.orderByDesc(User::getCreateTime);
         Page<User> result = baseMapper.selectPage(page, wrapper);
         List<UserVO> list = result.getRecords().stream().map(this::toVO).collect(Collectors.toList());
-        return PageVO.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
+        return PageResult.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
     }
 
     @Override

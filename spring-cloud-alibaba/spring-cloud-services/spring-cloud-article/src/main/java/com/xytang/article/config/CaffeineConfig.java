@@ -2,7 +2,7 @@ package com.xytang.article.config;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.xytang.common.core.response.PageVO;
+import com.xytang.common.core.response.PageResult;
 import com.xytang.article.vo.ArticleVO;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,7 +19,7 @@ public class CaffeineConfig {
     private static final long CACHE_MAX_SIZE = 100L;
 
     @Bean
-    public Cache<String, PageVO<ArticleVO>> articleListCache() {
+    public Cache<String, PageResult<ArticleVO>> articleListCache() {
         return Caffeine.newBuilder()
                 .expireAfterWrite(CACHE_TTL)
                 .maximumSize(CACHE_MAX_SIZE)

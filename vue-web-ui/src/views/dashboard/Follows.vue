@@ -12,8 +12,8 @@ const users = ref<UserVO[]>([])
 const columns = ref<ColumnVO[]>([])
 const total = ref(0)
 const loading = ref(false)
-const pageNum = ref(1)
-const pageSize = 10
+const page = ref(1)
+const size = 10
 
 const tabs = [
   { key: 'following' as Tab, label: '我关注的人' },
@@ -26,15 +26,15 @@ async function load() {
   try {
     const myId = userStore.userInfo?.id ?? ''
     if (tab.value === 'columns') {
-      const data = await articleApi.myColumnSubscriptions(pageNum.value, pageSize)
-      columns.value = data.list
+      const data = await articleApi.myColumnSubscriptions(page.value, size)
+      columns.value = data.records
       total.value = data.total
     } else {
       const data =
         tab.value === 'following'
-          ? await userApi.following(myId, pageNum.value, pageSize)
-          : await userApi.followers(myId, pageNum.value, pageSize)
-      users.value = data.list
+          ? await userApi.following(myId, page.value, size)
+          : await userApi.followers(myId, page.value, size)
+      users.value = data.records
       total.value = data.total
     }
   } finally {
@@ -43,7 +43,7 @@ async function load() {
 }
 
 watch(tab, () => {
-  pageNum.value = 1
+  page.value = 1
   load()
 })
 
@@ -101,8 +101,8 @@ onMounted(load)
       </div>
     </n-spin>
 
-    <div v-if="total > pageSize" class="mt-4 flex justify-center">
-      <n-pagination v-model:page="pageNum" :page-size="pageSize" :item-count="total" @update:page="load" />
+    <div v-if="total > size" class="mt-4 flex justify-center">
+      <n-pagination v-model:page="page" :page-size="size" :item-count="total" @update:page="load" />
     </div>
   </div>
 </template>

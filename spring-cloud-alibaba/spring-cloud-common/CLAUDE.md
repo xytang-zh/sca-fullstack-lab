@@ -7,9 +7,9 @@
 
 ## 1. 模块定位
 
-`spring-cloud-common` 是整个项目的 **公共能力下沉层**，由 **16 个子模块**组成，每个子模块聚焦一个垂直能力（Redis、MyBatis、MQ、Sa-Token、Netty 等）。
+`spring-cloud-common` 是整个项目的 **公共能力下沉层**，由 **6 个子模块**组成，每个子模块聚焦一个垂直能力（Core、Web、MyBatis、Redis、Sa-Token、Dubbo）。
 
-> ⚠️ 原规划的 `spring-cloud-common-test` 子模块已废弃，从父 POM `<modules>` 中删除。当前实际只有 16 个子模块。
+> ⚠️ 原规划的 `spring-cloud-common-test` 子模块已废弃，从父 POM `<modules>` 中删除。当前实际只有 6 个子模块。
 
 **核心设计原则**：
 1. **单一职责**：每个 common 子模块只做一件事，不交叉依赖
@@ -24,7 +24,7 @@
 | 父 POM | `com.xytang:spring-cloud-alibaba:1.0-SNAPSHOT` |
 | 当前 artifactId | `spring-cloud-common` |
 | packaging | `pom` |
-| 子模块数量 | 16 |
+| 子模块数量 | 6 |
 
 ---
 
@@ -32,23 +32,13 @@
 
 ```
 spring-cloud-common/
-├── pom.xml                              packaging=pom，声明 16 个子模块
+├── pom.xml                              packaging=pom，声明 6 个子模块
 ├── spring-cloud-common-core/             核心工具：异常/响应/常量/事件基类（完整代码）
-├── spring-cloud-common-web/              Web 通用：全局异常/Trace-Id/密码编码器（完整代码）
-├── spring-cloud-common-redis/            Redis 工具：序列化/RedisTemplate（部分代码）
-├── spring-cloud-common-redisson/         Redisson：分布式锁注解（部分代码）
-├── spring-cloud-common-mybatis/          MyBatis-Plus：分页/数据权限/雪花 ID（完整代码）
-├── spring-cloud-common-datasource/       dynamic-datasource：多数据源切换（空壳）
-├── spring-cloud-common-mq/               RabbitMQ：事件基类/幂等消费（部分代码）
-├── spring-cloud-common-mongo/            MongoDB：配置/通用 DAO（空壳）
-├── spring-cloud-common-es/               ElasticSearch：配置/索引管理（空壳）
-├── spring-cloud-common-ai/               Spring AI：ChatClient/Advisor/VectorStore（空壳）
+├── spring-cloud-common-web/              Web 通用：全局异常/Trace-Id/密码编码器/操作日志/springdoc+Knife4j（完整代码）
+├── spring-cloud-common-mybatis/          MyBatis-Plus：分页/数据权限/雪花 ID/dynamic-datasource（完整代码）
+├── spring-cloud-common-redis/            Redis：序列化/RedisTemplate/Redisson 分布式锁/Caffeine 多级缓存（部分代码）
 ├── spring-cloud-common-satoken/          Sa-Token：StpInterface 实现（部分代码）
-├── spring-cloud-common-security/         网关鉴权：过滤器/路由元数据（部分代码）
-├── spring-cloud-common-log/              日志：@OperationLog 注解/AOP 切面（部分代码）
-├── spring-cloud-common-swagger/          OpenAPI：springdoc 聚合/Knife4j（空壳）
-├── spring-cloud-common-cache/            多级缓存：Caffeine + Redis（空壳）
-└── spring-cloud-common-netty/            Netty：WebSocket Server/心跳/路由（空壳）
+└── spring-cloud-common-dubbo/            Dubbo RPC 契约：跨服务接口定义（完整代码）
 ```
 
 > ⚠️ 当前 common 子模块下**均未声明** `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` 文件，自动装配机制尚未启用，业务方需手动 `@Import` 配置类。落地时需补充。
@@ -60,26 +50,15 @@ spring-cloud-common/
 | # | 子模块 | 代码状态 | 一句话职责 | 详见 |
 |---|--------|---------|----------|------|
 | 1 | spring-cloud-common-core | ✅ 完整 | 纯 POJO + 工具类，被所有模块依赖，无 Spring 依赖 | [CLAUDE.md](./spring-cloud-common-core/CLAUDE.md) |
-| 2 | spring-cloud-common-web | ✅ 完整 | Spring MVC 全局配置：全局异常、Trace-Id、密码编码器（Argon2id） | [CLAUDE.md](./spring-cloud-common-web/CLAUDE.md) |
-| 3 | spring-cloud-common-redis | 🟡 部分 | RedisTemplate 配置 + 序列化方案 | [CLAUDE.md](./spring-cloud-common-redis/CLAUDE.md) |
-| 4 | spring-cloud-common-redisson | 🟡 部分 | `@DistributedLock` 注解 + AOP 切面 | [CLAUDE.md](./spring-cloud-common-redisson/CLAUDE.md) |
-| 5 | spring-cloud-common-mybatis | ✅ 完整 | 拦截器链 + 数据权限（`@DataScope`）+ 自动填充 + RBAC 上下文 | [CLAUDE.md](./spring-cloud-common-mybatis/CLAUDE.md) |
-| 6 | spring-cloud-common-datasource | ❌ 空壳 | dynamic-datasource 多数据源切换 + 国产库适配 + ShardingSphere 加密 | [CLAUDE.md](./spring-cloud-common-datasource/CLAUDE.md) |
-| 7 | spring-cloud-common-mq | 🟡 部分 | `AbstractEventListener<T>` 幂等消费基类 + 事件配置 | [CLAUDE.md](./spring-cloud-common-mq/CLAUDE.md) |
-| 8 | spring-cloud-common-mongo | ❌ 空壳 | MongoDB 配置 + 通用 DAO + 分页 | [CLAUDE.md](./spring-cloud-common-mongo/CLAUDE.md) |
-| 9 | spring-cloud-common-es | ❌ 空壳 | ES 8 客户端 + 索引管理 + 批量操作 | [CLAUDE.md](./spring-cloud-common-es/CLAUDE.md) |
-| 10 | spring-cloud-common-ai | ❌ 空壳 | Spring AI ChatClient + Advisor 链 + pgvector | [CLAUDE.md](./spring-cloud-common-ai/CLAUDE.md) |
-| 11 | spring-cloud-common-satoken | 🟡 部分 | Sa-Token 配置 + `StpInterfaceImpl` 权限查询 | [CLAUDE.md](./spring-cloud-common-satoken/CLAUDE.md) |
-| 12 | spring-cloud-common-security | 🟡 部分 | 网关鉴权过滤器 `AuthGatewayFilterFactory` | [CLAUDE.md](./spring-cloud-common-security/CLAUDE.md) |
-| 13 | spring-cloud-common-log | 🟡 部分 | `@OperationLog` 注解 + AOP 切面 + MQ 异步发送 | [CLAUDE.md](./spring-cloud-common-log/CLAUDE.md) |
-| 14 | spring-cloud-common-swagger | ❌ 空壳 | springdoc-openapi + Knife4j 配置 | [CLAUDE.md](./spring-cloud-common-swagger/CLAUDE.md) |
-| 15 | spring-cloud-common-cache | ❌ 空壳 | Caffeine + Redis 多级缓存 + `@LayeredCache` 注解 | [CLAUDE.md](./spring-cloud-common-cache/CLAUDE.md) |
-| 16 | spring-cloud-common-netty | ❌ 空壳 | Netty WebSocket Server + 心跳 + 路由 | [CLAUDE.md](./spring-cloud-common-netty/CLAUDE.md) |
+| 2 | spring-cloud-common-web | ✅ 完整 | Spring MVC 全局配置：全局异常、Trace-Id、密码编码器（Argon2id）、操作日志、springdoc+Knife4j | [CLAUDE.md](./spring-cloud-common-web/CLAUDE.md) |
+| 3 | spring-cloud-common-mybatis | ✅ 完整 | 拦截器链 + 数据权限（`@DataScope`）+ 自动填充 + RBAC 上下文 + dynamic-datasource 多数据源 | [CLAUDE.md](./spring-cloud-common-mybatis/CLAUDE.md) |
+| 4 | spring-cloud-common-redis | 🟡 部分 | RedisTemplate 配置 + 序列化方案 + `@DistributedLock` 分布式锁 + Caffeine 多级缓存 | [CLAUDE.md](./spring-cloud-common-redis/CLAUDE.md) |
+| 5 | spring-cloud-common-satoken | 🟡 部分 | Sa-Token 配置 + `StpInterfaceImpl` 权限查询 | [CLAUDE.md](./spring-cloud-common-satoken/CLAUDE.md) |
+| 6 | spring-cloud-common-dubbo | ✅ 完整 | 跨服务 Dubbo RPC 契约（`ArticleRpcService`/`CommentRpcService`） | [CLAUDE.md](./spring-cloud-common-dubbo/CLAUDE.md) |
 
 > **代码状态说明**：
 > - ✅ 完整：核心功能已实现
 > - 🟡 部分：部分功能已实现，仍有 TODO
-> - ❌ 空壳：仅 `pom.xml`，无任何 .java 代码
 
 ---
 
@@ -95,23 +74,18 @@ spring-cloud-common/
 | web | spring-boot-starter-validation | 3.5.0 |
 | web | Jsoup | 1.17.2 |
 | web | Bouncy Castle | 1.78.1 |
-| redis | spring-boot-starter-data-redis | 3.5.0 |
-| redisson | redisson-spring-boot-starter | 4.0.0 |
+| web | springdoc-openapi-starter-webmvc-ui | 2.6.0 |
+| web | knife4j-openapi3-jakarta-spring-boot-starter | 4.5.0 |
+| web | spring-boot-starter-aop | 3.5.0 |
 | mybatis | mybatis-plus-spring-boot3-starter | 3.5.9 |
-| datasource | dynamic-datasource-spring-boot3-starter | 4.3.1 |
-| datasource | shardingsphere-jdbc | 5.5.2 |
-| mq | spring-boot-starter-amqp | 3.5.0 |
-| mongo | spring-boot-starter-data-mongodb | 3.5.0 |
-| es | spring-boot-starter-data-elasticsearch | 3.5.0 |
-| ai | spring-ai-* | 1.1.0（**父 POM 未声明**，落地时补充） |
+| mybatis | dynamic-datasource-spring-boot3-starter | 4.3.1 |
+| mybatis | shardingsphere-jdbc | 5.5.2 |
+| redis | spring-boot-starter-data-redis | 3.5.0 |
+| redis | redisson-spring-boot-starter | 4.0.0 |
+| redis | caffeine | 3.2.0 |
 | satoken | sa-token-spring-boot3-starter | 1.44.0 |
 | satoken | sa-token-redis-jackson | 1.44.0 |
-| security | spring-cloud-starter-gateway | Spring Cloud 2025.0.0 管理 |
-| log | spring-boot-starter-aop | 3.5.0 |
-| swagger | springdoc-openapi-starter-webmvc-ui | 2.6.0 |
-| swagger | knife4j-openapi3-jakarta-spring-boot-starter | 4.5.0 |
-| cache | caffeine | 3.2.0 |
-| netty | netty-all | 4.1.x（Spring Boot 管理） |
+| dubbo | dubbo 3.3+（Spring Cloud Alibaba 管理） | 2025.0.0.0 |
 
 ### 4.2 测试依赖
 
@@ -130,19 +104,11 @@ spring-cloud-common/
 
 | 业务模块 | 依赖的 common 子模块 |
 |----------|---------------------|
-| spring-cloud-gateway | security、swagger、core、redis |
-| spring-cloud-auth | core、web、redis、redisson、satoken、mq、cache、log、swagger、mybatis |
-| spring-cloud-system | core、web、mybatis、datasource、redis、redisson、satoken、mq、log、swagger、cache |
-| spring-cloud-monitor | core、web、mybatis、redis、redisson、netty、mq、swagger |
-| spring-cloud-workflow | core、web、mybatis、redis、satoken、mq、log、swagger、cache |
-| spring-cloud-ai | core、web、ai、mongo、redis、satoken、mq、swagger |
-| spring-cloud-message | core、web、netty、mq、redis、redisson、swagger |
-| spring-cloud-search | core、web、es、mq、swagger |
-| spring-cloud-file | core、web、redis、redisson、swagger |
-| spring-cloud-log | core、web、mongo、mq、mybatis、swagger |
-| spring-cloud-portal | core、web、mybatis、redis、es、swagger、cache |
-| spring-cloud-job | core、web、redis、swagger |
-| spring-cloud-report | core、web、datasource、swagger、satoken |
+| spring-cloud-gateway | core |
+| spring-cloud-auth | core、web、mybatis、redis、satoken |
+| spring-cloud-system | core、web、mybatis、redis、satoken |
+| spring-cloud-article | core、web、mybatis、redis、satoken、dubbo |
+| spring-cloud-comment | core、web、mybatis、redis、satoken、dubbo |
 
 ---
 
@@ -210,7 +176,7 @@ com.xytang.common.redis.config.RedissonAutoConfiguration
 1. ❌ 在 common 子模块依赖具体业务模块（如 `spring-cloud-system`）
 2. ❌ 在 common 子模块依赖业务数据库表
 3. ❌ 在 core 中加 Spring 依赖
-4. ❌ 在 common 子模块中写 Controller（**例外**：security 可写网关过滤器）
+4. ❌ 在 common 子模块中写 Controller
 5. ❌ 在 common 子模块中直接操作业务库
 6. ❌ 在 common 子模块的配置类中读 Nacos 配置（用 `@Value` + `${VAR:default}`）
 7. ❌ 在 common 子模块中使用 `System.out.println`
@@ -263,7 +229,7 @@ com.xytang.common.redis.config.RedissonAutoConfiguration
 
 1. ❌ 在 common 子模块覆盖父 POM 的依赖版本
 2. ❌ 在 core 中加 Spring/MyBatis/Servlet 依赖
-3. ❌ 在 common 中写 Controller（除 security 的网关过滤器）
+3. ❌ 在 common 中写 Controller
 4. ❌ common 子模块依赖具体业务模块
 5. ❌ 在 common 中暴露 `R<T>` 之外的响应格式
 6. ❌ 在 common 中用 `System.out.println`
@@ -271,3 +237,21 @@ com.xytang.common.redis.config.RedissonAutoConfiguration
 8. ❌ AutoConfiguration 不加 `@ConditionalOnXxx`（导致冲突）
 9. ❌ 注解无默认值（业务方必须显式配置才能用）
 10. ❌ Redis 缓存对象不实现 `Serializable`
+
+---
+
+## 10. 技术栈 → 模块映射表
+
+| 技术栈 | 归属模块 |
+|--------|---------|
+| 统一响应 R<T> / BusinessException / 事件基类 | spring-cloud-common-core |
+| 全局异常 / TraceId / R 包装 / Argon2id / 操作日志 / springdoc+Knife4j | spring-cloud-common-web |
+| MyBatis-Plus / 分页 / 数据权限 / dynamic-datasource | spring-cloud-common-mybatis |
+| Redis / RedisTemplate / Redisson 分布式锁 / Caffeine 多级缓存 | spring-cloud-common-redis |
+| Sa-Token 登录鉴权 / StpInterface | spring-cloud-common-satoken |
+| Dubbo RPC 契约（article↔comment） | spring-cloud-common-dubbo |
+| Spring Cloud Gateway / 路由 / CORS / Sentinel 限流 | spring-cloud-gateway |
+| Sa-Token 登录 / 注册 / 验证码 | spring-cloud-auth |
+| MyBatis-Plus / RBAC 用户角色菜单 | spring-cloud-system |
+| 文章 / 分类 / 标签 / Markdown / 点赞收藏 | spring-cloud-article |
+| 评论 / 审核 / 敏感词 | spring-cloud-comment |

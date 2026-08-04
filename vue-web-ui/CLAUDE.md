@@ -267,19 +267,20 @@ export default defineConfig({
 ```json
 {
   "code": 200,
-  "msg": "success",
+  "message": "success",
   "data": { ... },
-  "timestamp": 1722470400000
+  "timestamp": 1722470400000,
+  "traceId": "a1b2c3d4e5f6g7h8"
 }
 ```
 
-| code | 处理逻辑 |
-|------|---------|
+| code 区段 | 处理逻辑 |
+|-----------|---------|
 | 200 | 返回 `data` 字段 |
-| 401 | Token 过期，尝试 Refresh，失败跳 SSO 登录 |
-| 403 | 提示"无权限" |
-| 429 | 提示"操作过于频繁" |
-| 其他 | 显示 `msg` 错误提示 |
+| 2xxxx 登录态失效码（未登录/Token 过期/被禁用/被踢下线） | 清理登录态并跳转登录页 |
+| 其他 | 显示 `message` 错误提示 |
+
+分页响应 `data` 为 `PageResult<T>`：`{records, total, page, size, pages, hasPrevious, hasNext}`；分页入参统一 `page`/`size`。
 
 ### 8.3 HTTP 头
 
@@ -354,16 +355,16 @@ export default defineConfig({
    - HTTP 401 → 尝试 Refresh Token，失败跳转登录
    - HTTP 403 → 提示无权限
    - HTTP 429 → 提示"操作过于频繁"
-   - 业务 code !== 200 → 显示 `msg` 错误提示
+   - 业务 code !== 200 → 显示 `message` 错误提示；登录态失效码（未登录/Token 过期/被禁用/被踢下线）清理登录态并跳转登录页
 5. **请求拦截器**自动带 Token、`X-Trace-Id`
 
 ```typescript
 // src/api/system/user.ts
 import { request } from '@sca/api'
-import type { PageVO, UserVO, UserCreateDTO, UserPageQuery } from '@sca/types'
+import type { PageResult, UserVO, UserCreateDTO, UserPageQuery } from '@sca/types'
 
 export function pageUsers(query: UserPageQuery) {
-  return request.get<PageVO<UserVO>>('/api/system/users', { params: query })
+  return request.get<PageResult<UserVO>>('/api/system/users', { params: query })
 }
 
 export function createUser(dto: UserCreateDTO) {
@@ -385,7 +386,7 @@ export function deleteUser(id: string) {
 
 | 后端 | 前端调用 | 说明 |
 |------|----------|------|
-| `GET /api/system/users?pageNum=1&pageSize=10` | `pageUsers({ pageNum: 1, pageSize: 10 })` | 分页查询 |
+| `GET /api/system/users?page=1&size=10` | `pageUsers({ page: 1, size: 10 })` | 分页查询 |
 | `GET /api/system/users/{id}` | `getUserById(id)` | 详情 |
 | `POST /api/system/users` | `createUser(dto)` | 新增 |
 | `PUT /api/system/users/{id}` | `updateUser(id, dto)` | 全量更新 |

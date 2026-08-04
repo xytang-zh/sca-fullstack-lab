@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { articleApi, userApi } from '@sca/api'
 import { useUserStore } from '@/store/user'
-import type { ArticleVO, ColumnVO, PageVO } from '@sca/types'
+import type { ArticleVO, ColumnVO, PageResult } from '@sca/types'
 import {
   EyeOutline,
   ThumbsUpOutline,
@@ -29,8 +29,8 @@ const articles = ref<ArticleVO[]>([])
 const columns = ref<ColumnVO[]>([])
 const total = ref(0)
 const loading = ref(false)
-const pageNum = ref(1)
-const pageSize = 10
+const page = ref(1)
+const size = 10
 
 const isLoggedIn = computed(() => userStore.token !== '')
 
@@ -38,11 +38,11 @@ async function load() {
   loading.value = true
   try {
     if (tab.value === 'columns') {
-      const data: PageVO<ColumnVO> = await articleApi.pageColumns({
-        pageNum: pageNum.value,
-        pageSize
+      const data: PageResult<ColumnVO> = await articleApi.pageColumns({
+        page: page.value,
+        size
       })
-      columns.value = data.list
+      columns.value = data.records
       total.value = data.total
       return
     }
@@ -57,23 +57,23 @@ async function load() {
         1,
         100
       )
-      const authorIds = followingPage.list.map((u) => u.id).join(',')
-      const data: PageVO<ArticleVO> = await articleApi.pageArticles({
-        pageNum: pageNum.value,
-        pageSize,
+      const authorIds = followingPage.records.map((u) => u.id).join(',')
+      const data: PageResult<ArticleVO> = await articleApi.pageArticles({
+        page: page.value,
+        size,
         sort: 'time',
         authorIds
       })
-      articles.value = data.list
+      articles.value = data.records
       total.value = data.total
       return
     }
-    const data: PageVO<ArticleVO> = await articleApi.pageArticles({
-      pageNum: pageNum.value,
-      pageSize,
+    const data: PageResult<ArticleVO> = await articleApi.pageArticles({
+      page: page.value,
+      size,
       sort: sort.value
     })
-    articles.value = data.list
+    articles.value = data.records
     total.value = data.total
   } finally {
     loading.value = false
@@ -85,7 +85,7 @@ function changeSort(s: 'time' | 'hot') {
     return
   }
   sort.value = s
-  pageNum.value = 1
+  page.value = 1
   load()
 }
 
@@ -109,7 +109,7 @@ function formatTime(value?: string): string {
 }
 
 watch(tab, () => {
-  pageNum.value = 1
+  page.value = 1
   load()
 })
 
@@ -210,10 +210,10 @@ onMounted(load)
 
     <n-empty v-else description="暂无内容，敬请期待" class="py-16" />
 
-    <div v-if="total > pageSize" class="mt-8 flex justify-center">
+    <div v-if="total > size" class="mt-8 flex justify-center">
       <n-pagination
-        v-model:page="pageNum"
-        :page-size="pageSize"
+        v-model:page="page"
+        :page-size="size"
         :item-count="total"
         @update:page="load"
       />

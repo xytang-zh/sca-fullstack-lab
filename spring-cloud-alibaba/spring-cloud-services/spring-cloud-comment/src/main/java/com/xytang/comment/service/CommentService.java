@@ -5,7 +5,7 @@ import com.xytang.comment.dto.CommentCreateDTO;
 import com.xytang.comment.dto.CommentReplyDTO;
 import com.xytang.comment.vo.CommentMyVO;
 import com.xytang.comment.vo.CommentVO;
-import com.xytang.common.core.response.PageVO;
+import com.xytang.common.core.response.PageResult;
 
 /**
  * 博客评论服务：游客读列表，登录发表/回复/点赞，管理员审核。
@@ -16,12 +16,12 @@ public interface CommentService {
      * 文章评论分页（游客可访问，仅已审核，按 parent_id 分组）。
      *
      * @param articleId     文章 ID
-     * @param pageNum       页码
-     * @param pageSize      每页条数
+     * @param page          页码
+     * @param size          每页条数
      * @param currentUserId 当前登录用户 ID（可空，用于标注是否已点赞）
      * @return 分页结果
      */
-    PageVO<CommentVO> pageByArticle(Long articleId, int pageNum, int pageSize, Long currentUserId);
+    PageResult<CommentVO> pageByArticle(Long articleId, int page, int size, Long currentUserId);
 
     /**
      * 发表评论（登录用户，默认待审核）。
@@ -58,21 +58,21 @@ public interface CommentService {
     /**
      * 我的评论（登录用户，含所属文章，按用户隔离）。
      *
-     * @param userId   当前登录用户
-     * @param pageNum  页码
-     * @param pageSize 每页条数
+     * @param userId 当前登录用户
+     * @param page   页码
+     * @param size   每页条数
      * @return 分页结果
      */
-    PageVO<CommentMyVO> pageMyComments(Long userId, int pageNum, int pageSize);
+    PageResult<CommentMyVO> pageMyComments(Long userId, int page, int size);
 
     /**
      * 待审核评论列表（管理员）。
      *
-     * @param pageNum  页码
-     * @param pageSize 每页条数
+     * @param page 页码
+     * @param size 每页条数
      * @return 分页结果
      */
-    PageVO<CommentVO> pagePending(int pageNum, int pageSize);
+    PageResult<CommentVO> pagePending(int page, int size);
 
     /**
      * 审核评论（管理员，通过/驳回）。

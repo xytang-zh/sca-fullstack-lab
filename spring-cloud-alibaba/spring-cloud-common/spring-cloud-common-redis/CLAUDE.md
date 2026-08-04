@@ -12,7 +12,7 @@
 **核心设计原则**：
 1. **统一序列化**：Key 用 String，Value 用 `GenericJackson2JsonRedisSerializer`（带 Java 8 时间模块）
 2. **不重复造轮子**：直接用 Spring Data Redis，**禁止**自己封装 RedisTemplate 行为
-3. **与 Redisson 解耦**：本模块**不**引入 Redisson（在 `spring-cloud-common-redisson` 单独引入）
+3. **集成 Redisson 与 Caffeine**：本模块自 `spring-cloud-common-redisson`/`spring-cloud-common-cache` 并入 `@DistributedLock` 分布式锁与多级缓存能力
 
 | 维度 | 值 |
 |------|-----|
@@ -132,8 +132,8 @@ spring-cloud-common-redis/
 | 关系 | 模块 |
 |------|------|
 | 依赖 | `spring-cloud-common-core` |
-| 被依赖 | `spring-cloud-auth`、`spring-cloud-gateway`、`spring-cloud-system`、`spring-cloud-portal`、`spring-cloud-file` 等业务服务 |
-| 不依赖 | `spring-cloud-common-redisson`（避免与 Redisson 客户端冲突） |
+| 被依赖 | `spring-cloud-auth`、`spring-cloud-system`、`spring-cloud-article`、`spring-cloud-comment` 等业务服务 |
+| 集成 | Redisson（`@DistributedLock`）、Caffeine（多级缓存），自 `spring-cloud-common-redisson`/`spring-cloud-common-cache` 并入 |
 
 ---
 

@@ -2,7 +2,6 @@ package com.xytang.auth.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.stp.parameter.SaLoginParameter;
-import com.xytang.auth.constant.AuthConstants;
 import com.xytang.auth.dto.LoginDTO;
 import com.xytang.auth.dto.RegisterDTO;
 import com.xytang.auth.entity.AuthUser;
@@ -13,7 +12,6 @@ import com.xytang.auth.vo.LoginVO;
 import com.xytang.common.core.constant.CommonConstants;
 import com.xytang.common.core.exception.AuthException;
 import com.xytang.common.core.response.BizCode;
-import com.xytang.common.core.response.DevMessageHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,7 +20,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -32,7 +29,6 @@ import org.springframework.test.context.ActiveProfiles;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -76,9 +72,6 @@ class AuthServiceImplTest {
     private LoginRiskService loginRiskService;
 
     @Mock
-    private RabbitTemplate rabbitTemplate;
-
-    @Mock
     private PasswordEncoder passwordEncoder;
 
     @Mock
@@ -91,7 +84,6 @@ class AuthServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        DevMessageHolder.clear();
         stpUtilMock = mockStatic(StpUtil.class);
         stpUtilMock.when(() -> StpUtil.login(any(), any(SaLoginParameter.class))).thenAnswer(invocation -> null);
         stpUtilMock.when(StpUtil::getTokenName).thenReturn("Authorization");
@@ -103,7 +95,6 @@ class AuthServiceImplTest {
         if (stpUtilMock != null) {
             stpUtilMock.close();
         }
-        DevMessageHolder.clear();
     }
 
     @Test
@@ -124,7 +115,6 @@ class AuthServiceImplTest {
         assertEquals("Bearer test-token", vo.getTokenValue());
         assertEquals("testuser", vo.getUsername());
         verify(loginRiskService).clearFailure(dto.getAccount());
-        verify(rabbitTemplate).convertAndSend(eq(AuthConstants.EXCHANGE_LOG_LOGIN), eq(""), any(Object.class));
     }
 
     @Test
@@ -135,8 +125,7 @@ class AuthServiceImplTest {
         AuthException ex = assertThrows(AuthException.class,
                 () -> authService.login(dto, "127.0.0.1", "Mozilla/5.0"));
 
-        assertEquals(BizCode.AUTH_CAPTCHA_ERROR, ex.getBizCode());
-        assertTrue(DevMessageHolder.get().contains("文字验证码无效或已过期"));
+        assertEquals(BizCode.AUTH_CAPTCHA_ERROR, ex.getErrorCode());
         // 验证码失败不查账号、不计入登录失败锁定计数
         verify(authUserMapper, never()).selectOne(any());
         verify(loginRiskService, never()).recordFailure(anyString());
@@ -151,14 +140,13 @@ class AuthServiceImplTest {
         AuthException ex = assertThrows(AuthException.class,
                 () -> authService.login(dto, "127.0.0.1", "Mozilla/5.0"));
 
-        assertEquals(BizCode.AUTH_PASSWORD_ERROR, ex.getBizCode());
+        assertEquals(BizCode.AUTH_PASSWORD_ERROR, ex.getErrorCode());
         assertEquals("账号或密码错误", ex.getMessage());
         verify(loginRiskService).recordFailure(dto.getAccount());
-        verify(rabbitTemplate).convertAndSend(eq(AuthConstants.EXCHANGE_LOG_LOGIN), eq(""), any(Object.class));
     }
 
     @Test
-    void loginPasswordMismatchShouldThrowAuthExceptionWithDevMessage() {
+    void loginPasswordMismatchShouldThrowAuthException() {
         LoginDTO dto = buildLoginDto();
         AuthUser user = buildUser(1L, CommonConstants.STATUS_NORMAL,
                 "$argon2id$v=19$m=16384,t=3,p=2$+27WTLFAqxSTRl5oyRAIjw$FDm+vGxZbK72A/m7fGobGmU6Kgg6RsyuHLHJnwyfXzc");
@@ -170,11 +158,8 @@ class AuthServiceImplTest {
         AuthException ex = assertThrows(AuthException.class,
                 () -> authService.login(dto, "127.0.0.1", "Mozilla/5.0"));
 
-        assertEquals(BizCode.AUTH_PASSWORD_ERROR, ex.getBizCode());
+        assertEquals(BizCode.AUTH_PASSWORD_ERROR, ex.getErrorCode());
         assertEquals("账号或密码错误", ex.getMessage());
-        String devMessage = DevMessageHolder.get();
-        assertNotNull(devMessage);
-        assertTrue(devMessage.contains("Argon2id matches 返回 false"));
         verify(loginRiskService).recordFailure(dto.getAccount());
     }
 
@@ -191,7 +176,7 @@ class AuthServiceImplTest {
         AuthException ex = assertThrows(AuthException.class,
                 () -> authService.login(dto, "127.0.0.1", "Mozilla/5.0"));
 
-        assertEquals(BizCode.AUTH_USER_DISABLED, ex.getBizCode());
+        assertEquals(BizCode.AUTH_USER_DISABLED, ex.getErrorCode());
         verify(loginRiskService, never()).clearFailure(anyString());
     }
 
@@ -216,7 +201,6 @@ class AuthServiceImplTest {
         assertEquals("testuser", vo.getUsername());
         verify(authUserMapper).insert(any(AuthUser.class));
         verify(authUserMapper).insertUserRole(eq(1L), eq(USER_ROLE_ID));
-        verify(rabbitTemplate).convertAndSend(eq(AuthConstants.EXCHANGE_LOG_LOGIN), eq(""), any(Object.class));
     }
 
     @Test
@@ -227,7 +211,7 @@ class AuthServiceImplTest {
         AuthException ex = assertThrows(AuthException.class,
                 () -> authService.register(dto, "127.0.0.1", "Mozilla/5.0"));
 
-        assertEquals(BizCode.AUTH_USER_EXISTED, ex.getBizCode());
+        assertEquals(BizCode.AUTH_USER_EXISTED, ex.getErrorCode());
         assertEquals("账号已存在", ex.getMessage());
         verify(authUserMapper, never()).insert(any(AuthUser.class));
     }
@@ -241,7 +225,7 @@ class AuthServiceImplTest {
         AuthException ex = assertThrows(AuthException.class,
                 () -> authService.register(dto, "127.0.0.1", "Mozilla/5.0"));
 
-        assertEquals(BizCode.AUTH_USER_EXISTED, ex.getBizCode());
+        assertEquals(BizCode.AUTH_USER_EXISTED, ex.getErrorCode());
         assertEquals("账号已存在", ex.getMessage());
     }
 
@@ -253,7 +237,7 @@ class AuthServiceImplTest {
         AuthException ex = assertThrows(AuthException.class,
                 () -> authService.register(dto, "127.0.0.1", "Mozilla/5.0"));
 
-        assertEquals(BizCode.PARAM_ERROR, ex.getBizCode());
+        assertEquals(BizCode.PARAM_ERROR, ex.getErrorCode());
         assertEquals("两次输入的密码不一致", ex.getMessage());
         verify(authUserMapper, never()).selectOne(any());
     }

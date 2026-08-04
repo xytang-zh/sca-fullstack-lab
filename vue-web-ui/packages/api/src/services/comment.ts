@@ -7,11 +7,11 @@ import type {
   CommentReplyDTO,
   CommentVO
 } from '@sca/types'
-import type { PageVO } from '@sca/types'
+import type { PageResult } from '@sca/types'
 
 /** 文章评论分页列表（游客可访问，仅已审核） */
 export function pageComments(articleId: string, query: CommentPageQuery) {
-  return request.get<PageVO<CommentVO>>(`/api/comments/articles/${articleId}`, {
+  return request.get<PageResult<CommentVO>>(`/api/comments/articles/${articleId}`, {
     params: query
   })
 }
@@ -32,13 +32,13 @@ export function toggleCommentLike(id: string) {
 }
 
 /** 我的评论（需登录，按用户隔离） */
-export function myComments(pageNum = 1, pageSize = 10) {
-  return request.get<PageVO<CommentMyVO>>('/api/comments/my', { params: { pageNum, pageSize } })
+export function myComments(page = 1, size = 10) {
+  return request.get<PageResult<CommentMyVO>>('/api/comments/my', { params: { page, size } })
 }
 
 /** 待审核评论列表（管理员） */
-export function pendingComments(pageNum = 1, pageSize = 10) {
-  return request.get<PageVO<CommentVO>>('/api/comments/pending', { params: { pageNum, pageSize } })
+export function pendingComments(page = 1, size = 10) {
+  return request.get<PageResult<CommentVO>>('/api/comments/pending', { params: { page, size } })
 }
 
 /** 审核评论（管理员，2=通过 3=驳回） */

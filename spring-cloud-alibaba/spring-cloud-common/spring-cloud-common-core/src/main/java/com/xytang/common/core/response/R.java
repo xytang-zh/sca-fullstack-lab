@@ -10,20 +10,17 @@ import lombok.ToString;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.time.Instant;
 
 /**
- * 统一响应包装类（双层响应码体系：HTTP 状态码 + 5 位字符串 bizCode）。
+ * 统一响应包装类（单一业务码体系）。
  *
- * <p>字段：{@code code}(HTTP) / {@code bizCode}(业务) / {@code message} /
- * {@code data} / {@code timestamp}(Instant) / {@code traceId} / {@code path} /
- * {@code devMessage}(dev profile 诊断)。
+ * <p>字段：{@code code}(业务状态码) / {@code message}(友好文案) / {@code data}(业务数据) /
+ * {@code timestamp}(毫秒时间戳) / {@code traceId}(链路追踪 ID)。
  *
- * <p>失败响应：调用 {@link #fail(BizCode)} 或 {@link #fail(BizCode, String)}，
- * HTTP 码由 BizCode.httpCode() 决定，bizCode 由 BizCode.code() 决定。
+ * <p>失败响应：调用 {@link #fail(ErrorCode)} 或 {@link #fail(ErrorCode, String)}，
+ * HTTP 状态码由调用方依据 {@link ErrorCode#getHttpStatus()} 设置。
  *
- * <p>响应阶段由 {@code RResponseAdvice}（common-web）从 MDC 与 ThreadLocal
- * 自动填充 traceId/path/devMessage。
+ * <p>响应阶段由 {@code RResponseAdvice}（common-web）从 MDC 自动填充 traceId。
  *
  * @param <T> 业务数据类型
  */
@@ -38,52 +35,46 @@ public class R<T> implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    private int code;
-    private String bizCode;
+    private Integer code;
     private String message;
     private T data;
-    private Instant timestamp;
+    private Long timestamp;
     private String traceId;
-    private String path;
-    private String devMessage;
 
     public static <T> R<T> ok() {
-        return ok(BizCode.SUCCESS.message(), null);
+        return ok(BizCode.SUCCESS.getUserMessage(), null);
     }
 
     public static <T> R<T> ok(T data) {
-        return ok(BizCode.SUCCESS.message(), data);
+        return ok(BizCode.SUCCESS.getUserMessage(), data);
     }
 
     public static <T> R<T> ok(String message, T data) {
         R<T> r = new R<>();
-        r.code = BizCode.SUCCESS.httpCode();
-        r.bizCode = BizCode.SUCCESS.code();
+        r.code = BizCode.SUCCESS.getCode();
         r.message = message;
         r.data = data;
-        r.timestamp = Instant.now();
+        r.timestamp = System.currentTimeMillis();
         return r;
     }
 
-    public static <T> R<T> fail(BizCode bizCode) {
-        return fail(bizCode, bizCode.message());
+    public static <T> R<T> fail(ErrorCode errorCode) {
+        return fail(errorCode, errorCode.getUserMessage());
     }
 
-    public static <T> R<T> fail(BizCode bizCode, String message) {
+    public static <T> R<T> fail(ErrorCode errorCode, String message) {
         R<T> r = new R<>();
-        r.code = bizCode.httpCode();
-        r.bizCode = bizCode.code();
+        r.code = errorCode.getCode();
         r.message = message;
-        r.timestamp = Instant.now();
+        r.timestamp = System.currentTimeMillis();
         return r;
     }
 
-    public static <T> R<T> fail(int httpCode, String bizCode, String message) {
+    public static <T> R<T> fail(Integer code, String message) {
         R<T> r = new R<>();
-        r.code = httpCode;
-        r.bizCode = bizCode;
+        r.code = code;
         r.message = message;
-        r.timestamp = Instant.now();
+        r.timestamp = System.currentTimeMillis();
         return r;
     }
 
@@ -92,19 +83,8 @@ public class R<T> implements Serializable {
         return this;
     }
 
-    public R<T> path(String path) {
-        this.path = path;
-        return this;
-    }
-
-    public R<T> devMessage(String devMessage) {
-        this.devMessage = devMessage;
-        return this;
-    }
-
     @JsonIgnore
     public boolean isSuccess() {
-        return this.code == BizCode.SUCCESS.httpCode()
-            && BizCode.SUCCESS.code().equals(this.bizCode);
+        return this.code != null && this.code.equals(BizCode.SUCCESS.getCode());
     }
 }

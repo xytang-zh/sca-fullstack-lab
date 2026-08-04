@@ -25,12 +25,12 @@ import java.util.UUID;
 /**
  * 网关全局异常处理（响应式 WebFlux）。
  *
- * <p>统一返回双层响应码 R&lt;T&gt; JSON 结构，按 HTTP 状态码映射 BizCode：
+ * <p>统一返回单一业务码 R&lt;T&gt; JSON 结构，按 HTTP 状态码映射 BizCode：
  * 429→RATE_LIMIT / 503→GW_DOWNSTREAM_UNAVAILABLE / 504→GW_DOWNSTREAM_TIMEOUT
  * / 404→GW_ROUTE_NOT_FOUND / 401→GW_TOKEN_INVALID / 其他→SYS_ERROR。
  *
  * <p>网关响应式层没有 RResponseAdvice（RestControllerAdvice 仅 Servlet MVC），
- * 故手动填 traceId + path + timestamp 到 R&lt;T&gt;。
+ * 故手动填 traceId + timestamp 到 R&lt;T&gt;。
  */
 @Configuration
 @Order(-1)
@@ -54,22 +54,19 @@ public class GatewayExceptionHandler implements ErrorWebExceptionHandler {
         String traceId = resolveTraceId(exchange);
         resp.getHeaders().add(HeaderConstants.X_TRACE_ID, traceId);
         R<Void> r = R.<Void>fail(bizCode)
-                .path(path)
                 .traceId(traceId);
         String body;
         try {
             body = MAPPER.writeValueAsString(r);
         } catch (JsonProcessingException e) {
-            body = "{\"code\":" + bizCode.httpCode()
-                    + ",\"bizCode\":\"" + bizCode.code() + "\""
-                    + ",\"message\":\"" + bizCode.message() + "\""
+            body = "{\"code\":" + bizCode.getCode()
+                    + ",\"message\":\"" + bizCode.getUserMessage() + "\""
                     + ",\"data\":null"
-                    + ",\"traceId\":\"" + traceId + "\""
-                    + ",\"path\":\"" + path + "\"}";
+                    + ",\"traceId\":\"" + traceId + "\"}";
         }
         DataBuffer buf = resp.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));
-        log.warn("[GatewayException] path={} traceId={} status={} bizCode={} err={}",
-                path, traceId, status, bizCode.code(), ex.getMessage());
+        log.warn("[GatewayException] path={} traceId={} status={} code={} err={}",
+                path, traceId, status, bizCode.getCode(), ex.getMessage());
         return resp.writeWith(Mono.just(buf));
     }
 

@@ -2,7 +2,7 @@ package com.xytang.system.controller;
 
 import cn.dev33.satoken.annotation.SaCheckLogin;
 import cn.dev33.satoken.stp.StpUtil;
-import com.xytang.common.core.response.PageVO;
+import com.xytang.common.core.response.PageResult;
 import com.xytang.common.core.response.R;
 import com.xytang.system.service.FollowService;
 import com.xytang.system.vo.UserVO;
@@ -40,19 +40,19 @@ public class FollowController {
     @Operation(summary = "粉丝列表（关注该用户的人）")
     @GetMapping("/{id}/followers")
     @SaCheckLogin
-    public R<PageVO<UserVO>> followers(@PathVariable Long id,
-                                       @RequestParam(defaultValue = "1") @Min(1) Integer pageNum,
-                                       @RequestParam(defaultValue = "10") @Min(1) Integer pageSize) {
-        return R.ok(followService.pageFollowers(id, pageNum, pageSize));
+    public R<PageResult<UserVO>> followers(@PathVariable Long id,
+                                       @RequestParam(defaultValue = "1") @Min(1) Integer page,
+                                       @RequestParam(defaultValue = "10") @Min(1) Integer size) {
+        return R.ok(followService.pageFollowers(id, page, size));
     }
 
     @Operation(summary = "关注列表（该用户关注的人）")
     @GetMapping("/{id}/following")
     @SaCheckLogin
-    public R<PageVO<UserVO>> following(@PathVariable Long id,
-                                       @RequestParam(defaultValue = "1") @Min(1) Integer pageNum,
-                                       @RequestParam(defaultValue = "10") @Min(1) Integer pageSize) {
-        return R.ok(followService.pageFollowing(id, pageNum, pageSize));
+    public R<PageResult<UserVO>> following(@PathVariable Long id,
+                                       @RequestParam(defaultValue = "1") @Min(1) Integer page,
+                                       @RequestParam(defaultValue = "10") @Min(1) Integer size) {
+        return R.ok(followService.pageFollowing(id, page, size));
     }
 
     @Operation(summary = "我的完整资料（需登录，含 bio/关注数/粉丝数）")

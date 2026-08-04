@@ -21,7 +21,7 @@ const form = reactive({
 
 onMounted(async () => {
   const columnPage = await articleApi.myColumns(1, 100)
-  columns.value = columnPage.list
+  columns.value = columnPage.records
   if (editId) {
     const article = await articleApi.getArticleForEdit(editId)
     form.title = article.title

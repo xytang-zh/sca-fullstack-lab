@@ -1,6 +1,6 @@
 name: sca-infra
 
-# MVP 第一批次预览用基础设施：MySQL 8.4 + Redis 7.4 + Nacos 2.4 standalone + RabbitMQ 3.13
+# MVP 第一批次预览用基础设施：MySQL 8.4 + Redis 7.4 + Nacos 2.4 standalone
 # 端口/账号与后端 application.yml 默认值对齐（spring-cloud-alibaba/CLAUDE.md §10 + §3）
 
 services:
@@ -43,34 +43,32 @@ services:
       timeout: 3s
       retries: 10
 
-  rabbitmq:
-    image: rabbitmq:3.13-management
-    container_name: sca-rabbitmq
-    restart: unless-stopped
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-      RABBITMQ_DEFAULT_VHOST: "/"
-    ports:
-      - "127.0.0.1:5672:5672"
-      - "127.0.0.1:15672:15672"
-    volumes:
-      - rabbitmq-data:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-
   nacos:
     image: nacos/nacos-server:v2.4.3
     container_name: sca-nacos
     restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
     environment:
       MODE: standalone
       PREFER_HOST_MODE: hostname
-      NACOS_AUTH_ENABLE: "false"
+      # === 认证（改造前 NACOS_AUTH_ENABLE=false，任意可读写）===
+      NACOS_AUTH_ENABLE: "true"
+      NACOS_AUTH_TOKEN_SECRET_KEY: ${NACOS_AUTH_TOKEN_SECRET_KEY:?必须在 .env 设置}
+      # 兼容：Nacos 2.4.3 镜像默认 application.properties 读取旧变量名 NACOS_AUTH_TOKEN
+      NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN_SECRET_KEY:?必须在 .env 设置}
+      NACOS_AUTH_IDENTITY_KEY: serverIdentity
+      NACOS_AUTH_IDENTITY_VALUE: ${NACOS_AUTH_IDENTITY_VALUE:?必须在 .env 设置}
+      NACOS_AUTH_ENABLE_USER_AGENT_AUTH_WHITE: "false"
+      # === MySQL 持久化（改造前 Derby 内嵌，容器重建即丢配置）===
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: mysql
+      MYSQL_SERVICE_PORT: 3306
+      MYSQL_SERVICE_DB_NAME: nacos
+      MYSQL_SERVICE_USER: nacos
+      MYSQL_SERVICE_PASSWORD: ${NACOS_DB_PASSWORD:?必须在 .env 设置}
+      MYSQL_SERVICE_DB_PARAM: characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
       JVM_XMS: 512m
       JVM_Xmx: 512m
       JVM_XMN: 128m
@@ -91,5 +89,4 @@ services:
 volumes:
   mysql-data:
   redis-data:
-  rabbitmq-data:
   nacos-logs:

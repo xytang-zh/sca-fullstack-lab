@@ -17,7 +17,6 @@
         <module>spring-cloud-common</module>
         <module>spring-cloud-gateway</module>
         <module>spring-cloud-services</module>
-        <module>spring-cloud-starters</module>
     </modules>
 
     <properties>
@@ -32,6 +31,7 @@
         <spring-boot.version>3.5.0</spring-boot.version>
         <spring-cloud.version>2025.0.0</spring-cloud.version>
         <spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>
+        <dubbo.version>3.3.6</dubbo.version>
 
         <!-- ===== 认证与权限 ===== -->
         <sa-token.version>1.44.0</sa-token.version>
@@ -92,6 +92,14 @@
                 <groupId>com.alibaba.cloud</groupId>
                 <artifactId>spring-cloud-alibaba-dependencies</artifactId>
                 <version>${spring-cloud-alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- Apache Dubbo BOM：SCA BOM 不管理 Dubbo 版本，需自行导入 -->
+            <dependency>
+                <groupId>org.apache.dubbo</groupId>
+                <artifactId>dubbo-bom</artifactId>
+                <version>${dubbo.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -235,32 +243,7 @@
             </dependency>
             <dependency>
                 <groupId>com.xytang</groupId>
-                <artifactId>spring-cloud-common-redisson</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xytang</groupId>
                 <artifactId>spring-cloud-common-mybatis</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xytang</groupId>
-                <artifactId>spring-cloud-common-datasource</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xytang</groupId>
-                <artifactId>spring-cloud-common-mq</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xytang</groupId>
-                <artifactId>spring-cloud-common-mongo</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xytang</groupId>
-                <artifactId>spring-cloud-common-es</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -270,27 +253,7 @@
             </dependency>
             <dependency>
                 <groupId>com.xytang</groupId>
-                <artifactId>spring-cloud-common-security</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xytang</groupId>
-                <artifactId>spring-cloud-common-log</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xytang</groupId>
-                <artifactId>spring-cloud-common-swagger</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xytang</groupId>
-                <artifactId>spring-cloud-common-cache</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xytang</groupId>
-                <artifactId>spring-cloud-common-netty</artifactId>
+                <artifactId>spring-cloud-common-dubbo</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

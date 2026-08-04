@@ -9,8 +9,8 @@ const { message } = createDiscreteApi(['message'])
 const columns = ref<ColumnVO[]>([])
 const total = ref(0)
 const loading = ref(false)
-const pageNum = ref(1)
-const pageSize = 10
+const page = ref(1)
+const size = 10
 const showModal = ref(false)
 const editing = ref<ColumnVO | null>(null)
 const submitting = ref(false)
@@ -20,8 +20,8 @@ const form = reactive({ name: '', description: '', coverImage: '' })
 async function load() {
   loading.value = true
   try {
-    const data = await articleApi.myColumns(pageNum.value, pageSize)
-    columns.value = data.list
+    const data = await articleApi.myColumns(page.value, size)
+    columns.value = data.records
     total.value = data.total
   } finally {
     loading.value = false

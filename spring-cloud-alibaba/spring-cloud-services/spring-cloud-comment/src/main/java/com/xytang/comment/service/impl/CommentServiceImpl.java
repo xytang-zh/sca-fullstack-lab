@@ -16,8 +16,10 @@ import com.xytang.comment.vo.CommentMyVO;
 import com.xytang.comment.vo.CommentVO;
 import com.xytang.common.core.exception.BizException;
 import com.xytang.common.core.response.BizCode;
-import com.xytang.common.core.response.PageVO;
+import com.xytang.common.core.response.PageResult;
+import com.xytang.common.dubbo.ArticleRpcService;
 import lombok.RequiredArgsConstructor;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,10 +45,17 @@ public class CommentServiceImpl implements CommentService {
     private final CommentMapper commentMapper;
     private final CommentLikeMapper likeMapper;
 
+    /**
+     * 文章存在性校验（Dubbo 远程调用 article 服务）。
+     * 注：Dubbo 3.3.6 的 @DubboReference 不支持构造器参数注入，采用字段注入（Dubbo 官方惯例）。
+     */
+    @DubboReference
+    private ArticleRpcService articleRpcService;
+
     @Override
-    public PageVO<CommentVO> pageByArticle(Long articleId, int pageNum, int pageSize, Long currentUserId) {
-        Page<Comment> page = new Page<>(pageNum, pageSize);
-        IPage<Comment> result = commentMapper.selectPage(page, new LambdaQueryWrapper<Comment>()
+    public PageResult<CommentVO> pageByArticle(Long articleId, int page, int size, Long currentUserId) {
+        Page<Comment> commentPage = new Page<>(page, size);
+        IPage<Comment> result = commentMapper.selectPage(commentPage, new LambdaQueryWrapper<Comment>()
                 .eq(Comment::getArticleId, articleId)
                 .eq(Comment::getStatus, STATUS_APPROVED)
                 .orderByAsc(Comment::getCreateTime));
@@ -54,11 +63,12 @@ public class CommentServiceImpl implements CommentService {
         List<CommentVO> list = result.getRecords().stream()
                 .map(c -> toVO(c, likedIds))
                 .collect(Collectors.toList());
-        return PageVO.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
+        return PageResult.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
     }
 
     @Override
     public CommentVO create(CommentCreateDTO dto, Long userId, String ip, String ua) {
+        requireArticleExists(dto.getArticleId());
         Comment comment = new Comment();
         comment.setArticleId(dto.getArticleId());
         comment.setArticleTitle(dto.getArticleTitle());
@@ -80,6 +90,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public CommentVO reply(Long commentId, CommentReplyDTO dto, Long userId, String ip, String ua) {
         Comment parent = requireComment(commentId);
+        requireArticleExists(dto.getArticleId());
         Comment comment = new Comment();
         comment.setArticleId(dto.getArticleId());
         comment.setArticleTitle(dto.getArticleTitle());
@@ -128,27 +139,27 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-    public PageVO<CommentMyVO> pageMyComments(Long userId, int pageNum, int pageSize) {
-        Page<Comment> page = new Page<>(pageNum, pageSize);
-        IPage<Comment> result = commentMapper.selectPage(page, new LambdaQueryWrapper<Comment>()
+    public PageResult<CommentMyVO> pageMyComments(Long userId, int page, int size) {
+        Page<Comment> commentPage = new Page<>(page, size);
+        IPage<Comment> result = commentMapper.selectPage(commentPage, new LambdaQueryWrapper<Comment>()
                 .eq(Comment::getUserId, userId)
                 .orderByDesc(Comment::getCreateTime));
         List<CommentMyVO> list = result.getRecords().stream()
                 .map(this::toMyVO)
                 .collect(Collectors.toList());
-        return PageVO.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
+        return PageResult.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
     }
 
     @Override
-    public PageVO<CommentVO> pagePending(int pageNum, int pageSize) {
-        Page<Comment> page = new Page<>(pageNum, pageSize);
-        IPage<Comment> result = commentMapper.selectPage(page, new LambdaQueryWrapper<Comment>()
+    public PageResult<CommentVO> pagePending(int page, int size) {
+        Page<Comment> commentPage = new Page<>(page, size);
+        IPage<Comment> result = commentMapper.selectPage(commentPage, new LambdaQueryWrapper<Comment>()
                 .eq(Comment::getStatus, STATUS_PENDING)
                 .orderByAsc(Comment::getCreateTime));
         List<CommentVO> list = result.getRecords().stream()
                 .map(c -> toVO(c, Set.of()))
                 .collect(Collectors.toList());
-        return PageVO.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
+        return PageResult.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
     }
 
     @Override
@@ -160,6 +171,12 @@ public class CommentServiceImpl implements CommentService {
         }
         comment.setStatus(dto.getStatus());
         commentMapper.updateById(comment);
+    }
+
+    private void requireArticleExists(Long articleId) {
+        if (!articleRpcService.existsById(articleId)) {
+            throw new BizException(BizCode.CONTENT_NOT_FOUND, "文章不存在");
+        }
     }
 
     private Comment requireComment(Long commentId) {

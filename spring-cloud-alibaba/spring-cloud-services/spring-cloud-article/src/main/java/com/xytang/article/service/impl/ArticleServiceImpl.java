@@ -21,8 +21,11 @@ import com.xytang.article.vo.ArticleVO;
 import com.xytang.common.core.exception.BizException;
 import com.xytang.common.core.exception.PermissionException;
 import com.xytang.common.core.response.BizCode;
-import com.xytang.common.core.response.PageVO;
+import com.xytang.common.core.response.PageResult;
+import com.xytang.common.dubbo.CommentRpcService;
 import lombok.RequiredArgsConstructor;
+import org.apache.dubbo.config.annotation.DubboReference;
+import org.apache.dubbo.rpc.RpcException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,23 +53,30 @@ public class ArticleServiceImpl implements ArticleService {
     private final ArticleMapper articleMapper;
     private final LikeRecordMapper likeRecordMapper;
     private final FavoriteMapper favoriteMapper;
-    private final Cache<String, PageVO<ArticleVO>> articleListCache;
+    private final Cache<String, PageResult<ArticleVO>> articleListCache;
     private final HotWeightProperties hotWeight;
 
+    /**
+     * 评论数统计（Dubbo 远程调用 comment 服务）。
+     * 注：Dubbo 3.3.6 的 @DubboReference 不支持构造器参数注入，采用字段注入（Dubbo 官方惯例）。
+     */
+    @DubboReference
+    private CommentRpcService commentRpcService;
+
     @Override
-    public PageVO<ArticleVO> page(ArticlePageQuery query) {
-        String cacheKey = query.getSort() + ":" + query.getPageNum() + ":" + query.getPageSize()
+    public PageResult<ArticleVO> page(ArticlePageQuery query) {
+        String cacheKey = query.getSort() + ":" + query.getPage() + ":" + query.getSize()
                 + ":" + (query.getAuthorIds() == null ? "" : query.getAuthorIds());
-        PageVO<ArticleVO> cached = articleListCache.getIfPresent(cacheKey);
+        PageResult<ArticleVO> cached = articleListCache.getIfPresent(cacheKey);
         if (cached != null) {
             return cached;
         }
-        Page<ArticleVO> page = new Page<>(query.getPageNum(), query.getPageSize());
+        Page<ArticleVO> page = new Page<>(query.getPage(), query.getSize());
         IPage<ArticleVO> result = articleMapper.selectPublishedPage(page, query.getSort(),
                 hotWeight.getViews(), hotWeight.getLikes(),
                 hotWeight.getFavorites(), hotWeight.getComments(),
                 parseAuthorIds(query.getAuthorIds()));
-        PageVO<ArticleVO> vo = PageVO.of(result.getRecords(), result.getTotal(),
+        PageResult<ArticleVO> vo = PageResult.of(result.getRecords(), result.getTotal(),
                 Math.toIntExact(result.getCurrent()), Math.toIntExact(result.getSize()));
         articleListCache.put(cacheKey, vo);
         return vo;
@@ -92,9 +102,17 @@ public class ArticleServiceImpl implements ArticleService {
         vo.setViews(article.getViews() + 1);
         vo.setLikes(article.getLikes());
         vo.setFavorites(article.getFavorites());
-        vo.setComments(article.getComments());
+        vo.setComments(resolveCommentCount(id));
         vo.setPublishTime(article.getPublishTime());
         return vo;
+    }
+
+    private long resolveCommentCount(Long articleId) {
+        try {
+            return commentRpcService.countByArticleId(articleId);
+        } catch (RpcException e) {
+            return 0L;
+        }
     }
 
     @Override
@@ -149,29 +167,29 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     @Override
-    public PageVO<ArticleVO> pageMyArticles(Long userId, int pageNum, int pageSize) {
-        Page<Article> page = new Page<>(pageNum, pageSize);
-        IPage<Article> result = articleMapper.selectPage(page, new LambdaQueryWrapper<Article>()
+    public PageResult<ArticleVO> pageMyArticles(Long userId, int page, int size) {
+        Page<Article> articlePage = new Page<>(page, size);
+        IPage<Article> result = articleMapper.selectPage(articlePage, new LambdaQueryWrapper<Article>()
                 .eq(Article::getAuthorId, userId)
                 .eq(Article::getStatus, STATUS_PUBLISHED)
                 .orderByDesc(Article::getPublishTime));
-        return toPageVO(result);
+        return toPageResult(result);
     }
 
     @Override
-    public PageVO<ArticleVO> pageMyDrafts(Long userId, int pageNum, int pageSize) {
-        Page<Article> page = new Page<>(pageNum, pageSize);
-        IPage<Article> result = articleMapper.selectPage(page, new LambdaQueryWrapper<Article>()
+    public PageResult<ArticleVO> pageMyDrafts(Long userId, int page, int size) {
+        Page<Article> articlePage = new Page<>(page, size);
+        IPage<Article> result = articleMapper.selectPage(articlePage, new LambdaQueryWrapper<Article>()
                 .eq(Article::getAuthorId, userId)
                 .eq(Article::getStatus, STATUS_DRAFT)
                 .orderByDesc(Article::getUpdateTime));
-        return toPageVO(result);
+        return toPageResult(result);
     }
 
     @Override
-    public PageVO<ArticleVO> pageMyLikes(Long userId, int pageNum, int pageSize) {
-        Page<LikeRecord> page = new Page<>(pageNum, pageSize);
-        IPage<LikeRecord> result = likeRecordMapper.selectPage(page, new LambdaQueryWrapper<LikeRecord>()
+    public PageResult<ArticleVO> pageMyLikes(Long userId, int page, int size) {
+        Page<LikeRecord> likePage = new Page<>(page, size);
+        IPage<LikeRecord> result = likeRecordMapper.selectPage(likePage, new LambdaQueryWrapper<LikeRecord>()
                 .eq(LikeRecord::getUserId, userId)
                 .orderByDesc(LikeRecord::getCreateTime));
         List<Long> articleIds = result.getRecords().stream()
@@ -179,13 +197,13 @@ public class ArticleServiceImpl implements ArticleService {
                 .distinct()
                 .collect(Collectors.toList());
         List<ArticleVO> list = queryByIds(articleIds);
-        return PageVO.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
+        return PageResult.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
     }
 
     @Override
-    public PageVO<ArticleVO> pageMyFavorites(Long userId, int pageNum, int pageSize) {
-        Page<Favorite> page = new Page<>(pageNum, pageSize);
-        IPage<Favorite> result = favoriteMapper.selectPage(page, new LambdaQueryWrapper<Favorite>()
+    public PageResult<ArticleVO> pageMyFavorites(Long userId, int page, int size) {
+        Page<Favorite> favoritePage = new Page<>(page, size);
+        IPage<Favorite> result = favoriteMapper.selectPage(favoritePage, new LambdaQueryWrapper<Favorite>()
                 .eq(Favorite::getUserId, userId)
                 .orderByDesc(Favorite::getCreateTime));
         List<Long> articleIds = result.getRecords().stream()
@@ -193,7 +211,7 @@ public class ArticleServiceImpl implements ArticleService {
                 .distinct()
                 .collect(Collectors.toList());
         List<ArticleVO> list = queryByIds(articleIds);
-        return PageVO.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
+        return PageResult.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
     }
 
     @Override
@@ -229,12 +247,12 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     @Override
-    public PageVO<ArticleVO> pagePending(int pageNum, int pageSize) {
-        Page<Article> page = new Page<>(pageNum, pageSize);
-        IPage<Article> result = articleMapper.selectPage(page, new LambdaQueryWrapper<Article>()
+    public PageResult<ArticleVO> pagePending(int page, int size) {
+        Page<Article> articlePage = new Page<>(page, size);
+        IPage<Article> result = articleMapper.selectPage(articlePage, new LambdaQueryWrapper<Article>()
                 .eq(Article::getStatus, 2)
                 .orderByAsc(Article::getCreateTime));
-        return toPageVO(result);
+        return toPageResult(result);
     }
 
     @Override
@@ -346,11 +364,11 @@ public class ArticleServiceImpl implements ArticleService {
                 .collect(Collectors.toList());
     }
 
-    private PageVO<ArticleVO> toPageVO(IPage<Article> result) {
+    private PageResult<ArticleVO> toPageResult(IPage<Article> result) {
         List<ArticleVO> list = result.getRecords().stream()
                 .map(this::toVO)
                 .collect(Collectors.toList());
-        return PageVO.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
+        return PageResult.of(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
     }
 
     private ArticleVO toVO(Article article) {

@@ -8,7 +8,6 @@
         <groupId>com.xytang</groupId>
         <artifactId>spring-cloud-services</artifactId>
         <version>1.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>spring-cloud-system</artifactId>
@@ -71,31 +70,11 @@
         </dependency>
         <dependency>
             <groupId>com.xytang</groupId>
-            <artifactId>spring-cloud-common-redisson</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.xytang</groupId>
             <artifactId>spring-cloud-common-mybatis</artifactId>
         </dependency>
         <dependency>
             <groupId>com.xytang</groupId>
             <artifactId>spring-cloud-common-satoken</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.xytang</groupId>
-            <artifactId>spring-cloud-common-mq</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.xytang</groupId>
-            <artifactId>spring-cloud-common-log</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.xytang</groupId>
-            <artifactId>spring-cloud-common-swagger</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.xytang</groupId>
-            <artifactId>spring-cloud-common-cache</artifactId>
         </dependency>
 
         <dependency>

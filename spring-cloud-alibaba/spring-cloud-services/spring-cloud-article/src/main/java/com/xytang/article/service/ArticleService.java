@@ -5,7 +5,7 @@ import com.xytang.article.dto.ArticlePageQuery;
 import com.xytang.article.vo.ArticleDetailVO;
 import com.xytang.article.vo.ArticleStatsVO;
 import com.xytang.article.vo.ArticleVO;
-import com.xytang.common.core.response.PageVO;
+import com.xytang.common.core.response.PageResult;
 
 /**
  * 博客文章服务：游客分页浏览（时间/热度）、详情、发布、点赞/收藏（幂等）。
@@ -18,7 +18,7 @@ public interface ArticleService {
      * @param query 分页与排序参数
      * @return 分页结果
      */
-    PageVO<ArticleVO> page(ArticlePageQuery query);
+    PageResult<ArticleVO> page(ArticlePageQuery query);
 
     /**
      * 文章详情（游客可访问），阅读量 +1。
@@ -50,42 +50,42 @@ public interface ArticleService {
     /**
      * 我的已发布文章（登录用户，按用户隔离）。
      *
-     * @param userId   当前登录用户
-     * @param pageNum  页码
-     * @param pageSize 每页条数
+     * @param userId 当前登录用户
+     * @param page   页码
+     * @param size   每页条数
      * @return 分页结果
      */
-    PageVO<ArticleVO> pageMyArticles(Long userId, int pageNum, int pageSize);
+    PageResult<ArticleVO> pageMyArticles(Long userId, int page, int size);
 
     /**
      * 我的草稿（登录用户，按用户隔离）。
      *
-     * @param userId   当前登录用户
-     * @param pageNum  页码
-     * @param pageSize 每页条数
+     * @param userId 当前登录用户
+     * @param page   页码
+     * @param size   每页条数
      * @return 分页结果
      */
-    PageVO<ArticleVO> pageMyDrafts(Long userId, int pageNum, int pageSize);
+    PageResult<ArticleVO> pageMyDrafts(Long userId, int page, int size);
 
     /**
      * 我点赞的文章（登录用户，按用户隔离）。
      *
-     * @param userId   当前登录用户
-     * @param pageNum  页码
-     * @param pageSize 每页条数
+     * @param userId 当前登录用户
+     * @param page   页码
+     * @param size   每页条数
      * @return 分页结果
      */
-    PageVO<ArticleVO> pageMyLikes(Long userId, int pageNum, int pageSize);
+    PageResult<ArticleVO> pageMyLikes(Long userId, int page, int size);
 
     /**
      * 我收藏的文章（登录用户，按用户隔离）。
      *
-     * @param userId   当前登录用户
-     * @param pageNum  页码
-     * @param pageSize 每页条数
+     * @param userId 当前登录用户
+     * @param page   页码
+     * @param size   每页条数
      * @return 分页结果
      */
-    PageVO<ArticleVO> pageMyFavorites(Long userId, int pageNum, int pageSize);
+    PageResult<ArticleVO> pageMyFavorites(Long userId, int page, int size);
 
     /**
      * 删除文章（仅作者，软删除）。
@@ -114,11 +114,11 @@ public interface ArticleService {
     /**
      * 待审核文章分页（管理员）。
      *
-     * @param pageNum  页码
-     * @param pageSize 每页条数
+     * @param page 页码
+     * @param size 每页条数
      * @return 分页结果
      */
-    PageVO<ArticleVO> pagePending(int pageNum, int pageSize);
+    PageResult<ArticleVO> pagePending(int page, int size);
 
     /**
      * 审核文章（管理员，3=通过 4=驳回）。

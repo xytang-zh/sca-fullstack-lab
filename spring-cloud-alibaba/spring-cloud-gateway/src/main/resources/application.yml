@@ -1,15 +1,6 @@
 server:
   port: 8080
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,prometheus,metrics,gateway
-  metrics:
-    tags:
-      application: ${spring.application.name}
-
 spring:
   application:
     name: spring-cloud-gateway
@@ -20,14 +11,21 @@ spring:
     import:
       - optional:nacos:spring-cloud-shared.yaml
       - optional:nacos:${spring.application.name}.yaml
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yaml
   cloud:
     nacos:
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
       discovery:
         server-addr: ${NACOS_ADDR:127.0.0.1:8848}
-        namespace: ${NACOS_NAMESPACE:public}
+        namespace: ${NACOS_NAMESPACE:sca-dev}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
       config:
         server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:sca-dev}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
         file-extension: yaml
+        refresh-enabled: true
     gateway:
       server:
         webflux:
@@ -70,10 +68,3 @@ spring:
                 - name: Path
                 - StripPrefix=2
                 - name: Log
-  data:
-    redis:
-      host: ${REDIS_HOST:127.0.0.1}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
-      database: ${REDIS_DATABASE:0}
-      timeout: 5s

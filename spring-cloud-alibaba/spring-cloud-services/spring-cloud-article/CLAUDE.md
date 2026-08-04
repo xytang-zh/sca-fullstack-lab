@@ -72,7 +72,7 @@ DRAFT ──────▶ AUDIT ────────▶ PUBLISHED（通过
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/api/articles` | 文章分页（?pageNum=&pageSize=&category=&tag=&sort=） |
+| GET | `/api/articles` | 文章分页（?page=&size=&category=&tag=&sort=） |
 | GET | `/api/articles/{id}` | 文章详情（Markdown 原文 + HTML） |
 | POST | `/api/articles` | 创建文章 |
 | PUT | `/api/articles/{id}` | 更新文章（全量） |

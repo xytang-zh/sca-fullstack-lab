@@ -15,7 +15,7 @@ onMounted(async () => {
     articleApi.myArticles(1, 5),
     articleApi.myColumns(1, 10)
   ])
-  articles.value = articlePage.list
+  articles.value = articlePage.records
   myColumns.value = { total: columnPage.total }
 })
 

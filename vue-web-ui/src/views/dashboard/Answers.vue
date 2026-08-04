@@ -8,8 +8,8 @@ const router = useRouter()
 const comments = ref<CommentMyVO[]>([])
 const total = ref(0)
 const loading = ref(false)
-const pageNum = ref(1)
-const pageSize = 10
+const page = ref(1)
+const size = 10
 
 const statusText: Record<number, { label: string; type: 'default' | 'success' | 'warning' }> = {
   1: { label: '待审核', type: 'warning' },
@@ -20,8 +20,8 @@ const statusText: Record<number, { label: string; type: 'default' | 'success' | 
 async function load() {
   loading.value = true
   try {
-    const data = await commentApi.myComments(pageNum.value, pageSize)
-    comments.value = data.list
+    const data = await commentApi.myComments(page.value, size)
+    comments.value = data.records
     total.value = data.total
   } finally {
     loading.value = false
@@ -60,8 +60,8 @@ onMounted(load)
       </div>
       <n-empty v-else description="还没有发表过评论" class="py-16" />
     </n-spin>
-    <div v-if="total > pageSize" class="mt-4 flex justify-center">
-      <n-pagination v-model:page="pageNum" :page-size="pageSize" :item-count="total" @update:page="load" />
+    <div v-if="total > size" class="mt-4 flex justify-center">
+      <n-pagination v-model:page="page" :page-size="size" :item-count="total" @update:page="load" />
     </div>
   </div>
 </template>
