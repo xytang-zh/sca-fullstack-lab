@@ -29,23 +29,23 @@ CREATE TABLE IF NOT EXISTS t_article (
 CREATE INDEX idx_article_status_publish ON t_article (status, publish_time);
 CREATE INDEX idx_article_author ON t_article (author_id);
 
--- ===== 2. t_like_record 点赞记录表 =====
+-- ===== 2. t_like_record 点赞记录表（article_id + user_id 唯一，保证点赞幂等）=====
 CREATE TABLE IF NOT EXISTS t_like_record (
-    id          BIGINT      NOT NULL,
-    article_id  BIGINT      NOT NULL,
-    user_id     BIGINT      NOT NULL,
-    create_time DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id          BIGINT      NOT NULL                          COMMENT '主键 ID（雪花 ID）',
+    article_id  BIGINT      NOT NULL                          COMMENT '被点赞的文章 ID（t_article.id）',
+    user_id     BIGINT      NOT NULL                          COMMENT '点赞用户 ID（sys_user.id）',
+    create_time DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '点赞时间',
     PRIMARY KEY (id),
     UNIQUE KEY uk_like_article_user (article_id, user_id)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE INDEX idx_like_record_user ON t_like_record (user_id);
 
--- ===== 3. t_favorite 收藏记录表 =====
+-- ===== 3. t_favorite 收藏记录表（article_id + user_id 唯一，保证收藏幂等）=====
 CREATE TABLE IF NOT EXISTS t_favorite (
-    id          BIGINT      NOT NULL,
-    article_id  BIGINT      NOT NULL,
-    user_id     BIGINT      NOT NULL,
-    create_time DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id          BIGINT      NOT NULL                          COMMENT '主键 ID（雪花 ID）',
+    article_id  BIGINT      NOT NULL                          COMMENT '被收藏的文章 ID（t_article.id）',
+    user_id     BIGINT      NOT NULL                          COMMENT '收藏用户 ID（sys_user.id）',
+    create_time DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '收藏时间',
     PRIMARY KEY (id),
     UNIQUE KEY uk_favorite_article_user (article_id, user_id)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

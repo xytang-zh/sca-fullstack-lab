@@ -4,23 +4,24 @@ name: sca-infra
 # 端口/账号与后端 application.yml 默认值对齐（spring-cloud-alibaba/CLAUDE.md §10 + §3）
 
 services:
+  # MySQL 8.4：业务主库（认证/系统/文章/评论库），仅宿主回环地址暴露，防止外部直连
   mysql:
     image: mysql:8.4.3
     container_name: sca-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: sca_system
-      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: root          # root 密码（仅开发环境，生产必须改）
+      MYSQL_DATABASE: sca_system         # 初始化时创建的默认库
+      TZ: Asia/Shanghai                  # 时区：与后端 LocalDateTime 保持一致
     command:
-      - --character-set-server=utf8mb4
+      - --character-set-server=utf8mb4   # 全 UTF8 编码，避免中文乱码
       - --collation-server=utf8mb4_unicode_ci
-      - --lower_case_table_names=1
+      - --lower_case_table_names=1       # 表名大小写不敏感（Windows/macOS 开发机兼容）
     ports:
-      - "127.0.0.1:3306:3306"
+      - "127.0.0.1:3306:3306"           # 仅本机可访问，端口 3306
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./init/sql:/docker-entrypoint-initdb.d:ro
+      - ./init/sql:/docker-entrypoint-initdb.d:ro   # 首次启动自动执行初始化 SQL
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
       interval: 5s
@@ -28,13 +29,14 @@ services:
       retries: 30
       start_period: 20s
 
+  # Redis 7.4：分布式缓存 + Sa-Token 会话存储，AOF 持久化
   redis:
     image: redis:7.4.2
     container_name: sca-redis
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes", "--requirepass", "rootpass"]
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:6379:6379"           # 仅本机可访问，端口 6379
     volumes:
       - redis-data:/data
     healthcheck:
@@ -43,6 +45,7 @@ services:
       timeout: 3s
       retries: 10
 
+  # Nacos 2.4：注册配置中心，standalone 单机 + MySQL 持久化（替代默认 Derby）
   nacos:
     image: nacos/nacos-server:v2.4.3
     container_name: sca-nacos
@@ -56,7 +59,8 @@ services:
       # === 认证（改造前 NACOS_AUTH_ENABLE=false，任意可读写）===
       NACOS_AUTH_ENABLE: "true"
       NACOS_AUTH_TOKEN_SECRET_KEY: ${NACOS_AUTH_TOKEN_SECRET_KEY:?必须在 .env 设置}
-      # 兼容：Nacos 2.4.3 镜像默认 application.properties 读取旧变量名 NACOS_AUTH_TOKEN
+      # 兼容：Nacos 2.4.3 镜像默认 application.properties 读取旧变量名 NACOS_AUTH_TOKEN 作为 JWT secret key
+      # 注意：镜像中 nacos.core.auth.plugin.nacos.token.secret.key=${NACOS_AUTH_TOKEN}，故 NACOS_AUTH_TOKEN 必须为 Base64 ≥32 字节密钥
       NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN_SECRET_KEY:?必须在 .env 设置}
       NACOS_AUTH_IDENTITY_KEY: serverIdentity
       NACOS_AUTH_IDENTITY_VALUE: ${NACOS_AUTH_IDENTITY_VALUE:?必须在 .env 设置}
