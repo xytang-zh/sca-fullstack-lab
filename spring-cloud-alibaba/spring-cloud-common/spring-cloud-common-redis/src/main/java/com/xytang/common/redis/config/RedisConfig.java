@@ -21,6 +21,12 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 @Configuration
 public class RedisConfig {
 
+    /**
+     * 注册通用 RedisTemplate：key 用 String 序列化，value 用带类型信息的 JSON 序列化。
+     *
+     * @param factory Redis 连接工厂（Spring Boot 自动装配）
+     * @return 通用操作模板
+     */
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
@@ -37,11 +43,18 @@ public class RedisConfig {
         return template;
     }
 
+    /**
+     * 注册 StringRedisTemplate：key/value 均为字符串，适合计数器、简单 KV。
+     *
+     * @param factory Redis 连接工厂（Spring Boot 自动装配）
+     * @return 字符串操作模板
+     */
     @Bean
     public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory factory) {
         return new StringRedisTemplate(factory);
     }
 
+    // 构建 JSON 序列化器：注册 Java 8 时间模块 + 启用默认类型信息，保证 LocalDateTime 与多态可反序列化
     private Jackson2JsonRedisSerializer<Object> jacksonSerializer() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());

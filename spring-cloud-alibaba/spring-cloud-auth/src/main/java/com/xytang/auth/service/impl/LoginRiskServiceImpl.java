@@ -38,10 +38,12 @@ public class LoginRiskServiceImpl implements LoginRiskService {
     @Override
     public void recordFailure(String username) {
         String failKey = AuthConstants.LOGIN_FAIL_PREFIX + username;
+        // 1. 失败计数 +1；首次失败时设置 TTL，保证计数窗口期内有效
         Long count = stringRedisTemplate.opsForValue().increment(failKey);
         if (count != null && count == 1L) {
             stringRedisTemplate.expire(failKey, Duration.ofMinutes(AuthConstants.LOGIN_LOCK_MINUTES));
         }
+        // 2. 达到阈值则写入锁定标记（与计数同 TTL，锁定 15 分钟）
         if (count != null && count >= AuthConstants.LOGIN_MAX_FAIL_COUNT) {
             String lockKey = AuthConstants.LOGIN_LOCK_PREFIX + username;
             stringRedisTemplate.opsForValue().set(

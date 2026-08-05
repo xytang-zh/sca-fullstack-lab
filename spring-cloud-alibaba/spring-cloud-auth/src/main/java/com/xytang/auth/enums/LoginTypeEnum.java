@@ -14,11 +14,17 @@ package com.xytang.auth.enums;
  */
 public enum LoginTypeEnum {
 
+    /** 普通登录（账号密码） */
     LOGIN(1, "login"),
+    /** 登出 */
     LOGOUT(2, "logout"),
+    /** 踢人下线 */
     KICKOUT(3, "kickout"),
+    /** SSO 单点登录 */
     SSO(4, "sso"),
+    /** OAuth2 授权登录 */
     OAUTH2(5, "oauth2"),
+    /** 短信验证码登录 */
     SMS(6, "sms");
 
     private final int code;

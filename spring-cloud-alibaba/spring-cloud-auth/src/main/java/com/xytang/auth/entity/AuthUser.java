@@ -25,17 +25,29 @@ public class AuthUser implements Serializable {
     @TableId
     private Long id;
 
+    /** 登录账号（唯一） */
     private String username;
+    /** Argon2id 密码哈希（含盐与参数，禁止明文） */
     private String password;
+    /** 昵称 */
     private String nickname;
+    /** 邮箱 */
     private String email;
+    /** 手机号 */
     private String phone;
+    /** 头像 URL */
     private String avatar;
+    /** 部门 ID */
     private Long deptId;
+    /** 状态：1=正常 0=禁用 */
     private Integer status;
+    /** 登录失败累计次数 */
     private Integer failCount;
+    /** 锁定截止时间（登录风控用） */
     private LocalDateTime lockUntil;
+    /** 最后登录时间 */
     private LocalDateTime lastLoginTime;
+    /** 最后登录 IP */
     private String lastLoginIp;
 
     @Version

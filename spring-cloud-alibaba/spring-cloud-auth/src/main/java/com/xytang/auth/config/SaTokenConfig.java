@@ -18,6 +18,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class SaTokenConfig implements WebMvcConfigurer {
 
+    // 匿名白名单：登录/注册/验证码/SSO/OAuth2/监控/文档等无需登录即可访问
     private static final String[] WHITELIST = new String[] {
         "/login",
         "/register",
@@ -32,6 +33,11 @@ public class SaTokenConfig implements WebMvcConfigurer {
         "/error"
     };
 
+    /**
+     * 注册 Sa-Token 拦截器：除白名单外的所有路径要求已登录。
+     *
+     * @param registry 拦截器注册表
+     */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new SaInterceptor(handler -> SaRouter.match("/**")

@@ -70,6 +70,7 @@ public class GatewayExceptionHandler implements ErrorWebExceptionHandler {
         return resp.writeWith(Mono.just(buf));
     }
 
+    // 解析 traceId：优先 exchange attribute，其次请求头，最后生成新 UUID
     private String resolveTraceId(ServerWebExchange exchange) {
         Object attr = exchange.getAttribute(TraceIdGatewayFilterFactory.TRACE_ID_ATTR);
         if (attr instanceof String s && StringUtils.hasText(s)) {
@@ -80,6 +81,7 @@ public class GatewayExceptionHandler implements ErrorWebExceptionHandler {
             : UUID.randomUUID().toString().replace("-", "");
     }
 
+    // 解析 HTTP 状态码：ResponseStatusException 带状态码则透传，否则兜底 500
     private HttpStatus resolveStatus(Throwable ex) {
         if (ex instanceof org.springframework.web.server.ResponseStatusException rse) {
             return HttpStatus.resolve(rse.getStatusCode().value()) != null
@@ -89,6 +91,7 @@ public class GatewayExceptionHandler implements ErrorWebExceptionHandler {
         return HttpStatus.INTERNAL_SERVER_ERROR;
     }
 
+    // HTTP 状态码 → 业务错误码映射（429/404/401/503/504 各有专属码，其余归 SYS_ERROR）
     private BizCode resolveBizCode(HttpStatus status, Throwable ex) {
         if (status == HttpStatus.TOO_MANY_REQUESTS) {
             return BizCode.RATE_LIMIT;

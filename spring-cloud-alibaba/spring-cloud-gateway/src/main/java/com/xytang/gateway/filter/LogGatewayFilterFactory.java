@@ -58,6 +58,7 @@ public class LogGatewayFilterFactory extends AbstractGatewayFilterFactory<LogGat
         };
     }
 
+    // 解析 traceId：优先 exchange attribute（TraceId 过滤器已写入），其次请求头 X-Trace-Id，兜底 unknown
     private String resolveTraceId(org.springframework.web.server.ServerWebExchange exchange) {
         Object attr = exchange.getAttribute(TraceIdGatewayFilterFactory.TRACE_ID_ATTR);
         if (attr instanceof String s && StringUtils.hasText(s)) {

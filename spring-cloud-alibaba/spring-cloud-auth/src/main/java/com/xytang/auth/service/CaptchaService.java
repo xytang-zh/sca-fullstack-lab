@@ -7,6 +7,11 @@ import com.xytang.auth.vo.CaptchaVO;
  */
 public interface CaptchaService {
 
+    /**
+     * 生成图形验证码：图片以 Base64 返回，答案存 Redis（TTL 5 分钟）。
+     *
+     * @return 验证码 VO（captchaKey + 图片 Base64）
+     */
     CaptchaVO generate();
 
     /**

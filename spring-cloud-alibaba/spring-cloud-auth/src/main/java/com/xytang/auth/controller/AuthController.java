@@ -91,6 +91,7 @@ public class AuthController {
         return R.ok("已将用户踢下线", null);
     }
 
+    // 解析客户端真实 IP：优先 X-Forwarded-For（反向代理协商的最左 IP），其次 X-Real-IP，最后 RemoteAddr
     private String resolveIp(HttpServletRequest request) {
         String ip = request.getHeader("X-Forwarded-For");
         if (ip == null || ip.isBlank() || "unknown".equalsIgnoreCase(ip)) {

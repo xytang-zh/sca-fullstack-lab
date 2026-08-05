@@ -90,6 +90,7 @@ public class DistributedLockAspect {
         }
     }
 
+    // 构建锁 Key：lock:{resourceType}:{id}；id 优先取 SpEL 表达式，其次注解 key，最后参数 identityHashCode
     private String buildLockKey(ProceedingJoinPoint pjp, DistributedLock ann) {
         String type = ann.resourceType().isBlank() ? defaultType(pjp) : ann.resourceType();
         String idPart;
@@ -104,11 +105,13 @@ public class DistributedLockAspect {
         return CacheKeyConstants.LOCK + type + ":" + idPart;
     }
 
+    // 默认资源类型：类名#方法名（未显式指定 resourceType 时）
     private String defaultType(ProceedingJoinPoint pjp) {
         MethodSignature sig = (MethodSignature) pjp.getSignature();
         return sig.getMethod().getDeclaringClass().getSimpleName() + "#" + sig.getMethod().getName();
     }
 
+    // 解析 SpEL 表达式（如 #user.id）：将方法参数名绑定为上下文变量后求值
     private String parseSpel(String spel, ProceedingJoinPoint pjp) {
         MethodSignature sig = (MethodSignature) pjp.getSignature();
         Method method = sig.getMethod();

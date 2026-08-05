@@ -18,6 +18,13 @@ import java.util.List;
 @Component
 public class StpInterfaceImpl implements StpInterface {
 
+    /**
+     * 查询用户权限码列表（供 @SaCheckPermission 校验）。
+     *
+     * @param loginId   登录标识（用户 ID）
+     * @param loginType 登录类型（Sa-Token 多账号体系区分用）
+     * @return 权限码列表（如 system:user:create）
+     */
     @Override
     public List<String> getPermissionList(Object loginId, String loginType) {
         // TODO(T029): 通过 Dubbo 调用 system 服务的 UserRpcService.getPermissionList(Long)
@@ -25,6 +32,13 @@ public class StpInterfaceImpl implements StpInterface {
         return Collections.emptyList();
     }
 
+    /**
+     * 查询用户角色列表（供 @SaCheckRole 校验）。
+     *
+     * @param loginId   登录标识（用户 ID）
+     * @param loginType 登录类型（Sa-Token 多账号体系区分用）
+     * @return 角色编码列表（如 super_admin）
+     */
     @Override
     public List<String> getRoleList(Object loginId, String loginType) {
         // TODO(T029): 通过 Dubbo 调用 system 服务的 UserRpcService.getRoleList(Long)

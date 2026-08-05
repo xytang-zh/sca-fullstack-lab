@@ -64,6 +64,7 @@ public class DataPermissionInnerInterceptor implements InnerInterceptor {
         }
     }
 
+    // 从 MappedStatement 的 id（Mapper 接口全限定名.方法名）解析方法上的 @DataScope 注解
     private DataScope resolveDataScope(MappedStatement ms) {
         String id = ms.getId();
         int lastDot = id.lastIndexOf('.');

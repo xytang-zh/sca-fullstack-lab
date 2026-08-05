@@ -20,6 +20,11 @@ public class CorsConfig {
 
     private static final long PREFLIGHT_MAX_AGE_SECONDS = 3600L;
 
+    /**
+     * 注册全局 CORS 过滤器：显式白名单 + 允许凭证（必须用 Origin-Patterns）。
+     *
+     * @return CORS 过滤器
+     */
     @Bean
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration config = new CorsConfiguration();

@@ -394,5 +394,7 @@ docker compose -f docker/compose/docker-compose.infra.yml down
 | 08 | 学习路径与实施步骤 |
 | 09 | 项目需求文档 |
 | 10 | IDEA 与工程结构 |
+| 11 | 数据编码与乱码巡检 |
+| 12 | 注释规范 |
 
 > AI 在做架构决策前，建议先读相关设计文档了解上下文。

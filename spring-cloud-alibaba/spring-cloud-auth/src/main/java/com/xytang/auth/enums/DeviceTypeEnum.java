@@ -5,8 +5,12 @@ package com.xytang.auth.enums;
  */
 public enum DeviceTypeEnum {
 
+    /** 桌面端（浏览器访问管理后台） */
     PC,
+    /** 移动端 App */
     APP,
+    /** 移动端 Web（H5 浏览器） */
     WEB,
+    /** 小程序（微信/支付宝等） */
     MINI
 }

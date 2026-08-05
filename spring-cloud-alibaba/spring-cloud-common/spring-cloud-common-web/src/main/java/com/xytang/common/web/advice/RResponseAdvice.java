@@ -30,6 +30,15 @@ public class RResponseAdvice implements ResponseBodyAdvice<Object> {
         return true;
     }
 
+    /**
+     * 写入响应体前回调：仅对 R&lt;T&gt; 类型补 traceId，非 R 类型原样放行。
+     *
+     * <p>traceId 优先级：响应体已带 &gt; MDC（TraceIdFilter 写入）&gt;
+     * 请求头 X-Trace-Id（直连场景兜底）。
+     *
+     * @param body 原始响应体
+     * @return 补全 traceId 后的响应体
+     */
     @Override
     public Object beforeBodyWrite(Object body, MethodParameter returnType, MediaType contentType,
                                   Class converterType, ServerHttpRequest request,
@@ -49,6 +58,7 @@ public class RResponseAdvice implements ResponseBodyAdvice<Object> {
         return r;
     }
 
+    // 从请求头提取 traceId（仅 Servlet 环境可用，WebFlux 场景返回 null）
     private String extractHeader(ServerHttpRequest request, String headerName) {
         if (request instanceof ServletServerHttpRequest servletRequest) {
             HttpServletRequest req = servletRequest.getServletRequest();

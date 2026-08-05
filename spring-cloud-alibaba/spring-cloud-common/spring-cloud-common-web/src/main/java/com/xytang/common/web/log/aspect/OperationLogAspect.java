@@ -83,16 +83,19 @@ public class OperationLogAspect {
         }
     }
 
+    // 构建方法签名：类名.方法名，用于日志定位
     private String buildMethodSignature(ProceedingJoinPoint pjp) {
         MethodSignature sig = (MethodSignature) pjp.getSignature();
         return sig.getDeclaringType().getSimpleName() + "." + sig.getName();
     }
 
+    // 获取当前请求（非 Web 线程时为 null，如定时任务）
     private HttpServletRequest currentRequest() {
         ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         return attrs == null ? null : attrs.getRequest();
     }
 
+    // 解析客户端真实 IP：优先信任代理头 X-Forwarded-For，其次 X-Real-IP，最后 RemoteAddr
     private String resolveIp(HttpServletRequest req) {
         String ip = req.getHeader("X-Forwarded-For");
         if (ip != null && !ip.isBlank()) {
@@ -102,6 +105,7 @@ public class OperationLogAspect {
         return ip != null && !ip.isBlank() ? ip : req.getRemoteAddr();
     }
 
+    // 拼接方法入参为 JSON 数组字符串，单个参数超长截断，防止日志撑爆
     private String sanitizeArgs(Object[] args) {
         if (args == null || args.length == 0) {
             return "[]";
@@ -117,6 +121,7 @@ public class OperationLogAspect {
         return sb.append("]").toString();
     }
 
+    // 超长字符串截断并追加标记，避免响应/入参刷屏
     private String truncate(String s, int max) {
         if (s == null) {
             return "";
